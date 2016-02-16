@@ -5,5 +5,6 @@ int main(int argc, char** argv){
 	SgProject* project = frontend(argc, argv);
 
 	StringLiteralAnalysis analysis;
-
+	FunctionInfo initial;
+	analysis.traverseInputFiles(project, initial);
 }

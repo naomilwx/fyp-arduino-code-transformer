@@ -5,7 +5,8 @@ void StringValLattice::initialize() {
 }
 
 StringValLattice::StringValLattice(std::string str) {
-  this->possibleVals.insert(std::string(str));
+  std::string * s = new std::string(str);
+  this->possibleVals.insert(*s);
   this->level = StringValLattice::CONSTANT;
 }
 
@@ -58,8 +59,9 @@ std::string StringValLattice::str(std::string indent){
 	ostringstream out;
 	out << "[StringValLattice: level="<<getLevel();
 	out << indent << "possibleVals=[";
-	for(std::set<std::string> it=possibleVals.begin(); it!=possibleVals.end(); it++) {
-		out << *it << ";;";
+	for(std::set<std::string>::iterator it=possibleVals.begin(); it!=possibleVals.end(); it++) {
+		out << *it ;
+		out << ";;";
 	}
 	out << "]]";
 	return out.str();

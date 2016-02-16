@@ -3,7 +3,8 @@ BOOST_INSTALL=/home/ROSE/BoostInstallTree
 
 all: analyser
 
-analyser: testStringLiteralAnalysis.o stringLiteralAnalysis.o stringValLattice.o stringValPropagation.o -o analyser
+analyser: testStringLiteralAnalysis.o stringLiteralAnalysis.o stringValLattice.o stringValPropagation.o
+	g++ testStringLiteralAnalysis.o stringLiteralAnalysis.o stringValLattice.o stringValPropagation.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o analyser
 
 testStringLiteralAnalysis.o: testStringLiteralAnalysis.cpp
 	g++ -c testStringLiteralAnalysis.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
