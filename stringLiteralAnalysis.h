@@ -49,7 +49,7 @@ class FunctionInfo {
 
 class StringLiteralAnalysis: public AstTopDownProcessing<FunctionInfo> {
 	typedef std::map<std::string, StringLiteralInfo> LiteralMap;
-
+	//Note: the memory allocated to the StringLiteralInfo held by LiteralMap must be manually freed
 protected:
 	int strCount;
 	std::set<std::string> globalStrLiterals;
