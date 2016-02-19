@@ -27,8 +27,9 @@ class StringLiteralInfo {
 
 	std::string getTag() const;
 
-	int getFuncOccuranceNum();
-	
+	int getFuncOccuranceNum() const;
+	std::string getSummaryPrintout() const;
+
 	protected:
 	bool addFuncOccurance(SgFunctionDeclaration * func);
 
@@ -54,19 +55,14 @@ protected:
 	std::set<std::string> globalStrLiterals;
 	LiteralMap strLiterals;
 public:
+	StringLiteralAnalysis(): strCount(0), globalStrLiterals(), strLiterals(){
+	}
 	virtual FunctionInfo evaluateInheritedAttribute(SgNode *node, FunctionInfo info);
 
 	std::string getStringLiteralLabel(std::string literal);
+	std::set<std::string> getStringLiterals();
 	int getNumberOfStringLiterals();
+	bool isGlobalStringLiteral(std::string str);
+	StringLiteralInfo getStringLiteralInfo(std::string literal);
+	std::string getAnalysisPrintout();
 };
-
-//class StringLiteralAnalysis : public AstSimpleProcessing {
-//protected:
-//	int strCount;
-//	std::set<std::string> globalLiterals;
-//	std::map<std::string, std::string> strLiterals;
-//public:
-//	void visit(SgNode *n);
-//	std::string getStringLiteralLabel(std::string literal);
-//	int StringLiteralAnalysis::getNumberOfStringLiterals();
-//};
