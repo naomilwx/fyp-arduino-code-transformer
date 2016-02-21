@@ -16,6 +16,8 @@ class StringValPropagation : public IntraFWDataflow {
     bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
     boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+
+    StringValLattice *getValLattice(SgNode *n, SgNode *var);
 };
 
 class StringValPropagationTransfer : public VariableStateTransfer<StringValLattice> {

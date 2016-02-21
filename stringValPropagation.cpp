@@ -25,3 +25,10 @@ bool StringValPropagation::transfer(const Function& func, const DataflowNode& n,
 boost::shared_ptr<IntraDFTransferVisitor> StringValPropagation::getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo){
 	return boost::shared_ptr<IntraDFTransferVisitor>(new StringValPropagationTransfer(func, n, state, dfInfo));
 }
+
+
+StringValLattice *StringValPropagation::getValLattice(SgNode *n, SgNode *var){
+	NodeState *state = NodeState::getNodeState(n, 0);
+	FiniteVarsExprsProductLattice *lat = dynamic_cast<FiniteVarsExprsProductLattice *>(*(state->getLatticeBelow(this).begin()));
+	return dynamic_cast<StringValLattice *>(lat->getVarLattice(varID(var)));
+}
