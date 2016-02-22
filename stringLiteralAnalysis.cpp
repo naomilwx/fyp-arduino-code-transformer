@@ -96,25 +96,25 @@ StringLiteralAnalysisVisitor::StringLiteralAnalysisVisitor(StringLiteralAnalysis
 
 void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 	SgStatement *p = stmtStack.top();
-	printf("wrapping stmt: %s\n", p->class_name().c_str());
+//	printf("wrapping stmt: %s\n", p->class_name().c_str());
 
 	std::string item = node->get_value();
 	if(analyser->strLiterals.find(item) == analyser->strLiterals.end()){
-				//First time string literal is found
+		//First time string literal is found
 		analyser->strCount++;
 		StringLiteralInfo *t = new StringLiteralInfo(analyser->strCount);
 		analyser->strLiterals[item] = *t;
 	}
 	StringLiteralInfo &sInfo = analyser->strLiterals[item];
-	int numOcc = 0;
+	int numFuncOcc = 0;
 	if(!declStack.empty()){
 		SgFunctionDeclaration *decl = declStack.top();
-		printf(" function name %s\n", decl->get_name().getString().c_str());
+//		printf(" function name %s\n", decl->get_name().getString().c_str());
 		sInfo.addFuncOccurance(decl, p);
-		numOcc = sInfo.getFuncOccuranceNum();
+		numFuncOcc = sInfo.getFuncOccuranceNum();
 	}
 
-	if(numOcc >1 || numOcc == 0) {
+	if(numFuncOcc >1 || numFuncOcc == 0) {
 		analyser->globalStrLiterals.insert(item);
 	}
 }
@@ -140,7 +140,3 @@ void StringLiteralAnalysisVisitor::postOrderVisit(SgNode *node){
 		stmtStack.pop();
 	}
 }
-
-//StringLiteralAnalysisVisitor::~StringLiteralAnalysisVisitor(){
-//	printf("destroyed visitor\n");
-//}

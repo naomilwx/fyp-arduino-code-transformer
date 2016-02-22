@@ -13,8 +13,11 @@ bool StringValPropagationTransfer::finish() {
 	return modified;
 }
 
+//StringValPropagation Implementation
+
 void StringValPropagation::genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts) {
 	std::map<varID, Lattice*> m;
+	printf("generating init...\n");
 	initLattices.push_back(new FiniteVarsExprsProductLattice((Lattice *) new StringValLattice(), m, (Lattice *)NULL, NULL, n, state));
 }
 

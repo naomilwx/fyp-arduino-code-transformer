@@ -10,7 +10,6 @@ int main(int argc, char** argv){
 
 
 	printf("begin analysis... \n");
-	initAnalysis(project);
 	StringLiteralAnalysis analysis(project);
 
 	analysis.runAnalysis();
