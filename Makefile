@@ -10,8 +10,8 @@ ARDUINO_CORE=$(ARDUINO)/arduino/avr/cores/arduino
 GPP=g++ -std=c++11
 all: analyser
 
-testprop: testStringValPropagation.o stringValLattice.o stringValPropagation.o stringLiteralAnalysis.o
-	$(GPP) testStringValPropagation.o stringValPropagation.o stringValLattice.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o testprop
+testprop: testStringValPropagation.o ctUtils.o stringValLattice.o stringValPropagation.o stringLiteralAnalysis.o
+	$(GPP) testStringValPropagation.o ctUtils.o stringValPropagation.o stringValLattice.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o testprop
 	
 analyser: testStringLiteralAnalysis.o stringLiteralAnalysis.o 
 	$(GPP) testStringLiteralAnalysis.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o analyser
@@ -33,6 +33,9 @@ stringValPropagation.o: stringValPropagation.cpp stringValLattice.h
 
 stringLivenessAnalysis.o: stringLivenessAnalysis.cpp stringLivenessAnalysis.h
 	$(GPP) -c stringLivenessAnalysis.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
+	
+ctUtils.o: ctUtils.cpp ctUtils.h
+	$(GPP) -c ctUtils.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 	
 check: analyser
 	./analyser -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)

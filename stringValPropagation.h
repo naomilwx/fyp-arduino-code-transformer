@@ -10,7 +10,6 @@
 class StringValPropagation : public IntraFWDataflow {
 	public:
 	StringValPropagation(){
-		printf("init...\n");
 	}
 
 	void genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
