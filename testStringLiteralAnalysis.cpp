@@ -1,4 +1,5 @@
 #include "stringLiteralAnalysis.h"
+#include "analysisCommon.h"
 
 int main(int argc, char** argv){
 	// Build the AST used by ROSE
@@ -9,10 +10,10 @@ int main(int argc, char** argv){
 
 
 	printf("begin analysis... \n");
+	initAnalysis(project);
 	StringLiteralAnalysis analysis;
-	FunctionInfo initial;
 
-	analysis.traverseInputFiles(project, initial);
+	analysis.runAnalysis();
 	printf("%s\n", analysis.getAnalysisPrintout().c_str());
 
 	return 0;

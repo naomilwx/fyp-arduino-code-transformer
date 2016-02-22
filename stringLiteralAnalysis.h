@@ -13,9 +13,11 @@ template < typename T > std::string to_string( const T& n ) {
 
 class StringLiteralInfo {
 	typedef std::set<SgFunctionDeclaration *> FunctionSet;
+	typedef std::map<SgFunctionDeclaration *, SgStatement *> FunctionMap;
 
 	std::string tag;
 	FunctionSet funcOccurances;
+
 
 	public:
 	StringLiteralInfo(): funcOccurances(), tag() {
@@ -31,23 +33,24 @@ class StringLiteralInfo {
 	std::string getSummaryPrintout() const;
 
 	protected:
-	bool addFuncOccurance(SgFunctionDeclaration * func);
+	bool addFuncOccurance(SgFunctionDeclaration * func, SgStatement* stmt);
 
 	friend class StringLiteralAnalysis;
+	friend class StringLiteralAnalysisVisitor;
 };
 
-class FunctionInfo {
-	public:
-		std::string functionName;
-		SgFunctionDeclaration *declaration;
-		FunctionInfo(): functionName(), declaration(){};
-		FunctionInfo(SgFunctionDeclaration *func){
-			declaration = func;
-			functionName = func->get_name().getString();
-		};
-};
+//class FunctionInfo {
+//	public:
+//		std::string functionName;
+//		SgFunctionDeclaration *declaration;
+//		FunctionInfo(): functionName(), declaration(){};
+//		FunctionInfo(SgFunctionDeclaration *func){
+//			declaration = func;
+//			functionName = func->get_name().getString();
+//		};
+//};
 
-class StringLiteralAnalysis: public AstTopDownProcessing<FunctionInfo> {
+class StringLiteralAnalysis {
 	typedef std::map<std::string, StringLiteralInfo> LiteralMap;
 	//Note: the memory allocated to the StringLiteralInfo held by LiteralMap must be manually freed
 protected:
@@ -57,7 +60,7 @@ protected:
 public:
 	StringLiteralAnalysis(): strCount(0), globalStrLiterals(), strLiterals(){
 	}
-	virtual FunctionInfo evaluateInheritedAttribute(SgNode *node, FunctionInfo info);
+	void runAnalysis();
 
 	std::string getStringLiteralLabel(std::string literal);
 	std::set<std::string> getStringLiterals();
@@ -65,4 +68,20 @@ public:
 	bool isGlobalStringLiteral(std::string str);
 	StringLiteralInfo getStringLiteralInfo(std::string literal);
 	std::string getAnalysisPrintout();
+
+	friend class StringLiteralAnalysisVisitor;
+};
+
+class StringLiteralAnalysisVisitor: public AstPrePostProcessing {
+protected:
+	StringLiteralAnalysis *analyser;
+	SgFunctionDeclaration *decl;
+//	SgStatement* stmt;
+	std::stack<SgStatement *> stmtStack;
+public:
+	StringLiteralAnalysisVisitor(StringLiteralAnalysis *a, SgFunctionDeclaration* f);
+//	~StringLiteralAnalysisVisitor();
+	void visitStringVal(SgStringVal *node);
+	void preOrderVisit(SgNode *node);
+	void postOrderVisit(SgNode *node);
 };

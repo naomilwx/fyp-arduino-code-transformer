@@ -1,6 +1,9 @@
 #include "stringLiteralAnalysis.h"
+#include "functionState.h"
+#include <algorithm>
+#include <functional>
 
-bool StringLiteralInfo::addFuncOccurance(SgFunctionDeclaration * func) {
+bool StringLiteralInfo::addFuncOccurance(SgFunctionDeclaration * func, SgStatement *stmt) {
 	if(func != NULL && funcOccurances.find(func) == funcOccurances.end()){
 		funcOccurances.insert(func);
 		return true;
@@ -31,30 +34,22 @@ std::string StringLiteralInfo::getSummaryPrintout() const{
 
 //Implementation of analysis
 
-FunctionInfo StringLiteralAnalysis::evaluateInheritedAttribute(SgNode *node, FunctionInfo info) {
-	SgFunctionDeclaration *dec = dynamic_cast<SgFunctionDeclaration *>(node);
-	if(dec != NULL) {
-		return FunctionInfo(dec);
-	}
-
-	SgStringVal* literal = dynamic_cast<SgStringVal*>(node);
-	if(literal != NULL) {
-		std::string item = literal->get_value();
-		if(strLiterals.find(item) == strLiterals.end()){
-			//First time string literal is found
-			strCount++;
-			StringLiteralInfo *t = new StringLiteralInfo(strCount);
-			strLiterals[item] = *t;
+void StringLiteralAnalysis::runAnalysis() {
+	set<FunctionState*>& funcStates = FunctionState::getAllDefinedFuncs();
+	for(FunctionState *fs : funcStates){
+		SgFunctionDeclaration* decl = fs->func.get_declaration();
+		if(decl->get_definition()){
+			printf("function name %s\n", decl->get_name().getString().c_str());
+			StringLiteralAnalysisVisitor visitor(this, decl);
+			visitor.traverse(decl->get_definition());
+//			SgBasicBlock *funcBlock = decl->get_definition()->get_body();
+//			for(SgStatement *stmt: funcBlock->get_statements()){
+//				StringLiteralAnalysisVisitor visitor(this, decl, stmt);
+//				visitor.traverse(stmt, preorder);
+//			}
 		}
-		StringLiteralInfo &sInfo = strLiterals[item];
-		sInfo.addFuncOccurance(info.declaration);
-		int numOcc = sInfo.getFuncOccuranceNum();
-		if(numOcc >1 || numOcc == 0) {
-			globalStrLiterals.insert(item);
-		}
-	}
-	return info;
 
+	}
 }
 
 std::string StringLiteralAnalysis::getStringLiteralLabel(std::string literal){
@@ -102,3 +97,47 @@ std::string StringLiteralAnalysis::getAnalysisPrintout(){
 	out << "] \n";
 	return out.str();
 }
+
+
+StringLiteralAnalysisVisitor::StringLiteralAnalysisVisitor(StringLiteralAnalysis *analysis, SgFunctionDeclaration* func){
+	this->analyser = analysis;
+	this->decl = func;
+}
+
+void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
+	SgStatement *p = stmtStack.top();
+	printf("wrapping stmt: %s\n", p->class_name().c_str());
+	std::string item = node->get_value();
+	if(analyser->strLiterals.find(item) == analyser->strLiterals.end()){
+				//First time string literal is found
+		analyser->strCount++;
+		StringLiteralInfo *t = new StringLiteralInfo(analyser->strCount);
+		analyser->strLiterals[item] = *t;
+	}
+	StringLiteralInfo &sInfo = analyser->strLiterals[item];
+	sInfo.addFuncOccurance(decl, p);
+	int numOcc = sInfo.getFuncOccuranceNum();
+	if(numOcc >1 || numOcc == 0) {
+		analyser->globalStrLiterals.insert(item);
+	}
+}
+
+void StringLiteralAnalysisVisitor::preOrderVisit(SgNode *node){
+	if(isSgStatement(node)) {
+		stmtStack.push(isSgStatement(node));
+	}else if(isSgStringVal(node)){
+		visitStringVal(isSgStringVal(node));
+	}
+	printf("start of visit: %s\n", node->class_name().c_str());
+}
+
+void StringLiteralAnalysisVisitor::postOrderVisit(SgNode *node){
+	if(isSgStatement(node)) {
+			stmtStack.pop();
+	}
+	printf("end of visit: %s\n", node->class_name().c_str());
+}
+
+//StringLiteralAnalysisVisitor::~StringLiteralAnalysisVisitor(){
+//	printf("destroyed visitor\n");
+//}
