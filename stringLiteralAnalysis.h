@@ -13,10 +13,11 @@ template < typename T > std::string to_string( const T& n ) {
 
 class StringLiteralInfo {
 	typedef std::set<SgFunctionDeclaration *> FunctionSet;
-	typedef std::map<SgFunctionDeclaration *, SgStatement *> FunctionMap;
+	typedef  std::vector<SgStatement *> StatementList;
+	typedef std::map<SgFunctionDeclaration *, StatementList *> FunctionMap;
 
 	std::string tag;
-	FunctionSet funcOccurances;
+	FunctionMap funcOccurances;
 
 
 	public:
@@ -39,17 +40,6 @@ class StringLiteralInfo {
 	friend class StringLiteralAnalysisVisitor;
 };
 
-//class FunctionInfo {
-//	public:
-//		std::string functionName;
-//		SgFunctionDeclaration *declaration;
-//		FunctionInfo(): functionName(), declaration(){};
-//		FunctionInfo(SgFunctionDeclaration *func){
-//			declaration = func;
-//			functionName = func->get_name().getString();
-//		};
-//};
-
 class StringLiteralAnalysis {
 	typedef std::map<std::string, StringLiteralInfo> LiteralMap;
 	//Note: the memory allocated to the StringLiteralInfo held by LiteralMap must be manually freed
@@ -57,8 +47,10 @@ protected:
 	int strCount;
 	std::set<std::string> globalStrLiterals;
 	LiteralMap strLiterals;
+	SgProject *project;
 public:
-	StringLiteralAnalysis(): strCount(0), globalStrLiterals(), strLiterals(){
+	StringLiteralAnalysis(SgProject *project): strCount(0), globalStrLiterals(), strLiterals(){
+		this->project = project;
 	}
 	void runAnalysis();
 
@@ -75,12 +67,10 @@ public:
 class StringLiteralAnalysisVisitor: public AstPrePostProcessing {
 protected:
 	StringLiteralAnalysis *analyser;
-	SgFunctionDeclaration *decl;
-//	SgStatement* stmt;
+	std::stack<SgFunctionDeclaration *> declStack;
 	std::stack<SgStatement *> stmtStack;
 public:
-	StringLiteralAnalysisVisitor(StringLiteralAnalysis *a, SgFunctionDeclaration* f);
-//	~StringLiteralAnalysisVisitor();
+	StringLiteralAnalysisVisitor(StringLiteralAnalysis *a);
 	void visitStringVal(SgStringVal *node);
 	void preOrderVisit(SgNode *node);
 	void postOrderVisit(SgNode *node);

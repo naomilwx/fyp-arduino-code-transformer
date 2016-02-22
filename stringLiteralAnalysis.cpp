@@ -4,9 +4,13 @@
 #include <functional>
 
 bool StringLiteralInfo::addFuncOccurance(SgFunctionDeclaration * func, SgStatement *stmt) {
-	if(func != NULL && funcOccurances.find(func) == funcOccurances.end()){
-		funcOccurances.insert(func);
+	if(funcOccurances.find(func) == funcOccurances.end()){
+		StatementList *lst = new StatementList();
+		lst->push_back(stmt);
+		funcOccurances[func] = lst;
 		return true;
+	} else {
+		funcOccurances[func]->push_back(stmt);
 	}
 	return false;
 }
@@ -24,8 +28,8 @@ std::string StringLiteralInfo::getSummaryPrintout() const{
 	out << "tag: " << getTag() << "\n";
 	out<< "num of functions :"<< to_string(this->getFuncOccuranceNum()) << "\n";
 	out << "func occurs=[";
-	for(FunctionSet::iterator it = funcOccurances.begin(); it!=funcOccurances.end(); it++){
-		out << (*it)->get_name().getString();
+	for(auto const& item:  funcOccurances){
+		out << item.first->get_name().getString();
 		out << ";;";
 	}
 	out << "] \n";
@@ -35,21 +39,8 @@ std::string StringLiteralInfo::getSummaryPrintout() const{
 //Implementation of analysis
 
 void StringLiteralAnalysis::runAnalysis() {
-	set<FunctionState*>& funcStates = FunctionState::getAllDefinedFuncs();
-	for(FunctionState *fs : funcStates){
-		SgFunctionDeclaration* decl = fs->func.get_declaration();
-		if(decl->get_definition()){
-			printf("function name %s\n", decl->get_name().getString().c_str());
-			StringLiteralAnalysisVisitor visitor(this, decl);
-			visitor.traverse(decl->get_definition());
-//			SgBasicBlock *funcBlock = decl->get_definition()->get_body();
-//			for(SgStatement *stmt: funcBlock->get_statements()){
-//				StringLiteralAnalysisVisitor visitor(this, decl, stmt);
-//				visitor.traverse(stmt, preorder);
-//			}
-		}
-
-	}
+	StringLiteralAnalysisVisitor visitor(this);
+	visitor.traverseInputFiles(project);
 }
 
 std::string StringLiteralAnalysis::getStringLiteralLabel(std::string literal){
@@ -99,14 +90,14 @@ std::string StringLiteralAnalysis::getAnalysisPrintout(){
 }
 
 
-StringLiteralAnalysisVisitor::StringLiteralAnalysisVisitor(StringLiteralAnalysis *analysis, SgFunctionDeclaration* func){
+StringLiteralAnalysisVisitor::StringLiteralAnalysisVisitor(StringLiteralAnalysis *analysis){
 	this->analyser = analysis;
-	this->decl = func;
 }
 
 void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 	SgStatement *p = stmtStack.top();
 	printf("wrapping stmt: %s\n", p->class_name().c_str());
+
 	std::string item = node->get_value();
 	if(analyser->strLiterals.find(item) == analyser->strLiterals.end()){
 				//First time string literal is found
@@ -115,27 +106,39 @@ void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 		analyser->strLiterals[item] = *t;
 	}
 	StringLiteralInfo &sInfo = analyser->strLiterals[item];
-	sInfo.addFuncOccurance(decl, p);
-	int numOcc = sInfo.getFuncOccuranceNum();
+	int numOcc = 0;
+	if(!declStack.empty()){
+		SgFunctionDeclaration *decl = declStack.top();
+		printf(" function name %s\n", decl->get_name().getString().c_str());
+		sInfo.addFuncOccurance(decl, p);
+		numOcc = sInfo.getFuncOccuranceNum();
+	}
+
 	if(numOcc >1 || numOcc == 0) {
 		analyser->globalStrLiterals.insert(item);
 	}
 }
 
 void StringLiteralAnalysisVisitor::preOrderVisit(SgNode *node){
+	if(isSgFunctionDeclaration(node)){
+			declStack.push(isSgFunctionDeclaration(node));
+			printf("function name %s\n", isSgFunctionDeclaration(node)->get_name().getString().c_str());
+	}
 	if(isSgStatement(node)) {
 		stmtStack.push(isSgStatement(node));
 	}else if(isSgStringVal(node)){
 		visitStringVal(isSgStringVal(node));
 	}
-	printf("start of visit: %s\n", node->class_name().c_str());
 }
 
 void StringLiteralAnalysisVisitor::postOrderVisit(SgNode *node){
-	if(isSgStatement(node)) {
-			stmtStack.pop();
+	if(isSgFunctionDeclaration(node)){
+			declStack.pop();
+			printf("popped function name %s\n", isSgFunctionDeclaration(node)->get_name().getString().c_str());
 	}
-	printf("end of visit: %s\n", node->class_name().c_str());
+	if(isSgStatement(node)) {
+		stmtStack.pop();
+	}
 }
 
 //StringLiteralAnalysisVisitor::~StringLiteralAnalysisVisitor(){

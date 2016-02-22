@@ -11,7 +11,7 @@ int main(int argc, char** argv){
 
 	printf("begin analysis... \n");
 	initAnalysis(project);
-	StringLiteralAnalysis analysis;
+	StringLiteralAnalysis analysis(project);
 
 	analysis.runAnalysis();
 	printf("%s\n", analysis.getAnalysisPrintout().c_str());
