@@ -40,8 +40,9 @@ bool StringValLattice::setPossibleVals(std::set<std::string> vals) {
 
 bool StringValLattice::addPossibleVal(std::string val) {
 	if(possibleVals.find(val) == possibleVals.end()) {
+		printf("found string: %s\n",val.c_str());
 		possibleVals.insert(val);
-		if(possibleVals.size() == 1) {
+		if(level != StringValLattice::TOP && possibleVals.size() == 1) {
 			level = StringValLattice::CONSTANT;
 		} else {
 			level = StringValLattice::MULTIPLE;
@@ -70,7 +71,7 @@ void StringValLattice::copy(Lattice* lat) {
 
 std::string StringValLattice::str(std::string indent){
 	ostringstream out;
-	out << "[StringValLattice: level="<<getLevel();
+	out << "[StringValLattice: level="<<getLevel() <<" , ";
 	out << indent << "possibleVals=[";
 	for(std::set<std::string>::iterator it=possibleVals.begin(); it!=possibleVals.end(); it++) {
 		out << *it ;

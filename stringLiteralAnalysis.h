@@ -12,7 +12,7 @@ template < typename T > std::string to_string( const T& n ) {
  }
 
 class StringLiteralInfo {
-	typedef std::set<SgFunctionDeclaration *> FunctionSet;
+//	typedef std::set<SgFunctionDeclaration *> FunctionSet;
 	typedef  std::vector<SgStatement *> StatementList;
 	typedef std::map<SgFunctionDeclaration *, StatementList *> FunctionMap;
 

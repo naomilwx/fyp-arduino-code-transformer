@@ -25,5 +25,6 @@ class StringValPropagationTransfer : public VariableStateTransfer<StringValLatti
 public:
 	StringValPropagationTransfer(const Function &func, const DataflowNode &n, NodeState &state, const std::vector<Lattice *>& dfInfo);
 	void visit(SgStringVal *n);
+	void visit(SgVarRefExp *n);
 	bool finish();
 };

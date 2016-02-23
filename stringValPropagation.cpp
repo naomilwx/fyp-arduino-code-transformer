@@ -5,9 +5,14 @@ StringValPropagationTransfer::StringValPropagationTransfer(const Function &func,
 }
 
 void StringValPropagationTransfer::visit(SgStringVal *n) {
-	printf("visited...string...\n");
+//	printf("visited...string...\n");
 	StringValLattice* lattice = getLattice(n);
 	lattice->addPossibleVal(n->get_value());
+}
+
+void StringValPropagationTransfer::visit(SgVarRefExp *n) {
+	StringValLattice* lattice = getLattice(n);
+	lattice->setLevel(StringValLattice::TOP);
 }
 
 bool StringValPropagationTransfer::finish() {

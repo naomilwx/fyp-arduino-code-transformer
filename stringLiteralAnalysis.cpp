@@ -90,7 +90,7 @@ std::string StringLiteralAnalysis::getAnalysisPrintout(){
 }
 
 
-StringLiteralAnalysisVisitor::StringLiteralAnalysisVisitor(StringLiteralAnalysis *analysis){
+StringLiteralAnalysisVisitor::StringLiteralAnalysisVisitor(StringLiteralAnalysis *analysis): declStack(), stmtStack(){
 	this->analyser = analysis;
 }
 
