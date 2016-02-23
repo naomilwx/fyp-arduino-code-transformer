@@ -33,6 +33,9 @@ stringValPropagation.o: stringValPropagation.cpp stringValLattice.h
 
 stringLivenessAnalysis.o: stringLivenessAnalysis.cpp stringLivenessAnalysis.h
 	$(GPP) -c stringLivenessAnalysis.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
+
+liveStringsLattice.o: liveStringsLattice.cpp liveStringsLattice.h
+	$(GPP) -c liveStringsLattice.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 	
 ctUtils.o: ctUtils.cpp ctUtils.h
 	$(GPP) -c ctUtils.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system

@@ -4,7 +4,6 @@
 
 #define STRING_LITERAL_PREFIX "const_string_"
 
-
 template < typename T > std::string to_string( const T& n ) {
     std::ostringstream stm ;
     stm << n ;
@@ -40,8 +39,9 @@ class StringLiteralInfo {
 	friend class StringLiteralAnalysisVisitor;
 };
 
+typedef std::map<std::string, StringLiteralInfo> LiteralMap;
+
 class StringLiteralAnalysis {
-	typedef std::map<std::string, StringLiteralInfo> LiteralMap;
 	//Note: the memory allocated to the StringLiteralInfo held by LiteralMap must be manually freed
 protected:
 	int strCount;
