@@ -17,3 +17,8 @@ protected:
 public:
 	LiveStringsLattice *getLiveStrings() const;
 };
+
+
+//class StringLivenessColouring : public IntraFWDataflow {
+//
+//};

@@ -17,8 +17,8 @@ class StringValLattice: public FiniteLattice {
   
   public:
 	StringValLattice(): level(BOTTOM), possibleVals() {}
-	StringValLattice(const char *strVal);
-	StringValLattice(std::string);
+//	StringValLattice(const char *strVal);
+	StringValLattice(const std::string& str);
 	StringValLattice(const StringValLattice &lat);
 
 	ValLevel getLevel() const;
@@ -26,7 +26,7 @@ class StringValLattice: public FiniteLattice {
 
 	std::set<std::string> getPossibleVals() const;
 	bool setPossibleVals(std::set<std::string> vals);
-	bool addPossibleVal(std::string val);
+	bool addPossibleVal(const std::string& val);
 	
 	bool setBottom();
 

@@ -11,7 +11,6 @@ template < typename T > std::string to_string( const T& n ) {
  }
 
 class StringLiteralInfo {
-//	typedef std::set<SgFunctionDeclaration *> FunctionSet;
 	typedef  std::vector<SgStatement *> StatementList;
 	typedef std::map<SgFunctionDeclaration *, StatementList *> FunctionMap;
 
@@ -54,11 +53,11 @@ public:
 	}
 	void runAnalysis();
 
-	std::string getStringLiteralLabel(std::string literal);
+	std::string getStringLiteralLabel(const std::string& literal);
 	std::set<std::string> getStringLiterals();
 	int getNumberOfStringLiterals();
-	bool isGlobalStringLiteral(std::string str);
-	StringLiteralInfo getStringLiteralInfo(std::string literal);
+	bool isGlobalStringLiteral(const std::string& str);
+	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);
 	std::string getAnalysisPrintout();
 
 	friend class StringLiteralAnalysisVisitor;

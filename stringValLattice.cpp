@@ -4,14 +4,13 @@ void StringValLattice::initialize() {
 
 }
 
-StringValLattice::StringValLattice(std::string str) {
-  std::string * s = new std::string(str);
-  this->possibleVals.insert(*s);
+StringValLattice::StringValLattice(const std::string& str) {
+  this->possibleVals.insert(str);
   this->level = StringValLattice::CONSTANT;
 }
 
-StringValLattice::StringValLattice(const char* str): StringValLattice(std::string(str)) {
-}
+//StringValLattice::StringValLattice(const char* str): StringValLattice(std::string(str)) {
+//}
 
 StringValLattice::StringValLattice(const StringValLattice &lat) {
   this->possibleVals = lat.possibleVals;
@@ -38,7 +37,7 @@ bool StringValLattice::setPossibleVals(std::set<std::string> vals) {
   return diff;
 }
 
-bool StringValLattice::addPossibleVal(std::string val) {
+bool StringValLattice::addPossibleVal(const std::string& val) {
 	if(possibleVals.find(val) == possibleVals.end()) {
 		printf("found string: %s\n",val.c_str());
 		possibleVals.insert(val);

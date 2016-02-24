@@ -43,7 +43,7 @@ void StringLiteralAnalysis::runAnalysis() {
 	visitor.traverseInputFiles(project);
 }
 
-std::string StringLiteralAnalysis::getStringLiteralLabel(std::string literal){
+std::string StringLiteralAnalysis::getStringLiteralLabel(const std::string& literal){
 	if(strLiterals.find(literal) != strLiterals.end()) {
 		return strLiterals[literal].getTag();
 	}
@@ -62,14 +62,14 @@ std::set<std::string> StringLiteralAnalysis::getStringLiterals() {
 	return strSet;
 }
 
-StringLiteralInfo StringLiteralAnalysis::getStringLiteralInfo(std::string literal) {
+StringLiteralInfo StringLiteralAnalysis::getStringLiteralInfo(const std::string&  literal) {
 	if(strLiterals.find(literal) != strLiterals.end()) {
 		return strLiterals[literal];
 	}
 	return StringLiteralInfo();
 }
 
-bool StringLiteralAnalysis::isGlobalStringLiteral(std::string str) {
+bool StringLiteralAnalysis::isGlobalStringLiteral(const std::string& str) {
 	return globalStrLiterals.find(str) != globalStrLiterals.end();
 }
 
@@ -98,7 +98,7 @@ void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 	SgStatement *p = stmtStack.top();
 //	printf("wrapping stmt: %s\n", p->class_name().c_str());
 
-	std::string item = node->get_value();
+	const std::string& item = node->get_value();
 	if(analyser->strLiterals.find(item) == analyser->strLiterals.end()){
 		//First time string literal is found
 		analyser->strCount++;

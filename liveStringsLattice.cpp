@@ -1,6 +1,6 @@
 #include "liveStringsLattice.h"
 
-bool LiveStringsLattice::addString(const std::string str){
+bool LiveStringsLattice::addString(const std::string& str){
 	if(liveStrings.find(str) != liveStrings.end()){
 		liveStrings.insert(str);
 		return true;
@@ -8,7 +8,7 @@ bool LiveStringsLattice::addString(const std::string str){
 	return false;
 }
 
-bool LiveStringsLattice::remString(const std::string str){
+bool LiveStringsLattice::remString(const std::string& str){
 	if(liveStrings.find(str) != liveStrings.end()){
 		liveStrings.erase(str);
 		return true;

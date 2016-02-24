@@ -8,15 +8,15 @@ protected:
 
 public:
 	LiveStringsLattice(): liveStrings(){}
-	LiveStringsLattice(const std::string s): liveStrings(s){}
+	LiveStringsLattice(const std::string& s): liveStrings(s){}
 	LiveStringsLattice(const std::set<std::string> strSet): liveStrings(strSet){}
 	LiveStringsLattice(const LiveStringsLattice &lat) {
 	  this->liveStrings = lat.liveStrings;
 	}
 	void initialize() {}
 
-	bool addString(const std::string str);
-	bool remString(const std::string str);
+	bool addString(const std::string& str);
+	bool remString(const std::string& str);
 
 
 	std::string str(std::string indent="");
