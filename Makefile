@@ -47,4 +47,4 @@ checkprop: testprop
 	./testprop -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
 	
 clean:
-	rm *o analyser *.dot
+	rm *o analyser testprop

@@ -22,6 +22,7 @@ FunctionSet DefinedFunctionCollector::getDefinedFuncs() const {
 void DefinedFunctionCollector::visit(SgNode *n){
 	SgFunctionDeclaration *func = isSgFunctionDeclaration(n);
 	if(func != NULL){
+//		printf("function ptr %p\n", func);
 		if(func->get_definition() != NULL) {
 			definedFuncs.insert(func);
 		}

@@ -10,9 +10,11 @@ template < typename T > std::string to_string( const T& n ) {
     return stm.str() ;
  }
 
+typedef std::set<std::string> StringSet;
+
 class StringLiteralInfo {
 	typedef  std::vector<SgStatement *> StatementList;
-	typedef std::map<SgFunctionDeclaration *, StatementList *> FunctionMap;
+	typedef std::map<SgFunctionDeclaration *, StatementList> FunctionMap;
 
 	std::string tag;
 	FunctionMap funcOccurances;
@@ -39,16 +41,19 @@ class StringLiteralInfo {
 };
 
 typedef std::map<std::string, StringLiteralInfo> LiteralMap;
+typedef std::map<SgStatement *, StringSet> StatementLiteralMap;
 
 class StringLiteralAnalysis {
-	//Note: the memory allocated to the StringLiteralInfo held by LiteralMap must be manually freed
 protected:
 	int strCount;
-	std::set<std::string> globalStrLiterals;
+	StringSet globalStrLiterals;
 	LiteralMap strLiterals;
+	StatementLiteralMap slMap;
 	SgProject *project;
+
+
 public:
-	StringLiteralAnalysis(SgProject *project): strCount(0), globalStrLiterals(), strLiterals(){
+	StringLiteralAnalysis(SgProject *project): strCount(0), globalStrLiterals(), strLiterals(), slMap(){
 		this->project = project;
 	}
 	void runAnalysis();

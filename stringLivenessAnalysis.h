@@ -19,6 +19,6 @@ public:
 };
 
 
-//class StringLivenessColouring : public IntraFWDataflow {
-//
-//};
+class StringLivenessColouring : public IntraFWDataflow {
+
+};

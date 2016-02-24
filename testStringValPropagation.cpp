@@ -65,7 +65,7 @@ int main( int argc, char * argv[] ) {
 
   StringValPropagation strValProp;
 
-  strValProp.filter = gfilter;
+//  strValProp.filter = gfilter;
   ContextInsensitiveInterProceduralDataflow inter(&strValProp, graph);
   inter.runAnalysis();
 

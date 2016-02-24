@@ -4,15 +4,12 @@
 #include <functional>
 
 bool StringLiteralInfo::addFuncOccurance(SgFunctionDeclaration * func, SgStatement *stmt) {
+	bool changed = false;
 	if(funcOccurances.find(func) == funcOccurances.end()){
-		StatementList *lst = new StatementList();
-		lst->push_back(stmt);
-		funcOccurances[func] = lst;
-		return true;
-	} else {
-		funcOccurances[func]->push_back(stmt);
+		changed = true;
 	}
-	return false;
+	funcOccurances[func].push_back(stmt);
+	return changed;
 }
 
 std::string StringLiteralInfo::getTag() const {
@@ -102,8 +99,8 @@ void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 	if(analyser->strLiterals.find(item) == analyser->strLiterals.end()){
 		//First time string literal is found
 		analyser->strCount++;
-		StringLiteralInfo *t = new StringLiteralInfo(analyser->strCount);
-		analyser->strLiterals[item] = *t;
+		StringLiteralInfo t(analyser->strCount);
+		analyser->strLiterals[item] = t;
 	}
 	StringLiteralInfo &sInfo = analyser->strLiterals[item];
 	int numFuncOcc = 0;
@@ -117,6 +114,8 @@ void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 	if(numFuncOcc >1 || numFuncOcc == 0) {
 		analyser->globalStrLiterals.insert(item);
 	}
+
+	analyser->slMap[p].insert(item);
 }
 
 void StringLiteralAnalysisVisitor::preOrderVisit(SgNode *node){
