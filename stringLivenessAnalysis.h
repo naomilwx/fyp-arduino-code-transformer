@@ -52,7 +52,7 @@ protected:
 	StringLivenessColouring *livenessColouring;
 
 	LiveStringsLattice *liveStringsLat;
-	std::set<std::string> usedStrings;
+	StringSet usedStrings;
 
 public:
 	StringLivenessAnalysisTransfer(const Function &func, const DataflowNode &n, NodeState &s, const std::vector<Lattice *>& d, StringValPropagation* mappings, StringLivenessColouring* colouring): IntraDFTransferVisitor(func, n, s, d), liveStringsLat(dynamic_cast<LiveStringsLattice *>(*(dfInfo.begin()))), usedStrings(){

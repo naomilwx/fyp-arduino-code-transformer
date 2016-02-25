@@ -2,7 +2,6 @@
 #include "VariableStateTransfer.h"
 #include "analysis.h"
 #include "rose.h"
-
 #include "boost/shared_ptr.hpp"
 
 #include "stringValLattice.h"

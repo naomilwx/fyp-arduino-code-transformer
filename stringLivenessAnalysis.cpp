@@ -21,10 +21,14 @@ bool StringLivenessColouring::isBeforeStringLiteral(SgNode *n, const std::string
 		return lat->isBeforeStringLiteral(str);
 }
 
+bool StringLivenessColouring::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo) {
+	return false;
+}
+
 
 void StringLivenessColouringTransfer::visit(SgStatement *n){
 	if(slMap->find(n) != slMap->end()){
-		StringSet strSet =  slMap->find(n);
+		StringSet strSet =  (*slMap)[n];
 		for(std::string item: strSet){
 			flowLattice->setFlowValue(item, LiveStringsFlowLattice::FlowVal::AFTER);
 		}
@@ -45,6 +49,10 @@ boost::shared_ptr<IntraDFTransferVisitor> StringLivenessAnalysis::getTransferVis
 	return boost::shared_ptr<IntraDFTransferVisitor>(new StringLivenessAnalysisTransfer(func, n, state, dfInfo, valMappings, livenessColouring));
 }
 
+bool StringLivenessAnalysis::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo) {
+	return false;
+}
+
 bool StringLivenessAnalysisTransfer::finish() {
 	SgNode *currNode = dfNode.getNode();
 	bool changed = false;
@@ -61,7 +69,11 @@ bool StringLivenessAnalysisTransfer::finish() {
 }
 
 void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
-	std::set<std::string> possibleVals = (valMappings->getValLattice(dfNode.getNode(), ref))->getPossibleVals();
+	StringValLattice *lat = valMappings->getValLattice(dfNode.getNode(), ref);
+	if(lat->getLevel() == StringValLattice::TOP) {
+		return;
+	}
+	std::set<std::string> possibleVals = lat->getPossibleVals();
 	for(auto val:possibleVals){
 		liveStringsLat->addString(val);
 	}
