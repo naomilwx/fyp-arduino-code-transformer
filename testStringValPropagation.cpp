@@ -46,9 +46,9 @@ int main( int argc, char * argv[] ) {
   initAnalysis(project);
   Dbg::init("propagation test", ".", "index.html");
 
-  DefinedFunctionCollector definedFuncsCollector;
-  definedFuncsCollector.traverseInputFiles(project, preorder);
-  definedFuncsCollector.printDefinedFunctions();
+//  DefinedFunctionCollector definedFuncsCollector;
+//  definedFuncsCollector.traverseInputFiles(project, preorder);
+//  definedFuncsCollector.printDefinedFunctions();
 
   liveDeadAnalysisDebugLevel = 1;
   analysisDebugLevel = 1;
@@ -59,17 +59,16 @@ int main( int argc, char * argv[] ) {
   //     assert (ciipd_ldva.filter == gfilter);
   //ciipd_ldva.runAnalysis();
 
-  CallGraphBuilder cgb(project);
-  cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
-  SgIncidenceDirectedGraph *graph = cgb.getGraph();
+//  CallGraphBuilder cgb(project);
+//  cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
+//  SgIncidenceDirectedGraph *graph = cgb.getGraph();
 
   StringValPropagation strValProp;
+//
+//  ContextInsensitiveInterProceduralDataflow inter(&strValProp, graph);
+//  inter.runAnalysis();
 
-//  strValProp.filter = gfilter;
-  ContextInsensitiveInterProceduralDataflow inter(&strValProp, graph);
-  inter.runAnalysis();
-
-
+  strValProp.runAnalysis(project);
   printAnalysis(&strValProp, false);
 
   printf("done\n");

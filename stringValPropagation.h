@@ -8,8 +8,12 @@
 #include "stringValLattice.h"
 
 class StringValPropagation : public IntraFWDataflow {
+	protected:
+	SgIncidenceDirectedGraph *callGraph;
+	SgIncidenceDirectedGraph *buildCallGraph(SgProject *project);
 	public:
 	StringValPropagation(){
+		callGraph = NULL;
 	}
 
 	void genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
@@ -19,6 +23,8 @@ class StringValPropagation : public IntraFWDataflow {
     boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
     StringValLattice *getValLattice(SgNode *n, SgNode *var);
+
+    void runAnalysis(SgProject *project);
 };
 
 class StringValPropagationTransfer : public VariableStateTransfer<StringValLattice> {

@@ -70,6 +70,10 @@ bool StringLiteralAnalysis::isGlobalStringLiteral(const std::string& str) {
 	return globalStrLiterals.find(str) != globalStrLiterals.end();
 }
 
+StatementLiteralMap StringLiteralAnalysis::getStatementLiteralMap() const{
+	return slMap;
+}
+
 std::string StringLiteralAnalysis::getAnalysisPrintout(){
 	std::ostringstream out;
 	for(auto const& item: strLiterals) {

@@ -28,6 +28,10 @@ std::string LiveStringsLattice::str(std::string indent){
 	return out.str();
 }
 
+std::set<std::string> LiveStringsLattice::getStrings() const {
+	return liveStrings;
+}
+
 Lattice* LiveStringsLattice::copy() const{
 	return new LiveStringsLattice(*this);
 }
@@ -55,8 +59,14 @@ bool LiveStringsLattice::operator ==(Lattice *lat){
 //LiveStringsFlowLattice
 
 std::string LiveStringsFlowLattice::str(std::string indent){
-	std::string res = "flow = " + flow;
-	return res;
+	ostringstream out;
+	out << "[flowMap = [\n";
+	for(auto& item: flowMap) {
+		out << item.first << ": ";
+		out <<  item.second << "\n";
+	}
+	out << "]]\n";
+	return out.str();
 }
 
 Lattice* LiveStringsFlowLattice::copy() const {
@@ -64,19 +74,43 @@ Lattice* LiveStringsFlowLattice::copy() const {
 }
 
 void LiveStringsFlowLattice::copy(Lattice* that) {
-	this->flow = dynamic_cast<LiveStringsFlowLattice*>(that)->flow;
+	this->flowMap = dynamic_cast<LiveStringsFlowLattice*>(that)->flowMap;
 }
 
 bool LiveStringsFlowLattice::meetUpdate(Lattice *other) {
+	bool changed = false;
 	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice*>(other);
-	if(flow == lat->flow || flow > lat->flow) {
-		return false;
-	} else {
-		flow = lat->flow;
-		return true;
+	for(const auto& mItem: lat->flowMap){
+		FlowVal oflow = mItem.second;
+		if(flowMap.find(mItem.first) == flowMap.end()){
+			flowMap[mItem.first] = mItem.second;
+			changed = true;
+		}else {
+			FlowVal flow = flowMap[mItem.first];
+			if(flow == FlowVal::BEFORE && flow != mItem.second) {
+				flowMap[mItem.first] = FlowVal::AFTER;
+				changed = true;
+			}
+		}
 	}
+	return changed;
 }
 
 bool LiveStringsFlowLattice::operator ==(Lattice *lat) {
-	return flow == dynamic_cast<LiveStringsFlowLattice*>(lat)->flow;
+	return flowMap == dynamic_cast<LiveStringsFlowLattice*>(lat)->flowMap;
+}
+
+void LiveStringsFlowLattice::setFlowValue(const std::string& str, FlowVal val) {
+	flowMap[str] = val;
+}
+
+LiveStringsFlowLattice::FlowVal LiveStringsFlowLattice::getFlowValue(const std::string& str) {
+	return flowMap[str];
+}
+
+bool LiveStringsFlowLattice::isBeforeStringLiteral(const std::string& str) {
+	if(flowMap.find(str) == flowMap.end()) {
+		return true;
+	}
+	return flowMap[str] == FlowVal::BEFORE;
 }

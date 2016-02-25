@@ -63,6 +63,7 @@ public:
 	int getNumberOfStringLiterals();
 	bool isGlobalStringLiteral(const std::string& str);
 	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);
+	StatementLiteralMap getStatementLiteralMap() const;
 	std::string getAnalysisPrintout();
 
 	friend class StringLiteralAnalysisVisitor;

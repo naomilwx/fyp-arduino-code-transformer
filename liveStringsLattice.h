@@ -20,6 +20,7 @@ public:
 	bool addString(const std::string& str);
 	bool remString(const std::string& str);
 
+	std::set<std::string> getStrings() const;
 
 	std::string str(std::string indent="");
 
@@ -32,17 +33,27 @@ public:
 };
 
 class LiveStringsFlowLattice : public FiniteLattice {
+
 public:
 	enum FlowVal {
 		  BEFORE,
-		  AFTER,
-		  SOURCE
+		  SOURCE,
+		  AFTER
 		};
-	FlowVal flow;
+	typedef std::map<std::string, FlowVal> FlowValMap;
 
-	LiveStringsFlowLattice(): flow(BEFORE){}
-	LiveStringsFlowLattice(FlowVal val): flow(val){}
-	LiveStringsFlowLattice(LiveStringsFlowLattice *lat): flow(lat->flow){}
+	FlowValMap flowMap;
+
+
+	LiveStringsFlowLattice(): flowMap(){}
+	LiveStringsFlowLattice(LiveStringsFlowLattice *lat){
+		this->flowMap = lat->flowMap;
+	}
+
+	void setFlowValue(const std::string& str, FlowVal val);
+	FlowVal getFlowValue(const std::string& str);
+
+	bool isBeforeStringLiteral(const std::string& str);
 
 	void initialize() {}
 
