@@ -36,3 +36,36 @@ void DefinedFunctionCollector::printDefinedFunctions() {
 	}
 	printf("]\n");
 }
+
+SgExpression *getFunctionRef(SgFunctionCallExp *call) {
+	SgExpression *funcRef = call->get_function();
+	if(isSgFunctionRefExp(funcRef) != NULL || isSgMemberFunctionRefExp(funcRef) != NULL) {
+		return funcRef;
+	}
+	if(isSgBinaryOp(funcRef) != NULL) {
+		funcRef = isSgBinaryOp(funcRef)->get_rhs_operand();
+	}
+	Ast funcAst(funcRef);
+	for(Ast::iterator it = funcAst.begin(); it!= funcAst.end(); it++) {
+		SgNode* node = &(*it);
+		if(isSgFunctionRefExp(node) != NULL) {
+			return isSgFunctionRefExp(node);
+		}
+		if(isSgMemberFunctionRefExp(node) != NULL) {
+			return isSgMemberFunctionRefExp(node);
+		}
+	}
+	return NULL;
+}
+
+bool isConstantType(SgType *nType) {
+	bool isConst = false;
+	Rose_STL_Container<SgType*> typeVector = nType->getInternalTypes();
+	for(Rose_STL_Container<SgType*>::iterator i = typeVector.begin(); i != typeVector.end(); i++){
+	    SgModifierType* modifierType = isSgModifierType(*i);
+	    if (modifierType != NULL)  {
+	        isConst = modifierType->get_typeModifier().get_constVolatileModifier().isConst() || isConst;
+	    }
+	}
+	return isConst;
+}

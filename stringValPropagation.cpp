@@ -12,9 +12,31 @@ void StringValPropagationTransfer::visit(SgStringVal *n) {
 	lattice->addPossibleVal(n->get_value());
 }
 
-void StringValPropagationTransfer::visit(SgVarRefExp *n) {
-	StringValLattice* lattice = getLattice(n);
+void StringValPropagationTransfer::visit(SgPntrArrRefExp *n) {
+	StringValLattice* lattice = getLattice(n->get_lhs_operand());
 	lattice->setLevel(StringValLattice::TOP);
+}
+
+void StringValPropagationTransfer::visit(SgFunctionCallExp *n){
+	//TODO: figure out which arguments are mutable and propagate accordingly
+	SgExpression *funcRef = getFunctionRef(n);
+	SgExpressionPtrList params = n->get_args()->get_expressions();
+	if(funcRef != NULL) {
+		SgFunctionType *funcType = dynamic_cast<SgFunctionType *>(funcRef->get_type());
+		SgTypePtrList fArgs = funcType->get_arguments();
+		int argIdx = 0;
+		for(auto &fArg : fArgs) {
+			if(fArg->containsInternalTypes() && isConstantType(fArg) == false) {
+				StringValLattice* lattice = getLattice(params[argIdx]);
+				lattice->setLevel(StringValLattice::TOP);
+			}
+			argIdx++;
+//			printf("function arg type: %s\n", fArg->class_name().c_str());
+		}
+//		printf("type ref %s\n", funcType->class_name().c_str());
+	}
+
+	printf("call type: %s\n", n->get_type()->class_name().c_str());
 }
 
 bool StringValPropagationTransfer::finish() {

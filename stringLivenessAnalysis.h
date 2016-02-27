@@ -1,3 +1,5 @@
+#ifndef _STRINGLIVENESSANALYSIS_H_
+#define _STRINGLIVENESSANALYSIS_H_
 #include "stringValPropagation.h"
 #include "stringLiteralAnalysis.h"
 #include "liveStringsLattice.h"
@@ -66,3 +68,4 @@ public:
 	void visit(SgStringVal *val);
 	bool finish();
 };
+#endif

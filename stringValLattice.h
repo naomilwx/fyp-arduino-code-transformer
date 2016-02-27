@@ -1,7 +1,8 @@
+#ifndef _STRINGVALLATTICE_H_
+#define _STRINGVALLATTICE_H_
 #include <string>
 #include <set>
 #include "latticeFull.h"
-
 
 class StringValLattice: public FiniteLattice {
   public:
@@ -43,3 +44,4 @@ class StringValLattice: public FiniteLattice {
 	
 	bool operator ==(Lattice *lat);
 };
+#endif

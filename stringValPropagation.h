@@ -1,9 +1,12 @@
+#ifndef _STRINGVALPROPAGATION_H_
+#define _STRINGVALPROPAGATION_H_
+#include "rose.h"
 #include "dataflow.h"
 #include "VariableStateTransfer.h"
 #include "analysis.h"
-#include "rose.h"
 #include "boost/shared_ptr.hpp"
 
+#include "ctUtils.h"
 #include "stringValLattice.h"
 
 class StringValPropagation : public IntraFWDataflow {
@@ -30,6 +33,8 @@ class StringValPropagationTransfer : public VariableStateTransfer<StringValLatti
 public:
 	StringValPropagationTransfer(const Function &func, const DataflowNode &n, NodeState &state, const std::vector<Lattice *>& dfInfo);
 	void visit(SgStringVal *n);
-	void visit(SgVarRefExp *n);
+	void visit(SgPntrArrRefExp *n);
+	void visit(SgFunctionCallExp *n);
 	bool finish();
 };
+#endif

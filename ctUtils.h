@@ -1,4 +1,8 @@
+#ifndef _CTUTILS_H_
+#define _CTUTILS_H_
+
 #include "printAnalysisStates.h"
+#include "Ast.h"
 
 typedef std::set<SgFunctionDeclaration *> FunctionSet;
 
@@ -27,3 +31,9 @@ struct ROSE_DLL_API definedFuncsFilter : public std::unary_function<bool, SgFunc
 		return false;
 	}
 };
+
+
+SgExpression *getFunctionRef(SgFunctionCallExp *call);
+
+bool isConstantType(SgType *nType);
+#endif

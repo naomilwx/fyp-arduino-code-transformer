@@ -1,3 +1,5 @@
+#ifndef _STRINGLITERALANALYSIS_H
+#define _STRINGLITERALANALYSIS_H
 #include "rose.h"
 #include <string>
 #include <sstream>
@@ -80,3 +82,4 @@ public:
 	void preOrderVisit(SgNode *node);
 	void postOrderVisit(SgNode *node);
 };
+#endif

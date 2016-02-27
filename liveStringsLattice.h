@@ -1,3 +1,5 @@
+#ifndef _LIVESTRINGSLATTICE_H_
+#define _LIVESTRINGSLATTICE_H_
 #include <string>
 #include <set>
 #include "latticeFull.h"
@@ -66,3 +68,4 @@ public:
 
 	bool operator ==(Lattice *lat);
 };
+#endif
