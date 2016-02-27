@@ -25,6 +25,11 @@ bool StringLivenessColouring::transfer(const Function& func, const DataflowNode&
 	return false;
 }
 
+void StringLivenessColouring::runOverallAnalysis() {
+	UnstructuredPassInterDataflow inter(this);
+	inter.runAnalysis();
+	ranAnalysis = true;
+}
 
 void StringLivenessColouringTransfer::visit(SgStatement *n){
 	if(slMap->find(n) != slMap->end()){
@@ -51,6 +56,14 @@ boost::shared_ptr<IntraDFTransferVisitor> StringLivenessAnalysis::getTransferVis
 
 bool StringLivenessAnalysis::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo) {
 	return false;
+}
+
+void StringLivenessAnalysis::runOverallAnalysis() {
+	if(livenessColouring-> hasRunAnalysis() == false) {
+		livenessColouring->runOverallAnalysis();
+	}
+	UnstructuredPassInterDataflow inter(this);
+	inter.runAnalysis();
 }
 
 bool StringLivenessAnalysisTransfer::finish() {

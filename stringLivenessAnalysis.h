@@ -5,17 +5,23 @@
 #include "liveStringsLattice.h"
 
 class StringLivenessColouring : public IntraFWDataflow {
+private:
+	bool ranAnalysis;
 protected:
 	StatementLiteralMap* slMap;
 public:
-	StringLivenessColouring(StatementLiteralMap *map){
+	StringLivenessColouring(StatementLiteralMap *map): ranAnalysis(false){
 		this->slMap = map;
+	}
+	bool hasRunAnalysis() {
+		return ranAnalysis;
 	}
 	void genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
 	bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 	boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 	LiveStringsFlowLattice::FlowVal getFlowValue(SgNode *n, const std::string& str);
 	bool isBeforeStringLiteral(SgNode *n, const std::string& str);
+	void runOverallAnalysis();
 };
 
 class StringLivenessColouringTransfer: public IntraDFTransferVisitor {
@@ -36,16 +42,28 @@ protected:
 	StringValPropagation *valMappings;
 	StringLivenessColouring *livenessColouring;
 //	LiteralMap *strLiteralInfoMap;
+private:
+	bool destroyColouring;
 public:
-	StringLivenessAnalysis(StringValPropagation *mappings, StringLivenessColouring *colouring){
+	StringLivenessAnalysis(StringValPropagation *mappings, StringLivenessColouring *colouring): destroyColouring(false){
 		this->valMappings = mappings;
 		this->livenessColouring = colouring;
+	}
+	StringLivenessAnalysis(StringValPropagation *mappings, StatementLiteralMap *slMap): destroyColouring(true){
+		this->valMappings = mappings;
+		this->livenessColouring = new StringLivenessColouring(slMap);
+	}
+	~StringLivenessAnalysis() {
+		if(destroyColouring) {
+			delete this->livenessColouring;
+		}
 	}
 	void genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
 	bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 	boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
 	LiveStringsLattice *getLiveStrings(SgNode *node) const;
+	void runOverallAnalysis();
 };
 
 class StringLivenessAnalysisTransfer: public IntraDFTransferVisitor {
@@ -68,4 +86,5 @@ public:
 	void visit(SgStringVal *val);
 	bool finish();
 };
+
 #endif

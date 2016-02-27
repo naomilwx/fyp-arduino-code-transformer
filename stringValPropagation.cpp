@@ -36,7 +36,7 @@ void StringValPropagationTransfer::visit(SgFunctionCallExp *n){
 //		printf("type ref %s\n", funcType->class_name().c_str());
 	}
 
-	printf("call type: %s\n", n->get_type()->class_name().c_str());
+//	printf("call type: %s\n", n->get_type()->class_name().c_str());
 }
 
 bool StringValPropagationTransfer::finish() {
