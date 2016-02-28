@@ -3,10 +3,12 @@
 //StringLivenessColouring
 void StringLivenessColouring::genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts){
 	initLattices.push_back(new LiveStringsFlowLattice());
-	//	SgNode *node = n.getNode();
-	//	printf("init %p %s\n %s\n", node, node->class_name().c_str(), node->unparseToString().c_str());
+		SgNode *node = n.getNode();
+//		printf("init %p %s\n", node, node->class_name().c_str());
+
+		printf("init %p %s\n %s\n", node, node->class_name().c_str(), node->unparseToString().c_str());
 	//	auto test = NodeState::getNodeState(n, 0);
-	//	printf("after first test %d\n", n.getIndex());
+		printf("node index %d\n", n.getIndex());
 	//	NodeState *st = NodeState::getNodeState(node, 0);
 }
 
@@ -75,6 +77,23 @@ void StringLivenessAnalysis::genInitState(const Function& func, const DataflowNo
 
 boost::shared_ptr<IntraDFTransferVisitor> StringLivenessAnalysis::getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo){
 	return boost::shared_ptr<IntraDFTransferVisitor>(new StringLivenessAnalysisTransfer(func, n, state, dfInfo, valMappings, livenessColouring));
+}
+
+LiveStringsLattice *StringLivenessAnalysis::getLiveStrings(SgStatement *n) const {
+	int index; //0: entry, 1: function body, 3: exit, 2: partial expr? TODO: confirm this
+	if(isSgExprStatement(n)) {
+		index = 1;
+	} else if(isSgFunctionDefinition(n)){
+		index = 0;
+	} else if(isSgScopeStatement(n)) {
+		index = 1;
+	} else if(isSgDeclarationStatement(n)) {
+		index = 0;
+	} else {
+		index = 1;
+	}
+
+	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(NodeState::getLatticeBelow(this, n, index).begin()));
 }
 
 bool StringLivenessAnalysis::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo) {

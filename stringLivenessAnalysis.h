@@ -67,7 +67,7 @@ public:
 	bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 	boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
-	LiveStringsLattice *getLiveStrings(SgNode *node) const;
+	LiveStringsLattice *getLiveStrings(SgStatement *node) const;
 	void runOverallAnalysis(SgProject *project);
 };
 
