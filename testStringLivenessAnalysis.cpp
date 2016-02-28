@@ -13,9 +13,17 @@ int main( int argc, char * argv[] ) {
   StringValPropagation strValProp;
   strValProp.runAnalysis(project);
 
+
   StringLivenessColouring livenessColouring(lanalysis.getStatementLiteralMap());
-//  livenessColouring.runOverallAnalysis();
-//
-//  printAnalysis(&livenessColouring, false);
+  livenessColouring.runOverallAnalysis(project);
+
+  printAnalysis(&livenessColouring, false);
   printf("done colouring\n");
+
+
+  StringLivenessAnalysis stringLiveness(&strValProp, &livenessColouring);
+  stringLiveness.runOverallAnalysis(project);
+
+  printAnalysis(&stringLiveness, true);
+  printf("done liveness\n");
 }

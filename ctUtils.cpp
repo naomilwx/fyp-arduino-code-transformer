@@ -69,3 +69,18 @@ bool isConstantType(SgType *nType) {
 	}
 	return isConst;
 }
+
+SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
+	static SgIncidenceDirectedGraph *callGraph = NULL;
+	if(callGraph != NULL) {
+		return callGraph;
+	}
+	DefinedFunctionCollector definedFuncsCollector;
+	definedFuncsCollector.traverseInputFiles(project, preorder);
+	definedFuncsCollector.printDefinedFunctions();
+
+	CallGraphBuilder cgb(project);
+	cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
+	callGraph = cgb.getGraph();
+	return callGraph;
+}

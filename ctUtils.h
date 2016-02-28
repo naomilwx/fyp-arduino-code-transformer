@@ -36,4 +36,7 @@ struct ROSE_DLL_API definedFuncsFilter : public std::unary_function<bool, SgFunc
 SgExpression *getFunctionRef(SgFunctionCallExp *call);
 
 bool isConstantType(SgType *nType);
+
+SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project);
+
 #endif

@@ -60,27 +60,12 @@ boost::shared_ptr<IntraDFTransferVisitor> StringValPropagation::getTransferVisit
 
 
 StringValLattice *StringValPropagation::getValLattice(SgNode *n, SgNode *var){
-	NodeState *state = NodeState::getNodeState(n, 0);
-	FiniteVarsExprsProductLattice *lat = dynamic_cast<FiniteVarsExprsProductLattice *>(*(state->getLatticeBelow(this).begin()));
+	FiniteVarsExprsProductLattice *lat = dynamic_cast<FiniteVarsExprsProductLattice *>(*(NodeState::getLatticeBelow(this, n, 0).begin()));
 	return dynamic_cast<StringValLattice *>(lat->getVarLattice(varID(var)));
 }
 
-SgIncidenceDirectedGraph * StringValPropagation::buildCallGraph(SgProject *project) {
-	if(callGraph != NULL) {
-		return callGraph;
-	}
-	DefinedFunctionCollector definedFuncsCollector;
-	definedFuncsCollector.traverseInputFiles(project, preorder);
-	definedFuncsCollector.printDefinedFunctions();
-
-	CallGraphBuilder cgb(project);
-	cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
-	callGraph = cgb.getGraph();
-	return callGraph;
-}
-
 void StringValPropagation::runAnalysis(SgProject *project) {
-	 SgIncidenceDirectedGraph *graph = buildCallGraph(project);
+	 SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
 	 ContextInsensitiveInterProceduralDataflow inter(this, graph);
 	 inter.runAnalysis();
 }

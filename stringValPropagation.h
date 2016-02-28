@@ -10,12 +10,8 @@
 #include "stringValLattice.h"
 
 class StringValPropagation : public IntraFWDataflow {
-	protected:
-	SgIncidenceDirectedGraph *callGraph;
-	SgIncidenceDirectedGraph *buildCallGraph(SgProject *project);
 	public:
 	StringValPropagation(){
-		callGraph = NULL;
 	}
 
 	void genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
