@@ -43,6 +43,12 @@ bool StringLivenessColouring::isBeforeStringLiteral(const NodeState &s, const st
 	return lat->isBeforeStringLiteral(str);
 }
 
+bool StringLivenessColouring::isBeforeStringVar(const NodeState &s, varID var){
+	auto res = s.getLatticeBelow(this);
+	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(res.begin()));
+	assert(lat != NULL);
+	return lat->isBeforeStringVar(var);
+}
 
 bool StringLivenessColouring::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo) {
 	return false;
@@ -63,6 +69,10 @@ void StringLivenessColouringTransfer::visit(SgStatement *n){
 		}
 		modified = true;
 	}
+}
+
+void StringLivenessColouringTransfer::visit(SgInitializedName *n) {
+	flowLattice->setFlowValue(varID(n), LiveStringsFlowLattice::FlowVal::SOURCE);
 }
 
 bool StringLivenessColouringTransfer::finish() {
@@ -116,8 +126,18 @@ bool StringLivenessAnalysisTransfer::finish() {
 			changed = true;
 		}
 	}
+	for(auto& var:liveStringsLat->getLiveStringVars()) {
+		if(livenessColouring->isBeforeStringVar(nodeState, var) == true) {
+			liveStringsLat->remStringVar(var);
+			changed = true;
+		}
+	}
+
 	for(auto& str: usedStrings){
 		changed = liveStringsLat->addString(str) || changed;
+	}
+	for(auto& var:usedVars) {
+		changed = liveStringsLat->addStringVar(var) || changed;
 	}
 	return changed;
 }
@@ -127,15 +147,17 @@ void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
 		return;
 	}
 	StringValLattice *lat = valMappings->getValLattice(dfNode.getNode(), ref);
-	if(lat->getLevel() == StringValLattice::TOP) {
+	if(lat->getLevel() == StringValLattice::TOP || lat->getLevel() == StringValLattice::BOTTOM) {
 		return;
 	}
-	std::set<std::string> possibleVals = lat->getPossibleVals();
-	for(auto val:possibleVals){
-		liveStringsLat->addString(val);
+	if(lat->getLevel() == StringValLattice::CONSTANT) {
+		usedStrings.insert(*(lat->getPossibleVals().begin()));
+	} else {
+//		printf("var: %s\n", ref->get_symbol()->get_name().str());
+		usedVars.insert(varID(ref));
 	}
 }
 
 void StringLivenessAnalysisTransfer::visit(SgStringVal *val) {
-	liveStringsLat->addString(val->get_value());
+	usedStrings.insert(val->get_value());
 }

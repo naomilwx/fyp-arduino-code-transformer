@@ -5,7 +5,7 @@ int main( int argc, char * argv[] ) {
 
   initAnalysis(project);
 
-  Dbg::init("String liveness test", ".", "lindex.html");
+  Dbg::init("String liveness test", "./livetest", "lindex.html");
 
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
