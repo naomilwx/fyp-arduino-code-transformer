@@ -64,6 +64,13 @@ StringValLattice *StringValPropagation::getValLattice(SgNode *n, SgNode *var){
 	return dynamic_cast<StringValLattice *>(lat->getVarLattice(varID(var)));
 }
 
+bool StringValPropagation::isModifiedStringRef(SgFunctionDefinition *def, SgVarRefExp *var) {
+	DataflowNode n = cfgUtils::getFuncEndCFG(def, filter);
+	NodeState *state = NodeState::getNodeState(n, n.getIndex());
+	FiniteVarsExprsProductLattice *lat = dynamic_cast<FiniteVarsExprsProductLattice *>(*(state->getLatticeBelow(this).begin()));
+	return dynamic_cast<StringValLattice *>(lat->getVarLattice(varID(var)))->getLevel() == StringValLattice::TOP;
+}
+
 void StringValPropagation::runAnalysis(SgProject *project) {
 	 SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
 	 ContextInsensitiveInterProceduralDataflow inter(this, graph);

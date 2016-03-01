@@ -83,7 +83,12 @@ bool LiveStringsFlowLattice::meetUpdate(Lattice *other) {
 	for(const auto& mItem: lat->flowMap){
 		FlowVal oflow = mItem.second;
 		if(flowMap.find(mItem.first) == flowMap.end()){
-			flowMap[mItem.first] = mItem.second;
+			if(mItem.second == FlowVal::SOURCE){
+				flowMap[mItem.first] = FlowVal::AFTER;
+			} else {
+				flowMap[mItem.first] = mItem.second;
+			}
+
 			changed = true;
 		}else {
 			FlowVal flow = flowMap[mItem.first];

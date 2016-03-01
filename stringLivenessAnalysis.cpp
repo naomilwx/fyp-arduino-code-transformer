@@ -5,10 +5,11 @@ void StringLivenessColouring::genInitState(const Function& func, const DataflowN
 	initLattices.push_back(new LiveStringsFlowLattice());
 		SgNode *node = n.getNode();
 //		printf("init %p %s\n", node, node->class_name().c_str());
-
-		printf("init %p %s\n %s\n", node, node->class_name().c_str(), node->unparseToString().c_str());
+//		if(node->cfgIndexForEnd() != n.getIndex()){
+//		printf("init %p %s\n %s %d\n", node, node->class_name().c_str(), node->unparseToString().c_str(), node->cfgIndexForEnd());
 	//	auto test = NodeState::getNodeState(n, 0);
-		printf("node index %d\n", n.getIndex());
+//		assert(node->cfgIndexForEnd() == n.getIndex());
+//		printf("node index %d\n", n.getIndex());}
 	//	NodeState *st = NodeState::getNodeState(node, 0);
 }
 
@@ -17,7 +18,7 @@ boost::shared_ptr<IntraDFTransferVisitor> StringLivenessColouring::getTransferVi
 }
 
 LiveStringsFlowLattice::FlowVal StringLivenessColouring::getFlowValue(const DataflowNode &n, const std::string& str){
-	NodeState *state = NodeState::getNodeState(n, 0);
+	NodeState *state = NodeState::getNodeState(n, n.getIndex());
 	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(state->getLatticeBelow(this).begin()));
 	return lat->getFlowValue(str);
 }
@@ -28,7 +29,7 @@ LiveStringsFlowLattice::FlowVal StringLivenessColouring::getFlowValue(const Node
 }
 
 bool StringLivenessColouring::isBeforeStringLiteral(const DataflowNode &n, const std::string& str){
-	NodeState *state = NodeState::getNodeState(n, 0);
+	NodeState *state = NodeState::getNodeState(n, n.getIndex());
 	auto res = state->getLatticeBelow(this);
 	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(res.begin()));
 	assert(lat != NULL);
@@ -48,8 +49,6 @@ bool StringLivenessColouring::transfer(const Function& func, const DataflowNode&
 }
 
 void StringLivenessColouring::runOverallAnalysis(SgProject *project) {
-//	UnstructuredPassInterDataflow inter(this);
-//	inter.runAnalysis();
 	SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
 	ContextInsensitiveInterProceduralDataflow inter(this, graph);
 	inter.runAnalysis();
@@ -60,7 +59,7 @@ void StringLivenessColouringTransfer::visit(SgStatement *n){
 	if(slMap->find(n) != slMap->end()){
 		StringSet strSet =  (*slMap)[n];
 		for(std::string item: strSet){
-			flowLattice->setFlowValue(item, LiveStringsFlowLattice::FlowVal::AFTER);
+			flowLattice->setFlowValue(item, LiveStringsFlowLattice::FlowVal::SOURCE);
 		}
 		modified = true;
 	}
@@ -92,7 +91,6 @@ LiveStringsLattice *StringLivenessAnalysis::getLiveStrings(SgStatement *n) const
 	} else {
 		index = 1;
 	}
-
 	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(NodeState::getLatticeBelow(this, n, index).begin()));
 }
 
@@ -110,7 +108,6 @@ void StringLivenessAnalysis::runOverallAnalysis(SgProject *project) {
 }
 
 bool StringLivenessAnalysisTransfer::finish() {
-//	SgNode *currNode = dfNode.getNode();
 	bool changed = false;
 	StringSet liveStringsSet = StringSet(liveStringsLat->getStrings());
 	for(auto& str: liveStringsSet) {
