@@ -21,6 +21,7 @@ class StringValPropagation : public IntraFWDataflow {
     boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
     StringValLattice *getValLattice(SgNode *n, SgNode *var);
+    StringValLattice *getValLattice(SgNode *n, varID var);
 
     bool isModifiedStringRef(SgFunctionDefinition *def, SgVarRefExp *ref);
 
