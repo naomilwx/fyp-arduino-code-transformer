@@ -22,6 +22,8 @@ class StringValPropagation : public IntraFWDataflow {
 
     StringValLattice *getValLattice(SgNode *n, SgNode *var);
 
+    bool isModifiedStringRef(SgFunctionDefinition *def, SgVarRefExp *ref);
+
     void runAnalysis(SgProject *project);
 };
 

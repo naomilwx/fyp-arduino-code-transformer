@@ -44,7 +44,7 @@ int main( int argc, char * argv[] ) {
   SgProject* project = frontend(argc,argv);
 
   initAnalysis(project);
-  Dbg::init("propagation test", ".", "index.html");
+  Dbg::init("propagation test", "./proptest", "index.html");
 
 //  DefinedFunctionCollector definedFuncsCollector;
 //  definedFuncsCollector.traverseInputFiles(project, preorder);
