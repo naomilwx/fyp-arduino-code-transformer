@@ -28,6 +28,9 @@ testStringValPropagation.o: testStringValPropagation.cpp
 testStringLiteralAnalysis.o: testStringLiteralAnalysis.cpp
 	$(GPP) -c testStringLiteralAnalysis.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 	
+spaceOptimisedTransformer.o: spaceOptimisedTransformer.cpp spaceOptimisedTransformer.h
+	$(GPP) -c spaceOptimisedTransformer.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
+	
 stringLiteralAnalysis.o: stringLiteralAnalysis.cpp stringLiteralAnalysis.h
 	$(GPP) -c stringLiteralAnalysis.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 

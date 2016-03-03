@@ -36,13 +36,13 @@ std::string LiveStringsLattice::str(std::string indent){
 	ostringstream out;
 	out << "[LiveStringsLattice:";
 	if(liveStrings.size() > 0)
-		out << "liveStrings = [\n";
+		out << "liveStrings = [";
 	for(std::set<std::string>::iterator it=liveStrings.begin(); it!=liveStrings.end(); it++) {
 		out << *it ;
 		out << ";;";
 	}
 	if(liveStringVars.size() > 0)
-		out << "]\n liveStringsVars = [\n";
+		out << "]\n liveStringsVars = [";
 	for(auto &var: liveStringVars) {
 		out << var;
 		out << ";;";
