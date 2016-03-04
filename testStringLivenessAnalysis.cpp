@@ -10,20 +10,24 @@ int main( int argc, char * argv[] ) {
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
 
-  StringValPropagation strValProp;
-  strValProp.runAnalysis(project);
+  StringValPropagation strValProp(project);
+  strValProp.runAnalysis();
 
 
-  StringLivenessColouring livenessColouring(lanalysis.getStatementLiteralMap());
-  livenessColouring.runOverallAnalysis(project);
+  StringLivenessColouring livenessColouring(project, lanalysis.getStatementLiteralMap());
+  livenessColouring.runOverallAnalysis();
 
   printAnalysis(&livenessColouring, false);
   printf("done colouring\n");
 
 
-  StringLivenessAnalysis stringLiveness(&strValProp, &livenessColouring);
-  stringLiveness.runOverallAnalysis(project);
+  StringLivenessAnalysis stringLiveness(project, &strValProp, &livenessColouring);
+  stringLiveness.runOverallAnalysis();
+  printf("done liveness\n");
+  stringLiveness.runAnnotation();
 
   printAnalysis(&stringLiveness, true);
-  printf("done liveness\n");
+  printf("done\n");
+
+  backend(project);
 }

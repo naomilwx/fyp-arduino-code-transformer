@@ -1,15 +1,40 @@
 #include "stringLivenessAnalysis.h"
 
+class LivenessResultAnnotation : public AstSimpleProcessing {
+StringLivenessAnalysis* analysis;
+public:
+	LivenessResultAnnotation(StringLivenessAnalysis* analysis) {
+		this->analysis = analysis;
+	}
+	void visit(SgNode *node) {
+		SgBasicBlock *block = isSgBasicBlock(node);
+		if(block != NULL) {
+			SgStatementPtrList stmts = block->get_statements();
+			for(SgStatement * stmt: stmts) {
+				LiveStringsLattice *liveIn = analysis->getLiveIn(stmt);
+				LiveStringsLattice *liveOut = analysis->getLiveOut(stmt);
+				std::string cStr = analysis->getLivenessColouring()->getLatticeForNode(stmt)->str();
+				std::string liveStr = "Live In: "+liveIn->str()+"\n Liveout:"+liveOut->str();
+				SageInterface::attachComment(stmt, cStr + "\n" +liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
+			}
+		}
+	}
+
+	void runAnnotations() {
+		this->traverseInputFiles(analysis->getProject(), preorder);
+	}
+};
+
 //StringLivenessColouring
 void StringLivenessColouring::genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts){
 	initLattices.push_back(new LiveStringsFlowLattice());
-		SgNode *node = n.getNode();
-//		printf("init %p %s\n", node, node->class_name().c_str());
+//	SgNode *node = n.getNode();
+//	printf("init %p %s\n", node, node->class_name().c_str());
 //		if(node->cfgIndexForEnd() != n.getIndex()){
 //		printf("init %p %s\n %s %d\n", node, node->class_name().c_str(), node->unparseToString().c_str(), node->cfgIndexForEnd());
 	//	auto test = NodeState::getNodeState(n, 0);
 //		assert(node->cfgIndexForEnd() == n.getIndex());
-//		printf("node index %d\n", n.getIndex());}
+//	printf("node index %d\n", n.getIndex());
 	//	NodeState *st = NodeState::getNodeState(node, 0);
 }
 
@@ -17,35 +42,28 @@ boost::shared_ptr<IntraDFTransferVisitor> StringLivenessColouring::getTransferVi
 	return boost::shared_ptr<IntraDFTransferVisitor>(new StringLivenessColouringTransfer(func, n, state, dfInfo, slMap));
 }
 
-LiveStringsFlowLattice::FlowVal StringLivenessColouring::getFlowValue(const DataflowNode &n, const std::string& str){
-	NodeState *state = NodeState::getNodeState(n, n.getIndex());
-	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(state->getLatticeBelow(this).begin()));
-	return lat->getFlowValue(str);
-}
-
 LiveStringsFlowLattice::FlowVal StringLivenessColouring::getFlowValue(const NodeState &s, const std::string& str){
 	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(s.getLatticeBelow(this).begin()));
 	return lat->getFlowValue(str);
 }
 
-bool StringLivenessColouring::isBeforeStringLiteral(const DataflowNode &n, const std::string& str){
-	NodeState *state = NodeState::getNodeState(n, n.getIndex());
-	auto res = state->getLatticeBelow(this);
-	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(res.begin()));
-	assert(lat != NULL);
-	return lat->isBeforeStringLiteral(str);
+LiveStringsFlowLattice* StringLivenessColouring::getLatticeForNode(SgNode *n) {
+	NodeState *state = getNodeStateForNode(n, this->filter);
+	return getLatticeForNodeState(*state);
+}
+LiveStringsFlowLattice* StringLivenessColouring::getLatticeForNodeState(const NodeState &s) {
+	auto res = s.getLatticeBelow(this);
+	return dynamic_cast<LiveStringsFlowLattice *>(*(res.begin()));
 }
 
 bool StringLivenessColouring::isBeforeStringLiteral(const NodeState &s, const std::string& str){
-	auto res = s.getLatticeBelow(this);
-	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(res.begin()));
+	LiveStringsFlowLattice *lat = getLatticeForNodeState(s);
 	assert(lat != NULL);
 	return lat->isBeforeStringLiteral(str);
 }
 
 bool StringLivenessColouring::isBeforeStringVar(const NodeState &s, varID var){
-	auto res = s.getLatticeBelow(this);
-	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(res.begin()));
+	LiveStringsFlowLattice *lat = getLatticeForNodeState(s);
 	assert(lat != NULL);
 	return lat->isBeforeStringVar(var);
 }
@@ -54,7 +72,10 @@ bool StringLivenessColouring::transfer(const Function& func, const DataflowNode&
 	return false;
 }
 
-void StringLivenessColouring::runOverallAnalysis(SgProject *project) {
+void StringLivenessColouring::runOverallAnalysis() {
+	if(ranAnalysis == true) {
+		return;
+	}
 	SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
 	ContextInsensitiveInterProceduralDataflow inter(this, graph);
 	inter.runAnalysis();
@@ -80,6 +101,10 @@ bool StringLivenessColouringTransfer::finish() {
 }
 
 //StringLivenessAnalysis
+void StringLivenessAnalysis::runAnnotation() {
+	LivenessResultAnnotation annot(this);
+	annot.runAnnotations();
+}
 void StringLivenessAnalysis::genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts){
 	initLattices.push_back(new LiveStringsLattice());
 }
@@ -88,33 +113,31 @@ boost::shared_ptr<IntraDFTransferVisitor> StringLivenessAnalysis::getTransferVis
 	return boost::shared_ptr<IntraDFTransferVisitor>(new StringLivenessAnalysisTransfer(func, n, state, dfInfo, valMappings, livenessColouring));
 }
 
-LiveStringsLattice *StringLivenessAnalysis::getLiveStrings(SgStatement *n) const {
-	int index; //0: entry, 1: function body, 3: exit, 2: partial expr? TODO: confirm this
-	if(isSgExprStatement(n)) {
-		index = 1;
-	} else if(isSgFunctionDefinition(n)){
-		index = 0;
-	} else if(isSgScopeStatement(n)) {
-		index = 1;
-	} else if(isSgDeclarationStatement(n)) {
-		index = 0;
-	} else {
-		index = 1;
-	}
-	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice *>(*(NodeState::getLatticeBelow(this, n, index).begin()));
+LiveStringsLattice *StringLivenessAnalysis::getLiveIn(SgStatement *n)  const{
+	NodeState* state = getNodeStateForNode(n, this->filter);
+	return dynamic_cast<LiveStringsLattice *>(*(state->getLatticeAbove(this).begin()));
+}
+
+LiveStringsLattice *StringLivenessAnalysis::getLiveOut(SgStatement *n) const {
+	NodeState* state = getNodeStateForNode(n, this->filter);
+	return dynamic_cast<LiveStringsLattice *>(*(state->getLatticeBelow(this).begin()));
 }
 
 bool StringLivenessAnalysis::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo) {
 	return false;
 }
 
-void StringLivenessAnalysis::runOverallAnalysis(SgProject *project) {
+void StringLivenessAnalysis::runOverallAnalysis() {
+	if(ranAnalysis == true) {
+		return;
+	}
 	if(livenessColouring-> hasRunAnalysis() == false) {
-		livenessColouring->runOverallAnalysis(project);
+		livenessColouring->runOverallAnalysis();
 	}
 	SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
 	ContextInsensitiveInterProceduralDataflow inter(this, graph);
 	inter.runAnalysis();
+	ranAnalysis = false;
 }
 
 bool StringLivenessAnalysisTransfer::finish() {
@@ -127,7 +150,8 @@ bool StringLivenessAnalysisTransfer::finish() {
 		}
 	}
 	for(auto& var:liveStringsLat->getLiveStringVars()) {
-		if(livenessColouring->isBeforeStringVar(nodeState, var) == true) {
+		StringValLattice *lat = valMappings->getValLattice(&nodeState, var);
+		if(livenessColouring->isBeforeStringVar(nodeState, var) == true || lat->getLevel() == StringValLattice::CONSTANT) {
 			liveStringsLat->remStringVar(var);
 			changed = true;
 		}
@@ -143,6 +167,9 @@ bool StringLivenessAnalysisTransfer::finish() {
 }
 
 void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
+	if(isSgAssignOp(ref->get_parent()) && ref->isLValue()) {
+		return;
+	}
 	if(varID::isValidVarExp(ref)== false) {
 		return;
 	}
@@ -153,7 +180,6 @@ void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
 	if(lat->getLevel() == StringValLattice::CONSTANT) {
 		usedStrings.insert(*(lat->getPossibleVals().begin()));
 	} else {
-//		printf("var: %s\n", ref->get_symbol()->get_name().str());
 		usedVars.insert(varID(ref));
 	}
 }
@@ -161,3 +187,5 @@ void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
 void StringLivenessAnalysisTransfer::visit(SgStringVal *val) {
 	usedStrings.insert(val->get_value());
 }
+
+

@@ -84,3 +84,33 @@ SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
 	callGraph = cgb.getGraph();
 	return callGraph;
 }
+
+unsigned int getNodeDataflowIndex(SgNode *n) {
+	unsigned int index = 1; //0: entry, 1: function body, 3: exit, 2: partial expr? TODO: confirm this
+		if(isSgExprStatement(n)) {
+			index = 1;
+		} else if(isSgFunctionDefinition(n)){
+			index = 0;
+		} else if(isSgScopeStatement(n)) {
+			index = 1;
+		} else if(isSgVariableDeclaration(n)) {
+			index = 1;
+		} else if(isSgDeclarationStatement(n)) {
+			index = 0;
+		}
+	return index;
+}
+
+
+NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode)){
+	unsigned int index = getNodeDataflowIndex(n);
+	CFGNode cfgn(n, index);
+	DataflowNode dfn(cfgn, f);
+	auto states = NodeState::getNodeStates(dfn);
+//	NodeState* state = (states.size() < (index + 1))? states[0] : states[index];
+	if( states.size() < (index + 1)) {
+		return states[0];
+	} else {
+		return states[index];
+	}
+}

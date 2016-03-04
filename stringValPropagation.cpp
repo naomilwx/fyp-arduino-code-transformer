@@ -64,6 +64,10 @@ StringValLattice *StringValPropagation::getValLattice(SgNode *n, SgNode *var){
 	return dynamic_cast<StringValLattice *>(lat->getVarLattice(varID(var)));
 }
 
+StringValLattice *StringValPropagation::getValLattice(NodeState *s, varID var) {
+	FiniteVarsExprsProductLattice *lat = dynamic_cast<FiniteVarsExprsProductLattice *>(*(s->getLatticeBelow(this).begin()));
+	return dynamic_cast<StringValLattice *>(lat->getVarLattice(var));
+}
 bool StringValPropagation::isModifiedStringRef(SgFunctionDefinition *def, SgVarRefExp *var) {
 	DataflowNode n = cfgUtils::getFuncEndCFG(def, filter);
 	NodeState *state = NodeState::getNodeState(n, n.getIndex());
@@ -71,7 +75,7 @@ bool StringValPropagation::isModifiedStringRef(SgFunctionDefinition *def, SgVarR
 	return dynamic_cast<StringValLattice *>(lat->getVarLattice(varID(var)))->getLevel() == StringValLattice::TOP;
 }
 
-void StringValPropagation::runAnalysis(SgProject *project) {
+void StringValPropagation::runAnalysis() {
 	 SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
 	 ContextInsensitiveInterProceduralDataflow inter(this, graph);
 	 inter.runAnalysis();

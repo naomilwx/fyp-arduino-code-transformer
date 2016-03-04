@@ -18,7 +18,6 @@ class StringValLattice: public FiniteLattice {
   
   public:
 	StringValLattice(): level(BOTTOM), possibleVals() {}
-//	StringValLattice(const char *strVal);
 	StringValLattice(const std::string& str);
 	StringValLattice(const StringValLattice &lat);
 

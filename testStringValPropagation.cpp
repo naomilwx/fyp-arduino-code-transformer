@@ -63,12 +63,12 @@ int main( int argc, char * argv[] ) {
 //  cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
 //  SgIncidenceDirectedGraph *graph = cgb.getGraph();
 
-  StringValPropagation strValProp;
+  StringValPropagation strValProp(project);
 //
 //  ContextInsensitiveInterProceduralDataflow inter(&strValProp, graph);
 //  inter.runAnalysis();
 
-  strValProp.runAnalysis(project);
+  strValProp.runAnalysis();
   printAnalysis(&strValProp, false);
 
   printf("done\n");

@@ -39,4 +39,7 @@ bool isConstantType(SgType *nType);
 
 SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project);
 
+unsigned int getNodeDataflowIndex(SgNode *n);
+
+NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));
 #endif
