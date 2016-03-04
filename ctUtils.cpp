@@ -100,3 +100,17 @@ unsigned int getNodeDataflowIndex(SgNode *n) {
 		}
 	return index;
 }
+
+
+NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode)){
+	unsigned int index = getNodeDataflowIndex(n);
+	CFGNode cfgn(n, index);
+	DataflowNode dfn(cfgn, f);
+	auto states = NodeState::getNodeStates(dfn);
+//	NodeState* state = (states.size() < (index + 1))? states[0] : states[index];
+	if( states.size() < (index + 1)) {
+		return states[0];
+	} else {
+		return states[index];
+	}
+}

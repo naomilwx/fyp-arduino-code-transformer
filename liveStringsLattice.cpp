@@ -95,17 +95,17 @@ std::string LiveStringsFlowLattice::str(std::string indent){
 	ostringstream out;
 	out << "[";
 	if(flowMap.size() > 0)
-		out << "flowMap = [\n";
+		out << "flowMap = [";
 	for(auto& item: flowMap) {
-		out << item.first << ": ";
-		out <<  item.second << "\n";
+		out << "\n" << item.first << ": ";
+		out <<  item.second;
 	}
 	out << "]\n";
 	if(varFlowMap.size() > 0)
-		out << "varFlowMap = [\n";
+		out << "varFlowMap = [";
 	for(auto& item: varFlowMap) {
-		out << item.first << ": ";
-		out <<  item.second << "\n";
+		out << "\n" << item.first << ": ";
+		out <<  item.second;
 	}
 	out << "]]\n";
 	return out.str();
