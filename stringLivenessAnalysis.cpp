@@ -16,12 +16,30 @@ public:
 				std::string cStr = analysis->getLivenessColouring()->getLatticeForNode(stmt)->str();
 				std::string liveStr = "Live In: "+liveIn->str()+"\n Liveout:"+liveOut->str();
 				SageInterface::attachComment(stmt, cStr + "\n" +liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
+//				SageInterface::attachComment(stmt, liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
 			}
 		}
 	}
 
 	void runAnnotations() {
 		this->traverseInputFiles(analysis->getProject(), preorder);
+	}
+};
+
+class StringLivenessHelper : public AstSimpleProcessing {
+	StringLivenessColouring* colouring;
+	StringSet startingStrs;
+public:
+	StringLivenessHelper(StringLivenessColouring *colouring, StringSet strs) {
+		this->colouring = colouring;
+		startingStrs = strs;
+	}
+	void visit(SgNode *node) {
+		printf("visited %p %s\n", node, node->class_name().c_str());
+		LiveStringsFlowLattice *lat = colouring->getLatticeForNode(node);
+		for(std::string item: startingStrs){
+			lat->setFlowValue(item, LiveStringsFlowLattice::FlowVal::SOURCE);
+		}
 	}
 };
 
@@ -39,7 +57,7 @@ void StringLivenessColouring::genInitState(const Function& func, const DataflowN
 }
 
 boost::shared_ptr<IntraDFTransferVisitor> StringLivenessColouring::getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo){
-	return boost::shared_ptr<IntraDFTransferVisitor>(new StringLivenessColouringTransfer(func, n, state, dfInfo, slMap));
+	return boost::shared_ptr<IntraDFTransferVisitor>(new StringLivenessColouringTransfer(func, n, state, dfInfo, slMap, this));
 }
 
 LiveStringsFlowLattice::FlowVal StringLivenessColouring::getFlowValue(const NodeState &s, const std::string& str){
@@ -83,11 +101,16 @@ void StringLivenessColouring::runOverallAnalysis() {
 }
 
 void StringLivenessColouringTransfer::visit(SgStatement *n){
+	//TODO: propagate down to children
 	if(slMap->find(n) != slMap->end()){
 		StringSet strSet =  (*slMap)[n];
-		for(std::string item: strSet){
-			flowLattice->setFlowValue(item, LiveStringsFlowLattice::FlowVal::SOURCE);
-		}
+//		for(std::string item: strSet){
+//			flowLattice->setFlowValue(item, LiveStringsFlowLattice::FlowVal::SOURCE);
+//		}
+		StringLivenessHelper helper(livenessColouring, strSet);
+		printf("start\n");
+		helper.traverse(n, preorder);
+		printf("end\n");
 		modified = true;
 	}
 }
@@ -171,10 +194,16 @@ void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
 		return;
 	}
 	if(varID::isValidVarExp(ref)== false) {
+//		printf("rej %s\n", ref->get_symbol()->get_name().str());
+//		printf("rej %p %s\n", ref, ref->get_parent()->unparseToString().c_str());
+
 		return;
 	}
 	StringValLattice *lat = valMappings->getValLattice(dfNode.getNode(), ref);
-	if(lat->getLevel() == StringValLattice::TOP || lat->getLevel() == StringValLattice::BOTTOM) {
+//	if(lat->getLevel() == StringValLattice::TOP || lat->getLevel() == StringValLattice::BOTTOM) {
+//		return;
+//	}
+	if(lat->getLevel() == StringValLattice::BOTTOM) {
 		return;
 	}
 	if(lat->getLevel() == StringValLattice::CONSTANT) {

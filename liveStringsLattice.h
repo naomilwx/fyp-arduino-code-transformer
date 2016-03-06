@@ -61,10 +61,10 @@ public:
 		this->varFlowMap = lat->varFlowMap;
 	}
 
-	void setFlowValue(const std::string& str, FlowVal val);
+	bool setFlowValue(const std::string& str, FlowVal val);
 	FlowVal getFlowValue(const std::string& str);
 
-	void setFlowValue(varID var, FlowVal val);
+	bool setFlowValue(varID var, FlowVal val);
 	FlowVal getFlowValue(varID);
 
 	bool isBeforeStringLiteral(const std::string& str);

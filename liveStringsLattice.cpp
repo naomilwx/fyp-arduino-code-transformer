@@ -167,16 +167,24 @@ bool LiveStringsFlowLattice::operator ==(Lattice *lat) {
 	return flowMap == dynamic_cast<LiveStringsFlowLattice*>(lat)->flowMap;
 }
 
-void LiveStringsFlowLattice::setFlowValue(const std::string& str, FlowVal val) {
+bool LiveStringsFlowLattice::setFlowValue(const std::string& str, FlowVal val) {
+	if(flowMap.find(str) != flowMap.end() && flowMap[str] == val) {
+		return false;
+	}
 	flowMap[str] = val;
+	return true;
 }
 
 LiveStringsFlowLattice::FlowVal LiveStringsFlowLattice::getFlowValue(const std::string& str) {
 	return flowMap[str];
 }
 
-void LiveStringsFlowLattice::setFlowValue(varID var, FlowVal val){
+bool LiveStringsFlowLattice::setFlowValue(varID var, FlowVal val){
+	if(varFlowMap.find(var) != varFlowMap.end() && varFlowMap[var] == val) {
+		return false;
+	}
 	varFlowMap[var] = val;
+	return true;
 }
 
 LiveStringsFlowLattice::FlowVal LiveStringsFlowLattice::getFlowValue(varID var){

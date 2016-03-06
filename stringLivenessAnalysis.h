@@ -38,10 +38,12 @@ class StringLivenessColouringTransfer: public IntraDFTransferVisitor {
 protected:
 	StatementLiteralMap* slMap;
 	LiveStringsFlowLattice *flowLattice;
+	StringLivenessColouring *livenessColouring;
 	bool modified;
 public:
-	StringLivenessColouringTransfer(const Function &func, const DataflowNode &n, NodeState &s, const std::vector<Lattice *>& d, StatementLiteralMap *slMap): IntraDFTransferVisitor(func, n, s, d), flowLattice(dynamic_cast<LiveStringsFlowLattice *>(*(dfInfo.begin()))), modified(false){
+	StringLivenessColouringTransfer(const Function &func, const DataflowNode &n, NodeState &s, const std::vector<Lattice *>& d, StatementLiteralMap *slMap, StringLivenessColouring* colouring): IntraDFTransferVisitor(func, n, s, d), flowLattice(dynamic_cast<LiveStringsFlowLattice *>(*(dfInfo.begin()))), modified(false){
 		this->slMap = slMap;
+		this->livenessColouring = colouring;
 	}
 	void visit(SgStatement *n);
 	void visit(SgInitializedName *n);

@@ -87,17 +87,33 @@ SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
 
 unsigned int getNodeDataflowIndex(SgNode *n) {
 	unsigned int index = 1; //0: entry, 1: function body, 3: exit, 2: partial expr? TODO: confirm this
-		if(isSgExprStatement(n)) {
-			index = 1;
-		} else if(isSgFunctionDefinition(n)){
-			index = 0;
-		} else if(isSgScopeStatement(n)) {
-			index = 1;
-		} else if(isSgVariableDeclaration(n)) {
-			index = 1;
-		} else if(isSgDeclarationStatement(n)) {
-			index = 0;
-		}
+	if(isSgConstructorInitializer(n)) {
+		index = 2;
+	} else if(isSgFunctionCallExp(n)) {
+		index = 3;
+	} else if(isSgExprListExp(n)){
+		index = n->cfgIndexForEnd();
+	} else if(isSgVarRefExp(n)){
+		index = 0;
+	} else if(isSgAssignOp(n)){
+		index = 2;
+	} else if(isSgDotExp(n)){
+		index = 2;
+	} else if(isSgMemberFunctionRefExp(n)){
+		index = 0;
+	} else if(isSgExprStatement(n)) {
+		index = 1;
+	} else if(isSgFunctionRefExp(n)) {
+		index = 0;
+	} else if(isSgFunctionDefinition(n)){
+		index = 0;
+	} else if(isSgScopeStatement(n)) {
+		index = 1;
+	} else if(isSgVariableDeclaration(n)) {
+		index = 1;
+	} else if(isSgDeclarationStatement(n)) {
+		index = 0;
+	}
 	return index;
 }
 
