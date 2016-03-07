@@ -8,6 +8,7 @@ class StringValLattice: public FiniteLattice {
   public:
 	enum ValLevel {
 	  BOTTOM,
+	  INITIALISED,
 	  CONSTANT,
 	  MULTIPLE,
 	  TOP

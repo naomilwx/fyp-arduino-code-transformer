@@ -13,10 +13,10 @@ public:
 			for(SgStatement * stmt: stmts) {
 				LiveStringsLattice *liveIn = analysis->getLiveIn(stmt);
 				LiveStringsLattice *liveOut = analysis->getLiveOut(stmt);
-				std::string cStr = analysis->getLivenessColouring()->getLatticeForNode(stmt)->str();
+//				std::string cStr = analysis->getLivenessColouring()->getLatticeForNode(stmt)->str();
 				std::string liveStr = "Live In: "+liveIn->str()+"\n Liveout:"+liveOut->str();
-				SageInterface::attachComment(stmt, cStr + "\n" +liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
-//				SageInterface::attachComment(stmt, liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
+//				SageInterface::attachComment(stmt, cStr + "\n" +liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
+				SageInterface::attachComment(stmt, liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
 			}
 		}
 	}
@@ -195,7 +195,7 @@ void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
 	}
 	if(varID::isValidVarExp(ref)== false) {
 //		printf("rej %s\n", ref->get_symbol()->get_name().str());
-//		printf("rej %p %s\n", ref, ref->get_parent()->unparseToString().c_str());
+		printf("rej %p %s\n", ref, ref->get_parent()->unparseToString().c_str());
 
 		return;
 	}
@@ -211,6 +211,9 @@ void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
 	} else {
 		usedVars.insert(varID(ref));
 	}
+//	else if(lat->getLevel() == StringValLattice::MULTIPLE) {
+//			usedVars.insert(varID(ref));
+//		}
 }
 
 void StringLivenessAnalysisTransfer::visit(SgStringVal *val) {

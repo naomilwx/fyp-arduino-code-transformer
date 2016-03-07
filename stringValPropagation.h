@@ -37,6 +37,8 @@ public:
 	void visit(SgStringVal *n);
 	void visit(SgPntrArrRefExp *n);
 	void visit(SgFunctionCallExp *n);
+//	void visit(SgAssignOp *n);
+	void visit(SgInitializedName *n);
 	bool finish();
 };
 #endif

@@ -17,6 +17,30 @@ void StringValPropagationTransfer::visit(SgPntrArrRefExp *n) {
 	lattice->setLevel(StringValLattice::TOP);
 }
 
+void StringValPropagationTransfer::visit(SgInitializedName *n){
+		StringValLattice* lattice = getLattice(n);
+		if(lattice && lattice->getLevel() == StringValLattice::BOTTOM) {
+			SgType *type = n->get_type();
+			if(isSgTypeChar(type)) {
+				return;
+			}
+			SgNamedType *named = isSgNamedType(type);
+			if(named != NULL && named->get_name() == "String") {
+				lattice->setLevel(StringValLattice::TOP);
+			} else if(isSgTypeChar(type->findBaseType())) {
+				lattice->setLevel(StringValLattice::INITIALISED);
+			}
+
+		}
+}
+//void StringValPropagationTransfer::visit(SgAssignOp *n){
+//	VariableStateTransfer<StringValLattice>::visit(n);
+//	SgExpression *rhs = n->get_rhs_operand ();
+//	StringValLattice* lattice = getLattice(rhs);
+//	if(lattice->getLevel() == StringValLattice::BOTTOM) {
+//		lattice->setLevel(StringValLattice::TOP);
+//	}
+//}
 void StringValPropagationTransfer::visit(SgFunctionCallExp *n){
 	//TODO: figure out which arguments are mutable and propagate accordingly
 	SgExpression *funcRef = getFunctionRef(n);
