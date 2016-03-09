@@ -73,11 +73,11 @@ bool StringLivenessColouring::isBeforeStringLiteral(const NodeState &s, const st
 	return lat->isBeforeStringLiteral(str);
 }
 
-bool StringLivenessColouring::isBeforeStringVar(const NodeState &s, varID var){
-	LiveStringsFlowLattice *lat = getLatticeForNodeState(s);
-	assert(lat != NULL);
-	return lat->isBeforeStringVar(var);
-}
+//bool StringLivenessColouring::isBeforeStringVar(const NodeState &s, varID var){
+//	LiveStringsFlowLattice *lat = getLatticeForNodeState(s);
+//	assert(lat != NULL);
+//	return lat->isBeforeStringVar(var);
+//}
 
 bool StringLivenessColouring::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo) {
 	return false;
@@ -104,10 +104,6 @@ void StringLivenessColouringTransfer::visit(SgStatement *n){
 	}
 }
 
-void StringLivenessColouringTransfer::visit(SgInitializedName *n) {
-	flowLattice->setFlowValue(varID(n), LiveStringsFlowLattice::FlowVal::SOURCE);
-}
-
 bool StringLivenessColouringTransfer::finish() {
 	return modified;
 }
@@ -126,16 +122,6 @@ boost::shared_ptr<IntraDFTransferVisitor> StringLivenessAnalysis::getTransferVis
 }
 
 LiveStringsLattice *StringLivenessAnalysis::getLiveIn(SgStatement *n)  const{
-//	unsigned int index = getNodeDataflowIndex(n);
-//    CFGNode cfgn(n, index);
-//    DataflowNode dfn(cfgn, filter);
-//	std::vector<DataflowEdge> inEdges = dfn.inEdges();
-//	if(inEdges.size() > 0) {
-//		DataflowNode nextN = inEdges.at(0).source();
-//		NodeState* state = getNodeStateForDataflowNode(nextN, index);
-//		printf("node %s\n", nextN.getNode()->class_name().c_str());
-//		return dynamic_cast<LiveStringsLattice *>(*(state->getLatticeBelow(this).begin()));
-//	}
 	NodeState* state = getNodeStateForNode(n, this->filter);
 	return dynamic_cast<LiveStringsLattice *>(*(state->getLatticeAbove(this).begin()));
 }
@@ -171,13 +157,9 @@ bool StringLivenessAnalysisTransfer::finish() {
 			changed = true;
 		}
 	}
-	for(auto& var:liveStringsLat->getLiveStringVars()) {
-		StringValLattice *lat = valMappings->getValLattice(&nodeState, var);
-		//if(livenessColouring->isBeforeStringVar(nodeState, var) == true || lat->getLevel() == StringValLattice::CONSTANT) {
-		if(livenessColouring->isBeforeStringVar(nodeState, var) == true) {
-			liveStringsLat->remStringVar(var);
-			changed = true;
-		}
+
+	for(auto &var: assignedVars) {
+		changed = liveStringsLat->remStringVar(var) || changed;
 	}
 
 	for(auto& str: usedStrings){
@@ -191,6 +173,9 @@ bool StringLivenessAnalysisTransfer::finish() {
 
 void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
 	if(isSgAssignOp(ref->get_parent()) && ref->isLValue()) {
+		if(varID::isValidVarExp(ref)) {
+			assignedVars.insert(varID(ref));
+		}
 		return;
 	}
 	if(varID::isValidVarExp(ref)== false) {
@@ -210,13 +195,14 @@ void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
 //	} else {
 		usedVars.insert(varID(ref));
 //	}
-//	else if(lat->getLevel() == StringValLattice::MULTIPLE) {
-//			usedVars.insert(varID(ref));
-//		}
+
 }
 
 void StringLivenessAnalysisTransfer::visit(SgStringVal *val) {
 	usedStrings.insert(val->get_value());
 }
 
+void StringLivenessAnalysisTransfer::visit(SgInitializedName *init) {
+	assignedVars.insert(varID(init));
+}
 

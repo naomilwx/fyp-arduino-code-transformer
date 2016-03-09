@@ -152,17 +152,5 @@ bool isArduinoStringType(SgType *type) {
 
 
 void removeUnusedDefs(SgProject *project){
-	DefUseAnalysis defuse(project);
-	defuse.run(false);
-	vector<SgNode*> initNames = NodeQuery::querySubTree(project, V_SgInitializedName);
 	
-	for(SgNode *node : initNames) {
-		SgInitializedName *initName = isSgInitializedName(node);
-		SgVariableDeclaration *decl = isSgVariableDeclaration(initName->get_declaration());
-		if(decl != NULL)	{
-			std::vector < SgNode*> uses = defuse.getUseFor(decl, initName);
-			printf("%s:num of uses %zu %s\n", initName->get_name().str(),uses.size(), decl->get_parent()->class_name().c_str());
-		}
-		//TODO:	
-	}
 }

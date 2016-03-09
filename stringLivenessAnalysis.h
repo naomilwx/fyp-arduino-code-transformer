@@ -29,7 +29,7 @@ public:
 
 	bool isBeforeStringLiteral(const NodeState &s, const std::string& str);
 
-	bool isBeforeStringVar(const NodeState &s, varID var);
+//	bool isBeforeStringVar(const NodeState &s, varID var);
 
 	void runOverallAnalysis();
 };
@@ -46,7 +46,6 @@ public:
 		this->livenessColouring = colouring;
 	}
 	void visit(SgStatement *n);
-	void visit(SgInitializedName *n);
 	bool finish();
 };
 
@@ -101,6 +100,7 @@ protected:
 
 	LiveStringsLattice *liveStringsLat;
 	StringSet usedStrings;
+	std::set<varID> assignedVars;
 	std::set<varID> usedVars;
 public:
 	StringLivenessAnalysisTransfer(const Function &func, const DataflowNode &n, NodeState &s, const std::vector<Lattice *>& d, StringValPropagation* mappings, StringLivenessColouring* colouring): IntraDFTransferVisitor(func, n, s, d), liveStringsLat(dynamic_cast<LiveStringsLattice *>(*(dfInfo.begin()))), usedStrings(){
@@ -112,6 +112,7 @@ public:
 	LiveStringsLattice *getLiveStrings() const;
 	void visit(SgVarRefExp *ref);
 	void visit(SgStringVal *val);
+	void visit(SgInitializedName *init);
 	bool finish();
 };
 
