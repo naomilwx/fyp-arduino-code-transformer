@@ -1,11 +1,17 @@
 #include "stringLivenessAnalysis.h"
+#include "VariableRenaming.h"
 
 int main( int argc, char * argv[] ) {
   SgProject* project = frontend(argc,argv);
 
-  initAnalysis(project);
+  VariableRenaming var_renaming(project);
+  var_renaming.run();
 
+  initAnalysis(project);
+  
   Dbg::init("String liveness test", "./livetest", "lindex.html");
+
+//removeUnusedDefs(project);
 
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();

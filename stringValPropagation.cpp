@@ -18,14 +18,14 @@ void StringValPropagationTransfer::visit(SgPntrArrRefExp *n) {
 }
 
 void StringValPropagationTransfer::visit(SgInitializedName *n){
+	VariableStateTransfer<StringValLattice>::visit(n);
 		StringValLattice* lattice = getLattice(n);
 		if(lattice && lattice->getLevel() == StringValLattice::BOTTOM) {
 			SgType *type = n->get_type();
 			if(isSgTypeChar(type)) {
 				return;
 			}
-			SgNamedType *named = isSgNamedType(type);
-			if(named != NULL && named->get_name() == "String") {
+			if(isArduinoStringType(type)) {
 				lattice->setLevel(StringValLattice::TOP);
 			} else if(isSgTypeChar(type->findBaseType())) {
 				lattice->setLevel(StringValLattice::INITIALISED);

@@ -1,4 +1,5 @@
 #include "ctUtils.h"
+#include "DefUseAnalysis.h"
 
 void printAnalysis(Analysis *a, bool bw) {
 	vector<int> factNames;
@@ -122,11 +123,46 @@ NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode)){
 	unsigned int index = getNodeDataflowIndex(n);
 	CFGNode cfgn(n, index);
 	DataflowNode dfn(cfgn, f);
-	auto states = NodeState::getNodeStates(dfn);
+//	auto states = NodeState::getNodeStates(dfn);
+//	if( states.size() < (index + 1)) {
+//		return states[0];
+//	} else {
+//		return states[index];
+//	}
+	return getNodeStateForDataflowNode(dfn, index);
+}
+
+NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index){
+	auto states = NodeState::getNodeStates(n);
 //	NodeState* state = (states.size() < (index + 1))? states[0] : states[index];
 	if( states.size() < (index + 1)) {
 		return states[0];
 	} else {
 		return states[index];
+	}
+}
+
+bool isArduinoStringType(SgType *type) {
+	SgNamedType *named = isSgNamedType(type);
+	if(named != NULL && named->get_name() == "String") {
+		return true;
+	}
+	return false;
+}
+
+
+void removeUnusedDefs(SgProject *project){
+	DefUseAnalysis defuse(project);
+	defuse.run(false);
+	vector<SgNode*> initNames = NodeQuery::querySubTree(project, V_SgInitializedName);
+	
+	for(SgNode *node : initNames) {
+		SgInitializedName *initName = isSgInitializedName(node);
+		SgVariableDeclaration *decl = isSgVariableDeclaration(initName->get_declaration());
+		if(decl != NULL)	{
+			std::vector < SgNode*> uses = defuse.getUseFor(decl, initName);
+			printf("%s:num of uses %zu %s\n", initName->get_name().str(),uses.size(), decl->get_parent()->class_name().c_str());
+		}
+		//TODO:	
 	}
 }
