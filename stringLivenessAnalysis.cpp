@@ -73,11 +73,6 @@ bool StringLivenessColouring::isBeforeStringLiteral(const NodeState &s, const st
 	return lat->isBeforeStringLiteral(str);
 }
 
-//bool StringLivenessColouring::isBeforeStringVar(const NodeState &s, varID var){
-//	LiveStringsFlowLattice *lat = getLatticeForNodeState(s);
-//	assert(lat != NULL);
-//	return lat->isBeforeStringVar(var);
-//}
 
 bool StringLivenessColouring::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo) {
 	return false;

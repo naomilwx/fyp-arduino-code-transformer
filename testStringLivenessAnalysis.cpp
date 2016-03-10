@@ -11,10 +11,10 @@ int main( int argc, char * argv[] ) {
   
   Dbg::init("String liveness test", "./livetest", "lindex.html");
 
-//removeUnusedDefs(project);
-
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
+
+  addProgmemStringLiterals(project, lanalysis.getLiteralMap());
 
   StringValPropagation strValProp(project);
   strValProp.runAnalysis();

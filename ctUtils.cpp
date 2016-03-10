@@ -150,7 +150,3 @@ bool isArduinoStringType(SgType *type) {
 	return false;
 }
 
-
-void removeUnusedDefs(SgProject *project){
-	
-}

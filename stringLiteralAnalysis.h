@@ -66,6 +66,7 @@ public:
 	bool isGlobalStringLiteral(const std::string& str);
 	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);
 	StatementLiteralMap* getStatementLiteralMap();
+	LiteralMap *getLiteralMap();
 	std::string getAnalysisPrintout();
 
 	friend class StringLiteralAnalysisVisitor;
@@ -82,4 +83,6 @@ public:
 	void preOrderVisit(SgNode *node);
 	void postOrderVisit(SgNode *node);
 };
+
+void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap);
 #endif

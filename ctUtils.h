@@ -47,5 +47,4 @@ NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index);
 
 bool isArduinoStringType(SgType *type);
 
-void removeUnusedDefs(SgProject *project);
 #endif

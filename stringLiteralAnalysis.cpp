@@ -74,6 +74,9 @@ StatementLiteralMap* StringLiteralAnalysis::getStatementLiteralMap() {
 	return &slMap;
 }
 
+LiteralMap* StringLiteralAnalysis::getLiteralMap() {
+	return &strLiterals;
+}
 std::string StringLiteralAnalysis::getAnalysisPrintout(){
 	std::ostringstream out;
 	for(auto const& item: strLiterals) {
@@ -97,7 +100,7 @@ StringLiteralAnalysisVisitor::StringLiteralAnalysisVisitor(StringLiteralAnalysis
 
 void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 	SgStatement *p = stmtStack.top();
-//	printf("wrapping stmt: %s\n", p->class_name().c_str());
+	//	printf("wrapping stmt: %s\n", p->class_name().c_str());
 
 	const std::string& item = node->get_value();
 	if(analyser->strLiterals.find(item) == analyser->strLiterals.end()){
@@ -110,7 +113,7 @@ void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 	int numFuncOcc = 0;
 	if(!declStack.empty()){
 		SgFunctionDeclaration *decl = declStack.top();
-//		printf(" function name %s\n", decl->get_name().getString().c_str());
+		//		printf(" function name %s\n", decl->get_name().getString().c_str());
 		sInfo.addFuncOccurance(decl, p);
 		numFuncOcc = sInfo.getFuncOccuranceNum();
 	}
@@ -124,8 +127,8 @@ void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 
 void StringLiteralAnalysisVisitor::preOrderVisit(SgNode *node){
 	if(isSgFunctionDeclaration(node)){
-			declStack.push(isSgFunctionDeclaration(node));
-			printf("function name %s\n", isSgFunctionDeclaration(node)->get_name().getString().c_str());
+		declStack.push(isSgFunctionDeclaration(node));
+		printf("function name %s\n", isSgFunctionDeclaration(node)->get_name().getString().c_str());
 	}
 	if(isSgStatement(node)) {
 		stmtStack.push(isSgStatement(node));
@@ -136,10 +139,41 @@ void StringLiteralAnalysisVisitor::preOrderVisit(SgNode *node){
 
 void StringLiteralAnalysisVisitor::postOrderVisit(SgNode *node){
 	if(isSgFunctionDeclaration(node)){
-			declStack.pop();
-			printf("popped function name %s\n", isSgFunctionDeclaration(node)->get_name().getString().c_str());
+		declStack.pop();
+		printf("popped function name %s\n", isSgFunctionDeclaration(node)->get_name().getString().c_str());
 	}
 	if(isSgStatement(node)) {
 		stmtStack.pop();
 	}
+}
+
+void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap){	
+	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	std::string pre;
+	for(auto &item: *lMap) {
+		std::string literal = item.first;
+		std::string tag = item.second.getTag();
+		pre += "\n const char " + tag + "[] PROGMEM = \""+ literal +"\";";
+	}
+	SgDeclarationStatementPtrList & stmtList = global->get_declarations ();
+	if (stmtList.size()>0) // the source file is not empty
+	{
+		for (SgDeclarationStatementPtrList::iterator j = stmtList.begin ();
+				j != stmtList.end (); j++){
+			//must have this judgement, otherwise wrong file will be modified!
+			//It could also be the transformation generated statements with #include attached
+			if ( ((*j)->get_file_info ())->isSameFile(global->get_file_info ())||
+					((*j)->get_file_info ())->isTransformation()) {
+
+				PreprocessingInfo* result = new PreprocessingInfo(PreprocessingInfo::CpreprocessorIncludeDeclaration, pre, "Transformation generated",0, 0, 0, PreprocessingInfo::before);
+				(*j)->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
+				break;
+			}
+
+		}
+	}else{
+		PreprocessingInfo* result = new PreprocessingInfo(PreprocessingInfo::CpreprocessorIncludeDeclaration, pre, "Transformation generated",0, 0, 0, PreprocessingInfo::after);
+		global->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
+	}
+
 }
