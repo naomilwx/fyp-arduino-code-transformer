@@ -64,8 +64,14 @@ Lattice* StringValLattice::copy() const{
 
 void StringValLattice::copy(Lattice* lat) {
 	StringValLattice* other = dynamic_cast<StringValLattice *>(lat);
+	if(this->level != StringValLattice::BOTTOM && other->level == StringValLattice::CONSTANT) {
+		if(this->possibleVals != other->possibleVals) {
+			this->level = StringValLattice::MODIFIED;
+		}
+	} else {
+		this->level = other->level;
+	}
 	this->possibleVals = other->possibleVals;
-	this->level = other->level;
 }
 
 std::string StringValLattice::str(std::string indent){
@@ -88,7 +94,7 @@ bool StringValLattice::operator==(Lattice *lat) {
 bool StringValLattice::meetUpdate(Lattice *lat){
 	bool changed;
 	StringValLattice* other = dynamic_cast<StringValLattice *>(lat);
-	if(level == StringValLattice::CONSTANT && other->level == StringValLattice::CONSTANT) {
+	if((level == StringValLattice::CONSTANT || level == StringValLattice::MODIFIED) && (other->level == StringValLattice::CONSTANT || other->level == StringValLattice::MODIFIED)) {
 		if(other->possibleVals == possibleVals) {
 			changed = false;
 		}else {

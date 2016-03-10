@@ -10,6 +10,7 @@ class StringValLattice: public FiniteLattice {
 	  BOTTOM,
 	  INITIALISED,
 	  CONSTANT,
+	  MODIFIED,
 	  MULTIPLE,
 	  TOP
 	};
