@@ -36,7 +36,7 @@ public:
 		startingStrs = strs;
 	}
 	void visit(SgNode *node) {
-		printf("visited %p %s\n", node, node->class_name().c_str());
+//		printf("visited %p %s\n", node, node->class_name().c_str());
 		LiveStringsFlowLattice *lat = colouring->getLatticeForNode(node);
 		for(std::string item: startingStrs){
 			lat->setFlowValue(item, LiveStringsFlowLattice::FlowVal::SOURCE);
@@ -92,9 +92,9 @@ void StringLivenessColouringTransfer::visit(SgStatement *n){
 	if(slMap->find(n) != slMap->end()){
 		StringSet strSet =  (*slMap)[n];
 		StringLivenessHelper helper(livenessColouring, strSet);
-		printf("start\n");
+//		printf("start\n");
 		helper.traverse(n, preorder);
-		printf("end\n");
+//		printf("end\n");
 		modified = true;
 	}
 }
