@@ -13,8 +13,10 @@ void StringValPropagationTransfer::visit(SgStringVal *n) {
 }
 
 void StringValPropagationTransfer::visit(SgPntrArrRefExp *n) {
+	//TODO: this is wrong. array ref on the rhs should not be marked
 	StringValLattice* lattice = getLattice(n->get_lhs_operand());
-	lattice->setLevel(StringValLattice::TOP);
+	modified = lattice->setLevel(StringValLattice::TOP) || modified;
+
 }
 
 void StringValPropagationTransfer::visit(SgInitializedName *n){
@@ -26,9 +28,9 @@ void StringValPropagationTransfer::visit(SgInitializedName *n){
 				return;
 			}
 			if(isArduinoStringType(type)) {
-				lattice->setLevel(StringValLattice::TOP);
+				modified = lattice->setLevel(StringValLattice::TOP) || modified;
 			} else if(isSgTypeChar(type->findBaseType())) {
-				lattice->setLevel(StringValLattice::INITIALISED);
+				modified = lattice->setLevel(StringValLattice::INITIALISED) || modified;
 			}
 
 		}
@@ -42,7 +44,6 @@ void StringValPropagationTransfer::visit(SgInitializedName *n){
 //	}
 //}
 void StringValPropagationTransfer::visit(SgFunctionCallExp *n){
-	//TODO: figure out which arguments are mutable and propagate accordingly
 	SgExpression *funcRef = getFunctionRef(n);
 	SgExpressionPtrList params = n->get_args()->get_expressions();
 	if(funcRef != NULL) {
@@ -52,15 +53,12 @@ void StringValPropagationTransfer::visit(SgFunctionCallExp *n){
 		for(auto &fArg : fArgs) {
 			if(fArg->containsInternalTypes() && isConstantType(fArg) == false) {
 				StringValLattice* lattice = getLattice(params[argIdx]);
-				lattice->setLevel(StringValLattice::TOP);
+				modified = lattice->setLevel(StringValLattice::TOP) || modified;
 			}
 			argIdx++;
-//			printf("function arg type: %s\n", fArg->class_name().c_str());
 		}
-//		printf("type ref %s\n", funcType->class_name().c_str());
 	}
 
-//	printf("call type: %s\n", n->get_type()->class_name().c_str());
 }
 
 bool StringValPropagationTransfer::finish() {

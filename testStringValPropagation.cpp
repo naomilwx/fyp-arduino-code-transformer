@@ -4,6 +4,8 @@
 #include "liveDeadVarAnalysis.h"
 #include "ctUtils.h"
 
+//#include "pointerAliasAnalysis.h"
+
 bool gfilter (CFGNode cfgn)
 {
   SgNode *node = cfgn.getNode();
@@ -64,12 +66,16 @@ int main( int argc, char * argv[] ) {
 //  SgIncidenceDirectedGraph *graph = cgb.getGraph();
 
   StringValPropagation strValProp(project);
-//
-//  ContextInsensitiveInterProceduralDataflow inter(&strValProp, graph);
-//  inter.runAnalysis();
+
 
   strValProp.runAnalysis();
   printAnalysis(&strValProp, false);
 
+/*
+  pointerAliasAnalysis pal(NULL);
+  ContextInsensitiveInterProceduralDataflow interpt(&pal, buildProjectCallGraph(project));
+  interpt.runAnalysis();
+  printAnalysis(&pal, false);
+*/
   printf("done\n");
 }

@@ -1,5 +1,5 @@
 #include "ctUtils.h"
-#include "DefUseAnalysis.h"
+//#include "DefUseAnalysis.h"
 
 void printAnalysis(Analysis *a, bool bw) {
 	vector<int> factNames;
@@ -72,9 +72,10 @@ bool isConstantType(SgType *nType) {
 }
 
 SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
-	static SgIncidenceDirectedGraph *callGraph = NULL;
-	if(callGraph != NULL) {
-		return callGraph;
+	static std::map<SgProject *, SgIncidenceDirectedGraph*> callGraphs;
+	//if(callGraph != NULL) {
+	if(callGraphs.find(project) != callGraphs.end()){	
+		return callGraphs[project];
 	}
 	DefinedFunctionCollector definedFuncsCollector;
 	definedFuncsCollector.traverseInputFiles(project, preorder);
@@ -82,7 +83,8 @@ SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
 
 	CallGraphBuilder cgb(project);
 	cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
-	callGraph = cgb.getGraph();
+	SgIncidenceDirectedGraph *callGraph = cgb.getGraph();
+        callGraphs[project] = callGraph;
 	return callGraph;
 }
 

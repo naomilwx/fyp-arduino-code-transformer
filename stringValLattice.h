@@ -28,6 +28,7 @@ class StringValLattice: public FiniteLattice {
 
 	std::set<std::string> getPossibleVals() const;
 	bool setPossibleVals(std::set<std::string> vals);
+	bool setPossibleVals(std::string val);
 	bool addPossibleVal(const std::string& val);
 	
 	bool setBottom();

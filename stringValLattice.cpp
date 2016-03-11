@@ -37,6 +37,15 @@ bool StringValLattice::setPossibleVals(std::set<std::string> vals) {
   return diff;
 }
 
+bool StringValLattice::setPossibleVals(std::string val) {
+  if(possibleVals.size() == 1 && (possibleVals.find(val) != possibleVals.end())){
+	  return false;
+  }
+  possibleVals.clear();
+  possibleVals.insert(val);
+  return true;
+}
+
 bool StringValLattice::addPossibleVal(const std::string& val) {
 	if(possibleVals.find(val) == possibleVals.end()) {
 		printf("found string: %s\n",val.c_str());
@@ -55,7 +64,7 @@ bool StringValLattice::setBottom() {
 	bool diff = (level != StringValLattice::BOTTOM);
 	level = StringValLattice::BOTTOM;
 	possibleVals.clear();
-	return level;
+	return diff;
 }
 
 Lattice* StringValLattice::copy() const{
@@ -92,7 +101,7 @@ bool StringValLattice::operator==(Lattice *lat) {
 }
 
 bool StringValLattice::meetUpdate(Lattice *lat){
-	bool changed;
+	bool changed = false;
 	StringValLattice* other = dynamic_cast<StringValLattice *>(lat);
 	if((level == StringValLattice::CONSTANT || level == StringValLattice::MODIFIED) && (other->level == StringValLattice::CONSTANT || other->level == StringValLattice::MODIFIED)) {
 		if(other->possibleVals == possibleVals) {
