@@ -47,6 +47,11 @@ std::string StringLiteralAnalysis::getStringLiteralLabel(const std::string& lite
 	return "";
 }
 
+SgVariableDeclaration * StringLiteralAnalysis::getPlaceholderForStringLiteral(const std::string& literal){
+	return strLiterals[literal].placeholder;
+}
+
+
 int StringLiteralAnalysis::getNumberOfStringLiterals(){
 	return strCount;
 }
@@ -109,12 +114,12 @@ StringLiteralAnalysisVisitor::StringLiteralAnalysisVisitor(StringLiteralAnalysis
 void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 	SgStatement *p = stmtStack.top();
 	//	printf("wrapping stmt: %s\n", p->class_name().c_str());
-
+	SgGlobal *global = SageInterface::getFirstGlobalScope(analyser->project);
 	const std::string& item = node->get_value();
 	if(analyser->strLiterals.find(item) == analyser->strLiterals.end()){
 		//First time string literal is found
 		analyser->strCount++;
-		StringLiteralInfo t(analyser->strCount);
+		StringLiteralInfo t(analyser->strCount, global);
 		analyser->strLiterals[item] = t;
 	}
 	StringLiteralInfo &sInfo = analyser->strLiterals[item];

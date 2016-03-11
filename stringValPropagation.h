@@ -10,6 +10,7 @@
 
 #include "ctUtils.h"
 #include "stringValLattice.h"
+#include "stringLiteralAnalysis.h"
 
 class StringValPropagation : public IntraFWDataflow {
 protected:
@@ -61,16 +62,17 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 {
     private:
           using VariableStateTransfer<PointerAliasLattice>::getLattices;
-
+	  LiteralMap *literalMap;
     public:
           //Visit function to apply "transfer" on the specified SgNode in CFG
           void visit(SgFunctionCallExp *sgn);
           void visit(SgAssignOp *sgn);
           void visit(SgAssignInitializer *sgn);
           void visit(SgConstructorInitializer *sgn);
-        
+	  void visit(SgAggregateInitializer *sgn);        
           bool finish();
-          PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+    	
+          PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map);
     private:
          
           //processes LHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
@@ -93,9 +95,12 @@ class PointerAliasAnalysis : public IntraFWDataflow
 {
 protected:
     LiveDeadVarsAnalysis* ldva;
-
+    LiteralMap *literalMap;
 public:
-    PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva);
+    PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, LiteralMap *map);
+   
+    PointerAliasLattice *getAliasLattice(NodeState *s, varID var);
+    
     void genInitState(const Function& func, const DataflowNode& n, const NodeState& state,std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
     bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
     boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& 

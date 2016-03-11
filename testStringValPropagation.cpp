@@ -1,7 +1,8 @@
 #include "stringValPropagation.h"
+#include "stringLiteralAnalysis.h"
 
 #include "analysisCommon.h"
-#include "liveDeadVarAnalysis.h"
+//#include "liveDeadVarAnalysis.h"
 #include "ctUtils.h"
 
 //#include "pointerAliasAnalysis.h"
@@ -48,11 +49,7 @@ int main( int argc, char * argv[] ) {
   initAnalysis(project);
   Dbg::init("propagation test", "./proptest", "index.html");
 
-//  DefinedFunctionCollector definedFuncsCollector;
-//  definedFuncsCollector.traverseInputFiles(project, preorder);
-//  definedFuncsCollector.printDefinedFunctions();
-
-  liveDeadAnalysisDebugLevel = 1;
+//  liveDeadAnalysisDebugLevel = 1;
   analysisDebugLevel = 1;
 
   //LiveDeadVarsAnalysis ldva(project);
@@ -61,18 +58,17 @@ int main( int argc, char * argv[] ) {
   //     assert (ciipd_ldva.filter == gfilter);
   //ciipd_ldva.runAnalysis();
 
-//  CallGraphBuilder cgb(project);
-//  cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
-//  SgIncidenceDirectedGraph *graph = cgb.getGraph();
+
+
+  StringLiteralAnalysis lanalysis(project);
+  lanalysis.runAnalysis();
 
 //  StringValPropagation strValProp(project);
-
-
 //  strValProp.runAnalysis();
 //  printAnalysis(&strValProp, false);
 
 
-  PointerAliasAnalysis pal(NULL);
+  PointerAliasAnalysis pal(NULL, lanalysis.getLiteralMap());
   ContextInsensitiveInterProceduralDataflow interpt(&pal, buildProjectCallGraph(project));
   interpt.runAnalysis();
   printAnalysis(&pal, false);

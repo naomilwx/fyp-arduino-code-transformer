@@ -20,21 +20,25 @@ class StringLiteralInfo {
 
 	std::string tag;
 	FunctionMap funcOccurances;
-
+	SgVariableDeclaration *placeholder;
 
 	public:
 	StringLiteralInfo(): funcOccurances(), tag() {
 		}
 
-	StringLiteralInfo(int tagNum) {
+	StringLiteralInfo(int tagNum, SgGlobal *global) {
 		tag = STRING_LITERAL_PREFIX + to_string(tagNum);
+		SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
+		placeholder = SageBuilder::buildVariableDeclaration(tag, type, NULL, global);
 	}
 
 	std::string getTag() const;
 
 	int getFuncOccuranceNum() const;
 	std::string getSummaryPrintout() const;
-
+	SgVariableDeclaration *getPlaceholder() {
+		return placeholder;
+	}
 	protected:
 	bool addFuncOccurance(SgFunctionDeclaration * func, SgStatement* stmt);
 
@@ -62,6 +66,7 @@ public:
 
 	std::string getStringLiteralLabel(const std::string& literal);
 	std::string getStringLiteralForLabel(const std::string& label);
+	SgVariableDeclaration *getPlaceholderForStringLiteral(const std::string& literal);
 	std::set<std::string> getStringLiterals();
 	int getNumberOfStringLiterals();
 	bool isGlobalStringLiteral(const std::string& str);
