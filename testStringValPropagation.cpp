@@ -65,17 +65,17 @@ int main( int argc, char * argv[] ) {
 //  cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
 //  SgIncidenceDirectedGraph *graph = cgb.getGraph();
 
-  StringValPropagation strValProp(project);
+//  StringValPropagation strValProp(project);
 
 
-  strValProp.runAnalysis();
-  printAnalysis(&strValProp, false);
+//  strValProp.runAnalysis();
+//  printAnalysis(&strValProp, false);
 
-/*
-  pointerAliasAnalysis pal(NULL);
+
+  PointerAliasAnalysis pal(NULL);
   ContextInsensitiveInterProceduralDataflow interpt(&pal, buildProjectCallGraph(project));
   interpt.runAnalysis();
   printAnalysis(&pal, false);
-*/
+
   printf("done\n");
 }

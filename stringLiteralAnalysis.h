@@ -61,6 +61,7 @@ public:
 	void runAnalysis();
 
 	std::string getStringLiteralLabel(const std::string& literal);
+	std::string getStringLiteralForLabel(const std::string& label);
 	std::set<std::string> getStringLiterals();
 	int getNumberOfStringLiterals();
 	bool isGlobalStringLiteral(const std::string& str);

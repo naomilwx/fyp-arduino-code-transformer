@@ -59,6 +59,14 @@ std::set<std::string> StringLiteralAnalysis::getStringLiterals() {
 	return strSet;
 }
 
+std::string StringLiteralAnalysis::getStringLiteralForLabel(const std::string& label) {
+	for(auto const& item: strLiterals) {
+                if(item.second.getTag() == label) {
+			return item.first;
+		}
+        }
+	return "";
+}
 StringLiteralInfo StringLiteralAnalysis::getStringLiteralInfo(const std::string&  literal) {
 	if(strLiterals.find(literal) != strLiterals.end()) {
 		return strLiterals[literal];

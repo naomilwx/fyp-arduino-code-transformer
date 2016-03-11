@@ -167,6 +167,17 @@ bool StringLivenessAnalysisTransfer::finish() {
 }
 
 void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
+/*	SgType *type = ref->get_type();
+	if(SageInterface::isPointerType(type)) {
+					printf("pointer %s\n", ref->unparseToString().c_str());
+				}
+				if(SageInterface::isPointerType(type) &&SageInterface::isPointerToNonConstType(type) == false) {
+					printf("pointer to const type: %s\n",ref->unparseToString().c_str());
+				}
+				if(SageInterface::isConstType(type)) {
+					printf("const type: %s \n", ref->unparseToString().c_str());
+				}
+*/
 	if(isSgAssignOp(ref->get_parent()) && ref->isLValue()) {
 		if(varID::isValidVarExp(ref)) {
 			assignedVars.insert(varID(ref));
