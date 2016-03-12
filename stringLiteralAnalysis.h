@@ -24,6 +24,7 @@ class StringLiteralInfo {
 
 	public:
 	StringLiteralInfo(): funcOccurances(), tag() {
+		placeholder = NULL;
 		}
 
 	StringLiteralInfo(int tagNum, SgGlobal *global) {

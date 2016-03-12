@@ -163,9 +163,13 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
       //Establish the per CFG-node alias relations
       if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
         resLat->setAliasRelation(make_pair(leftARNode,rightARNode)); 
-        
+      //TODO: handle array
       //Update the aliasedVariables(Compact Representation Graph)
-      updateAliases(resLat->getAliasRelations(),1);
+     if(isSgPntrArrRefExp(lhs)){
+        updateAliases(resLat->getAliasRelations(),0);
+     } else { 
+        updateAliases(resLat->getAliasRelations(),1);
+     }
 }
 
 
@@ -565,19 +569,19 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
            new_variables[new_exp] = sym;
         }
         else
-            sym = new_variables[new_exp];
+           sym = new_variables[new_exp];
            
-        var =  SgExpr2Var(new_exp);
-        derefLevel = derefLevel - 1;
+           var =  SgExpr2Var(new_exp);
+           derefLevel = derefLevel - 1;
        }
        break;
        case V_SgStringVal:              
 	{
 	   derefLevel = derefLevel - 1;
-       SgVariableDeclaration *decl = (*literalMap)[(isSgStringVal(node)->get_value())].getPlaceholder();
+       	   SgVariableDeclaration *decl = (*literalMap)[(isSgStringVal(node)->get_value())].getPlaceholder();
 	   SgInitializedName *name = decl->get_variables().at(0);
-       sym = isSgVariableSymbol(name->get_symbol_from_symbol_table());
-       var = varID(name);
+      	   sym = isSgVariableSymbol(name->get_symbol_from_symbol_table());
+       	   var = varID(name);
 //	   printf("string: %s %s\n", isSgStringVal(node)->get_value().c_str(), sym->get_name().str());
 	}
        break;
