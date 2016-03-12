@@ -13,9 +13,11 @@ public:
 			for(SgStatement * stmt: stmts) {
 				LiveStringsLattice *liveIn = analysis->getLiveIn(stmt);
 				LiveStringsLattice *liveOut = analysis->getLiveOut(stmt);
-				std::string cStr = analysis->getLivenessColouring()->getLatticeForNode(stmt)->str();
-				std::string liveStr = "Live In: "+liveIn->str()+"\n Liveout:"+liveOut->str();
-				SageInterface::attachComment(stmt, cStr + "\n" +liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
+//				std::string cStr = analysis->getLivenessColouring()->getLatticeForNode(stmt)->str();
+				std::string liveStr = "Live In: "+liveIn->str();
+//				SageInterface::attachComment(stmt, cStr + "\n" +liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
+				SageInterface::attachComment(stmt, liveStr, PreprocessingInfo::before, PreprocessingInfo::C_StyleComment);
+				SageInterface::attachComment(stmt, "Liveout:"+liveOut->str(), PreprocessingInfo::after, PreprocessingInfo::C_StyleComment);
 			}
 		}
 	}
@@ -25,21 +27,30 @@ public:
 	}
 };
 
+class StringLivenessHelper : public AstSimpleProcessing {
+	StringLivenessColouring* colouring;
+	StringSet startingStrs;
+public:
+	StringLivenessHelper(StringLivenessColouring *colouring, StringSet strs) {
+		this->colouring = colouring;
+		startingStrs = strs;
+	}
+	void visit(SgNode *node) {
+//		printf("visited %p %s\n", node, node->class_name().c_str());
+		LiveStringsFlowLattice *lat = colouring->getLatticeForNode(node);
+		for(std::string item: startingStrs){
+			lat->setFlowValue(item, LiveStringsFlowLattice::FlowVal::SOURCE);
+		}
+	}
+};
+
 //StringLivenessColouring
 void StringLivenessColouring::genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts){
 	initLattices.push_back(new LiveStringsFlowLattice());
-//	SgNode *node = n.getNode();
-//	printf("init %p %s\n", node, node->class_name().c_str());
-//		if(node->cfgIndexForEnd() != n.getIndex()){
-//		printf("init %p %s\n %s %d\n", node, node->class_name().c_str(), node->unparseToString().c_str(), node->cfgIndexForEnd());
-	//	auto test = NodeState::getNodeState(n, 0);
-//		assert(node->cfgIndexForEnd() == n.getIndex());
-//	printf("node index %d\n", n.getIndex());
-	//	NodeState *st = NodeState::getNodeState(node, 0);
 }
 
 boost::shared_ptr<IntraDFTransferVisitor> StringLivenessColouring::getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo){
-	return boost::shared_ptr<IntraDFTransferVisitor>(new StringLivenessColouringTransfer(func, n, state, dfInfo, slMap));
+	return boost::shared_ptr<IntraDFTransferVisitor>(new StringLivenessColouringTransfer(func, n, state, dfInfo, slMap, this));
 }
 
 LiveStringsFlowLattice::FlowVal StringLivenessColouring::getFlowValue(const NodeState &s, const std::string& str){
@@ -62,11 +73,6 @@ bool StringLivenessColouring::isBeforeStringLiteral(const NodeState &s, const st
 	return lat->isBeforeStringLiteral(str);
 }
 
-bool StringLivenessColouring::isBeforeStringVar(const NodeState &s, varID var){
-	LiveStringsFlowLattice *lat = getLatticeForNodeState(s);
-	assert(lat != NULL);
-	return lat->isBeforeStringVar(var);
-}
 
 bool StringLivenessColouring::transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo) {
 	return false;
@@ -85,15 +91,12 @@ void StringLivenessColouring::runOverallAnalysis() {
 void StringLivenessColouringTransfer::visit(SgStatement *n){
 	if(slMap->find(n) != slMap->end()){
 		StringSet strSet =  (*slMap)[n];
-		for(std::string item: strSet){
-			flowLattice->setFlowValue(item, LiveStringsFlowLattice::FlowVal::SOURCE);
-		}
+		StringLivenessHelper helper(livenessColouring, strSet);
+//		printf("start\n");
+		helper.traverse(n, preorder);
+//		printf("end\n");
 		modified = true;
 	}
-}
-
-void StringLivenessColouringTransfer::visit(SgInitializedName *n) {
-	flowLattice->setFlowValue(varID(n), LiveStringsFlowLattice::FlowVal::SOURCE);
 }
 
 bool StringLivenessColouringTransfer::finish() {
@@ -149,12 +152,9 @@ bool StringLivenessAnalysisTransfer::finish() {
 			changed = true;
 		}
 	}
-	for(auto& var:liveStringsLat->getLiveStringVars()) {
-		StringValLattice *lat = valMappings->getValLattice(&nodeState, var);
-		if(livenessColouring->isBeforeStringVar(nodeState, var) == true || lat->getLevel() == StringValLattice::CONSTANT) {
-			liveStringsLat->remStringVar(var);
-			changed = true;
-		}
+
+	for(auto &var: assignedVars) {
+		changed = liveStringsLat->remStringVar(var) || changed;
 	}
 
 	for(auto& str: usedStrings){
@@ -167,25 +167,48 @@ bool StringLivenessAnalysisTransfer::finish() {
 }
 
 void StringLivenessAnalysisTransfer::visit(SgVarRefExp *ref) {
+/*	SgType *type = ref->get_type();
+	if(SageInterface::isPointerType(type)) {
+					printf("pointer %s\n", ref->unparseToString().c_str());
+				}
+				if(SageInterface::isPointerType(type) &&SageInterface::isPointerToNonConstType(type) == false) {
+					printf("pointer to const type: %s\n",ref->unparseToString().c_str());
+				}
+				if(SageInterface::isConstType(type)) {
+					printf("const type: %s \n", ref->unparseToString().c_str());
+				}
+*/
 	if(isSgAssignOp(ref->get_parent()) && ref->isLValue()) {
+		if(varID::isValidVarExp(ref)) {
+			assignedVars.insert(varID(ref));
+		}
 		return;
 	}
 	if(varID::isValidVarExp(ref)== false) {
+		printf("rej %p %s\n", ref, ref->get_parent()->unparseToString().c_str());
+
 		return;
 	}
 	StringValLattice *lat = valMappings->getValLattice(dfNode.getNode(), ref);
-	if(lat->getLevel() == StringValLattice::TOP || lat->getLevel() == StringValLattice::BOTTOM) {
+//	if(lat->getLevel() == StringValLattice::TOP || lat->getLevel() == StringValLattice::BOTTOM) {
+//		return;
+//	}
+	if(lat->getLevel() == StringValLattice::BOTTOM) {
 		return;
 	}
-	if(lat->getLevel() == StringValLattice::CONSTANT) {
-		usedStrings.insert(*(lat->getPossibleVals().begin()));
-	} else {
+//	if(lat->getLevel() == StringValLattice::CONSTANT) {
+//		usedStrings.insert(*(lat->getPossibleVals().begin()));
+//	} else {
 		usedVars.insert(varID(ref));
-	}
+//	}
+
 }
 
 void StringLivenessAnalysisTransfer::visit(SgStringVal *val) {
 	usedStrings.insert(val->get_value());
 }
 
+void StringLivenessAnalysisTransfer::visit(SgInitializedName *init) {
+	assignedVars.insert(varID(init));
+}
 

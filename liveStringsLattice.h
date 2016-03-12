@@ -50,25 +50,25 @@ public:
 		  AFTER
 		};
 	typedef std::map<std::string, FlowVal> FlowValMap;
-	typedef std::map<varID, FlowVal> VarFlowValMap;
+//	typedef std::map<varID, FlowVal> VarFlowValMap;
 
 	FlowValMap flowMap;
-	VarFlowValMap varFlowMap;
+//	VarFlowValMap varFlowMap;
 
-	LiveStringsFlowLattice(): flowMap(), varFlowMap(){}
+	LiveStringsFlowLattice(): flowMap(){}
 	LiveStringsFlowLattice(LiveStringsFlowLattice *lat){
 		this->flowMap = lat->flowMap;
-		this->varFlowMap = lat->varFlowMap;
+//		this->varFlowMap = lat->varFlowMap;
 	}
 
-	void setFlowValue(const std::string& str, FlowVal val);
+	bool setFlowValue(const std::string& str, FlowVal val);
 	FlowVal getFlowValue(const std::string& str);
 
-	void setFlowValue(varID var, FlowVal val);
-	FlowVal getFlowValue(varID);
+//	bool setFlowValue(varID var, FlowVal val);
+//	FlowVal getFlowValue(varID);
 
 	bool isBeforeStringLiteral(const std::string& str);
-	bool isBeforeStringVar(varID var);
+//	bool isBeforeStringVar(varID var);
 
 	void initialize() {}
 

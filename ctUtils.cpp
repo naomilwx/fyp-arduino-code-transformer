@@ -1,4 +1,5 @@
 #include "ctUtils.h"
+//#include "DefUseAnalysis.h"
 
 void printAnalysis(Analysis *a, bool bw) {
 	vector<int> factNames;
@@ -62,6 +63,7 @@ bool isConstantType(SgType *nType) {
 	bool isConst = false;
 	Rose_STL_Container<SgType*> typeVector = nType->getInternalTypes();
 	for(Rose_STL_Container<SgType*>::iterator i = typeVector.begin(); i != typeVector.end(); i++){
+	    //printf("type %s\n", (*i)->class_name().c_str());
 	    SgModifierType* modifierType = isSgModifierType(*i);
 	    if (modifierType != NULL)  {
 	        isConst = modifierType->get_typeModifier().get_constVolatileModifier().isConst() || isConst;
@@ -71,9 +73,10 @@ bool isConstantType(SgType *nType) {
 }
 
 SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
-	static SgIncidenceDirectedGraph *callGraph = NULL;
-	if(callGraph != NULL) {
-		return callGraph;
+	static std::map<SgProject *, SgIncidenceDirectedGraph*> callGraphs;
+	//if(callGraph != NULL) {
+	if(callGraphs.find(project) != callGraphs.end()){	
+		return callGraphs[project];
 	}
 	DefinedFunctionCollector definedFuncsCollector;
 	definedFuncsCollector.traverseInputFiles(project, preorder);
@@ -81,23 +84,40 @@ SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
 
 	CallGraphBuilder cgb(project);
 	cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
-	callGraph = cgb.getGraph();
+	SgIncidenceDirectedGraph *callGraph = cgb.getGraph();
+        callGraphs[project] = callGraph;
 	return callGraph;
 }
 
 unsigned int getNodeDataflowIndex(SgNode *n) {
 	unsigned int index = 1; //0: entry, 1: function body, 3: exit, 2: partial expr? TODO: confirm this
-		if(isSgExprStatement(n)) {
-			index = 1;
-		} else if(isSgFunctionDefinition(n)){
-			index = 0;
-		} else if(isSgScopeStatement(n)) {
-			index = 1;
-		} else if(isSgVariableDeclaration(n)) {
-			index = 1;
-		} else if(isSgDeclarationStatement(n)) {
-			index = 0;
-		}
+	if(isSgConstructorInitializer(n)) {
+		index = 2;
+	} else if(isSgFunctionCallExp(n)) {
+		index = 3;
+	} else if(isSgExprListExp(n)){
+		index = n->cfgIndexForEnd();
+	} else if(isSgVarRefExp(n)){
+		index = 0;
+	} else if(isSgAssignOp(n)){
+		index = 2;
+	} else if(isSgDotExp(n)){
+		index = 2;
+	} else if(isSgMemberFunctionRefExp(n)){
+		index = 0;
+	} else if(isSgExprStatement(n)) {
+		index = 1;
+	} else if(isSgFunctionRefExp(n)) {
+		index = 0;
+	} else if(isSgFunctionDefinition(n)){
+		index = 0;
+	} else if(isSgScopeStatement(n)) {
+		index = 1;
+	} else if(isSgVariableDeclaration(n)) {
+		index = 1;
+	} else if(isSgDeclarationStatement(n)) {
+		index = 0;
+	}
 	return index;
 }
 
@@ -106,7 +126,17 @@ NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode)){
 	unsigned int index = getNodeDataflowIndex(n);
 	CFGNode cfgn(n, index);
 	DataflowNode dfn(cfgn, f);
-	auto states = NodeState::getNodeStates(dfn);
+//	auto states = NodeState::getNodeStates(dfn);
+//	if( states.size() < (index + 1)) {
+//		return states[0];
+//	} else {
+//		return states[index];
+//	}
+	return getNodeStateForDataflowNode(dfn, index);
+}
+
+NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index){
+	auto states = NodeState::getNodeStates(n);
 //	NodeState* state = (states.size() < (index + 1))? states[0] : states[index];
 	if( states.size() < (index + 1)) {
 		return states[0];
@@ -114,3 +144,12 @@ NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode)){
 		return states[index];
 	}
 }
+
+bool isArduinoStringType(SgType *type) {
+	SgNamedType *named = isSgNamedType(type);
+	if(named != NULL && named->get_name() == "String") {
+		return true;
+	}
+	return false;
+}
+

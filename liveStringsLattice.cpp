@@ -101,13 +101,13 @@ std::string LiveStringsFlowLattice::str(std::string indent){
 		out <<  item.second;
 	}
 	out << "]\n";
-	if(varFlowMap.size() > 0)
-		out << "varFlowMap = [";
-	for(auto& item: varFlowMap) {
-		out << "\n" << item.first << ": ";
-		out <<  item.second;
-	}
-	out << "]]\n";
+//	if(varFlowMap.size() > 0)
+//		out << "varFlowMap = [";
+//	for(auto& item: varFlowMap) {
+//		out << "\n" << item.first << ": ";
+//		out <<  item.second;
+//	}
+//	out << "]]\n";
 	return out.str();
 }
 
@@ -118,7 +118,7 @@ Lattice* LiveStringsFlowLattice::copy() const {
 void LiveStringsFlowLattice::copy(Lattice* that) {
 	LiveStringsFlowLattice *lat = dynamic_cast<LiveStringsFlowLattice*>(that);
 	this->flowMap = lat->flowMap;
-	this->varFlowMap = lat->varFlowMap;
+//	this->varFlowMap = lat->varFlowMap;
 }
 
 bool LiveStringsFlowLattice::meetUpdate(Lattice *other) {
@@ -142,24 +142,24 @@ bool LiveStringsFlowLattice::meetUpdate(Lattice *other) {
 			}
 		}
 	}
-	for(const auto& mItem: lat->varFlowMap){
-		FlowVal oflow = mItem.second;
-		if(varFlowMap.find(mItem.first) == varFlowMap.end()){
-			if(oflow == FlowVal::SOURCE){
-				varFlowMap[mItem.first] = FlowVal::AFTER;
-			} else {
-				varFlowMap[mItem.first] = oflow;
-			}
-
-			changed = true;
-		}else {
-			FlowVal flow = varFlowMap[mItem.first];
-			if(flow == FlowVal::BEFORE && flow != mItem.second) {
-				varFlowMap[mItem.first] = FlowVal::AFTER;
-				changed = true;
-			}
-		}
-	}
+//	for(const auto& mItem: lat->varFlowMap){
+//		FlowVal oflow = mItem.second;
+//		if(varFlowMap.find(mItem.first) == varFlowMap.end()){
+//			if(oflow == FlowVal::SOURCE){
+//				varFlowMap[mItem.first] = FlowVal::AFTER;
+//			} else {
+//				varFlowMap[mItem.first] = oflow;
+//			}
+//
+//			changed = true;
+//		}else {
+//			FlowVal flow = varFlowMap[mItem.first];
+//			if(flow == FlowVal::BEFORE && flow != mItem.second) {
+//				varFlowMap[mItem.first] = FlowVal::AFTER;
+//				changed = true;
+//			}
+//		}
+//	}
 	return changed;
 }
 
@@ -167,21 +167,29 @@ bool LiveStringsFlowLattice::operator ==(Lattice *lat) {
 	return flowMap == dynamic_cast<LiveStringsFlowLattice*>(lat)->flowMap;
 }
 
-void LiveStringsFlowLattice::setFlowValue(const std::string& str, FlowVal val) {
+bool LiveStringsFlowLattice::setFlowValue(const std::string& str, FlowVal val) {
+	if(flowMap.find(str) != flowMap.end() && flowMap[str] == val) {
+		return false;
+	}
 	flowMap[str] = val;
+	return true;
 }
 
 LiveStringsFlowLattice::FlowVal LiveStringsFlowLattice::getFlowValue(const std::string& str) {
 	return flowMap[str];
 }
 
-void LiveStringsFlowLattice::setFlowValue(varID var, FlowVal val){
-	varFlowMap[var] = val;
-}
+//bool LiveStringsFlowLattice::setFlowValue(varID var, FlowVal val){
+//	if(varFlowMap.find(var) != varFlowMap.end() && varFlowMap[var] == val) {
+//		return false;
+//	}
+//	varFlowMap[var] = val;
+//	return true;
+//}
 
-LiveStringsFlowLattice::FlowVal LiveStringsFlowLattice::getFlowValue(varID var){
-	return varFlowMap[var];
-}
+//LiveStringsFlowLattice::FlowVal LiveStringsFlowLattice::getFlowValue(varID var){
+//	return varFlowMap[var];
+//}
 
 bool LiveStringsFlowLattice::isBeforeStringLiteral(const std::string& str) {
 	if(flowMap.find(str) == flowMap.end()) {
@@ -190,9 +198,9 @@ bool LiveStringsFlowLattice::isBeforeStringLiteral(const std::string& str) {
 	return flowMap[str] == FlowVal::BEFORE;
 }
 
-bool LiveStringsFlowLattice::isBeforeStringVar(varID var) {
-	if(varFlowMap.find(var) == varFlowMap.end()) {
-		return true;
-	}
-	return varFlowMap[var] == FlowVal::BEFORE;
-}
+//bool LiveStringsFlowLattice::isBeforeStringVar(varID var) {
+//	if(varFlowMap.find(var) == varFlowMap.end()) {
+//		return true;
+//	}
+//	return varFlowMap[var] == FlowVal::BEFORE;
+//}

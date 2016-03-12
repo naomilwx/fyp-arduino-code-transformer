@@ -42,4 +42,9 @@ SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project);
 unsigned int getNodeDataflowIndex(SgNode *n);
 
 NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));
+
+NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index);
+
+bool isArduinoStringType(SgType *type);
+
 #endif
