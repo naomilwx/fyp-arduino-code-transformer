@@ -129,8 +129,7 @@ bool StringValLattice::meetUpdate(Lattice *lat){
 // **********************************************************************
 //                     PointerAliasLattice
 // **********************************************************************
-void PointerAliasLattice::initialize()
-{}
+void PointerAliasLattice::initialize(){}
  
 
 // Returns a copy of this lattice
@@ -145,6 +144,7 @@ void PointerAliasLattice::copy(Lattice* that_arg)
     Dbg::dbg<<"Entering COPY : That:" <<that<<" -- "<< that->str(" ") << "This :"<< endl << " -- " << str(" ")<<endl ;
     this->aliasedVariables = that->aliasedVariables;
     this->aliasRelations = that->aliasRelations;
+    this->state = that->state;
 }
 
 // Checks if that equals this
@@ -158,6 +158,7 @@ bool PointerAliasLattice::operator==(Lattice* that_arg)
 string PointerAliasLattice::str(string indent)
 {
         ostringstream oss;
+	oss << "State:" << state <<" ";
         oss<< "Aliases:{ ";
         for(set<varID>::iterator al = aliasedVariables.begin(); al!=aliasedVariables.end(); al++){             
              oss << *al;
@@ -198,6 +199,13 @@ void PointerAliasLattice::setAliasRelation(std::pair < aliasDerefCount, aliasDer
     aliasRelations.insert(alRel);
 }
 
+bool PointerAliasLattice::setState(StateVal state){
+    if(this->state != state){
+	this->state = state;
+	return true;
+    }
+    return false;
+}
 
 //Meet of that lattice with this lattice
 /*
@@ -212,6 +220,10 @@ bool PointerAliasLattice::meetUpdate(Lattice* that_arg)
     PointerAliasLattice *that = dynamic_cast<PointerAliasLattice*>(that_arg);
     Dbg::dbg<<"IN MEETTPDATE That:" << that->str(" ") << "This :"<< str(" ")<<endl ;
     
+    if(that->state > state){
+	state = that->state;
+	modified = true;
+    }
     //Union of Aliasrelations
     set< std::pair<aliasDerefCount, aliasDerefCount> > thisAliasRelations= aliasRelations;
     set< std::pair<aliasDerefCount, aliasDerefCount> > thatAliasRelations= that->getAliasRelations();

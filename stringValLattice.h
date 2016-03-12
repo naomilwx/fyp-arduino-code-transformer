@@ -103,22 +103,33 @@ struct aliasDerefCount{
                 where each variable such as 'p' and 'q' here contain a set<varID> as it aliases.
                 Since each variable pointer is stored with a derefernce count in aliasDerefCount, we use that information to traverse the per variable lattices using a recursive algorithm called "computeAliases". For ex: derefernce 2 for variable x gives {a}
 */
-class PointerAliasLattice : public FiniteLattice
-{
+class PointerAliasLattice : public FiniteLattice {
+public:
+	enum StateVal {
+		BOTTOM,
+		INITIALIZED,
+		REASSIGNED,
+		MODIFIED
+	};
 protected:
         //per variable aliases
         set<varID> aliasedVariables;
 
         //Set of all alias relations per CFG Node. These relations denote the graph edges in the compact represntation graph for pointers
         set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRelations;
-
+	StateVal state;
 public:
-        PointerAliasLattice(){};
+        PointerAliasLattice():state(BOTTOM){};
         void initialize();
         Lattice* copy()const ;
         void copy(Lattice* that);
         bool operator==(Lattice*);
-        
+
+        bool setState(StateVal state);
+        StateVal getState() {
+        	return state;
+        }
+
         bool meetUpdate(Lattice* that);
         std::string str(std::string);
 

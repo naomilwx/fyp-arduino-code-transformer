@@ -139,6 +139,27 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
       processLHS(lhs,leftARNode);
       processRHS(rhs,rightARNode);
 
+//      if(isSgPntrArrRefExp(lhs)){
+//    	  printf("array: %s %s\n", leftARNode.vID.str().c_str(), lhs->unparseToString().c_str());
+//      }
+
+      set <varID>  result;
+      PointerAliasLattice *lhsLat;
+      computeAliases(getLattice(leftARNode.vID), leftARNode.vID, leftARNode.derefLevel, result);
+      for(auto &var: result) {
+    	 lhsLat = getLattice(var);
+    	 if(lhsLat) {
+    		 if(lhsLat->getState() == PointerAliasLattice::BOTTOM) {
+    			 lhsLat->setState(PointerAliasLattice::INITIALIZED);
+    		 } else if(isSgPntrArrRefExp(lhs)){
+    			 lhsLat->setState(PointerAliasLattice::MODIFIED);
+    		 } else{
+    			 lhsLat->setState(PointerAliasLattice::REASSIGNED);
+    		 }
+    	 }
+
+      }
+
       //Establish the per CFG-node alias relations
       if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
         resLat->setAliasRelation(make_pair(leftARNode,rightARNode)); 
@@ -151,8 +172,8 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 
 //Transfer function for Function Call Expressions. 
 //Gets the lattice of the function call expression and updates lattice with alias information
-void PointerAliasAnalysisTransfer::visit(SgFunctionCallExp *sgn)
-{
+void PointerAliasAnalysisTransfer::visit(SgFunctionCallExp *sgn) {
+	//TODO: handle arguments modified by function
     PointerAliasLattice *resLat = getLattice(sgn);
     updateAliases(resLat->getAliasRelations(),1);
 }
@@ -162,9 +183,7 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionCallExp *sgn)
 
 //Transfer function for AssignInitializer operations. 
 //Calculates the aliasDerefCount for left and right side of AssignInitializer expression and updates lattice with alias information
-void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn)
-{
-    //TODO: handle char array syntatic sugar
+void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn) {
     SgAssignInitializer *assgn_i = isSgAssignInitializer(sgn);
     assert(assgn_i != NULL);
     PointerAliasLattice *resLat = getLattice(sgn);
@@ -176,6 +195,12 @@ void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn)
     processLHS(lhs,leftARNode);
     processRHS(rhs,rightARNode);
 
+
+    PointerAliasLattice* lhsLat =  getLattice(leftARNode.vID);
+    if(lhsLat){
+    	lhsLat->setState(PointerAliasLattice::INITIALIZED);
+    }
+  
     //Establish the per CFG-node alias relations
     if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
         resLat->setAliasRelation(make_pair(leftARNode,rightARNode)); 
@@ -193,8 +218,14 @@ void PointerAliasAnalysisTransfer::visit(SgAggregateInitializer *sgn) {
     aliasDerefCount leftArNode;
     processLHS(lhs, leftArNode);
     //printf("start\n");
+    
+    PointerAliasLattice* lhsLat =  getLattice(leftArNode.vID);
+    if(lhsLat){
+      lhsLat->setState(PointerAliasLattice::INITIALIZED);
+    }
+
     if(leftArNode.var != NULL){
-    	printf("getting rhs\n");
+    	//printf("getting rhs\n");
     	SgExprListExp *lst = sgn->get_initializers();
     	for(auto &exp: lst->get_expressions()) {
     		aliasDerefCount rightArNode;
@@ -213,6 +244,15 @@ void PointerAliasAnalysisTransfer::visit(SgAggregateInitializer *sgn) {
 //Gets the lattice of the constructor initializer and updates lattice with alias information
 void PointerAliasAnalysisTransfer::visit(SgConstructorInitializer *sgn)
 {
+    SgExpression *lhs = static_cast<SgExpression *>(sgn->get_parent());
+    aliasDerefCount leftNode;
+    processLHS(lhs, leftNode);
+
+    PointerAliasLattice* lhsLat =  getLattice(leftNode.vID);
+    if(lhsLat){
+    	lhsLat->setState(PointerAliasLattice::INITIALIZED);
+    }
+
     PointerAliasLattice *resLat = getLattice(sgn);
     updateAliases(resLat->getAliasRelations(),1);
 }
@@ -332,10 +372,10 @@ void PointerAliasAnalysisTransfer::processLHS(SgNode *node,struct aliasDerefCoun
             //var = varID(init_exp);
 	    SgType *type = SageInterface::getElementType(init_exp->get_type());
 	    if(type != NULL && SageInterface::isPointerType(type)){	
-		isArrayOfPtr = true;
+	    	isArrayOfPtr = true;
 	    }
             var = SgExpr2Var(init_exp->get_initializer());
-           //printf("sym: %s %s %s\n", sym->get_name().str(), var.str().c_str(), init_exp->get_type()->class_name().c_str());
+           printf("sym: %s %s %s\n", sym->get_name().str(), var.str().c_str(), init_exp->get_type()->class_name().c_str());
         }
         break;
 
@@ -345,6 +385,10 @@ void PointerAliasAnalysisTransfer::processLHS(SgNode *node,struct aliasDerefCoun
              ROSE_ASSERT(var_exp != NULL);
              sym = var_exp->get_symbol();
              var = SgExpr2Var(var_exp);
+             SgType *type = SageInterface::getElementType(var_exp->get_type());
+             if(type != NULL && SageInterface::isPointerType(type)){
+             	isArrayOfPtr = true;
+             }
         }
         break;
 
@@ -367,7 +411,21 @@ void PointerAliasAnalysisTransfer::processLHS(SgNode *node,struct aliasDerefCoun
             return;
         }
         break;
-
+	case V_SgPntrArrRefExp: {
+		SgPntrArrRefExp *arrRefExp = isSgPntrArrRefExp(node);
+		processLHS(arrRefExp->get_lhs_operand(), arNode);
+//		printf("type %s %s\n",arrRefExp->get_type()->class_name().c_str(), (arNode.var)?arNode.var->get_type()->class_name().c_str():"");
+		if(arNode.var) {
+			if(SageInterface::isPointerType(arNode.var->get_type())) {
+				arNode.derefLevel += 1;
+			}
+			if(SageInterface::isPointerType(arrRefExp->get_type()) == false) {
+				arNode.var = NULL;
+			}
+		}
+		return;
+	}
+	break;
         default:
             sym = NULL;
     };
