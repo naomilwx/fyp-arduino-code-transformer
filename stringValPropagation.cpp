@@ -186,9 +186,38 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionCallExp *sgn) {
 	updateAliases(resLat->getAliasRelations(),1);
 }
 
-void PointerAliasAnalysisTransfer::visit(SgFunctionParameterList *params) {
-	//TODO:
-	printf("params\n");
+void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
+	SgFunctionParameterList *params = isSgFunctionDeclaration(fdef->get_parent())->get_parameterList();
+	SgInitializedNamePtrList args = params->get_args();
+	int index = 0;
+
+	SgScopeStatement *scope = fdef->get_scope();
+
+	for(SgInitializedName *arg: args) {
+		aliasDerefCount left, right;
+
+		processLHS(arg, left);
+	
+		if(SageInterface::isReferenceType(arg->get_type())){
+			left.derefLevel += 1;
+		}
+		//assert(scope);
+
+		PointerAliasLattice* lhsLat =  getLattice(left.vID);
+
+
+		if(lhsLat){
+	//		printf("arglat\n");
+			lhsLat->setState(PointerAliasLattice::INITIALIZED);
+		}
+
+		processParam(index, scope, arg, right);	
+
+		if(lhsLat && (left.var != NULL) && right.var != NULL) {
+			lhsLat->setAliasRelation(make_pair(left,right));
+			updateAliases(lhsLat->getAliasRelations(), 1);
+		}
+	}
 }
 
 
@@ -362,13 +391,14 @@ void PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varI
 
 void PointerAliasAnalysisTransfer::processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode){
 	SgType *type = param->get_type();
-        std::stringstream ss;
-        ss << "__function_param_"<< index;
-        SgName var_name = ss.str();
-        SgVariableDeclaration *dec = SageBuilder::buildVariableDeclaration_nfi(var_name, type, NULL, scope);   
-        arNode.var = scope->lookup_variable_symbol(var_name);
-        arNode.vID = varID(var_name);
-        arNode.derefLevel = -1;	
+	std::stringstream ss;
+	ss << "__function_param_"<< index;
+	std::string name = ss.str();
+	SgName var_name = name;
+	SgVariableDeclaration *dec = SageBuilder::buildVariableDeclaration_nfi(var_name, type, NULL, scope);   
+	arNode.var = scope->lookup_variable_symbol(var_name);
+	arNode.vID = varID(name);
+	arNode.derefLevel = -1;	
 }
 
 
@@ -384,7 +414,8 @@ void PointerAliasAnalysisTransfer::processLHS(SgNode *node,struct aliasDerefCoun
 	varID var;
 	int derefLevel = 0;
 
-	bool isArrayOfPtr = false;    
+	bool isArrayOfPtr = false;
+
 	switch (node->variantT()) {
 		case V_SgInitializedName:
 			{
@@ -395,8 +426,12 @@ void PointerAliasAnalysisTransfer::processLHS(SgNode *node,struct aliasDerefCoun
 				SgType *type = SageInterface::getElementType(init_exp->get_type());
 				if(type != NULL && SageInterface::isPointerType(type)){	
 					isArrayOfPtr = true;
+				}	
+				if(init_exp->get_initializer()){
+					var = SgExpr2Var(init_exp->get_initializer());
+				} else {
+					var = varID(init_exp);
 				}
-				var = SgExpr2Var(init_exp->get_initializer());
 				printf("sym: %s %s %s\n", sym->get_name().str(), var.str().c_str(), init_exp->get_type()->class_name().c_str());
 			}
 			break;
@@ -757,7 +792,7 @@ bool PointerAliasAnalysis::doAnalysis(const Function& func, NodeState* fState, b
 			// Look at the next NodeState
 			i++; itS++;
 		}
-//		ROSE_ASSERT(state);
+		//		ROSE_ASSERT(state);
 
 		// =================== Populate the generated outgoing lattice to descendants (meetUpdate) ===================
 		/*                      // if there has been a change in the dataflow state immediately below this node AND*/
@@ -805,7 +840,7 @@ bool PointerAliasAnalysis::doAnalysis(const Function& func, NodeState* fState, b
 			getLatticePost(fState));
 
 
-//	if(analysisDebugLevel>=1) Dbg::exitFunc(funcNameStr.str());
+	//	if(analysisDebugLevel>=1) Dbg::exitFunc(funcNameStr.str());
 
 	return false;
 }
