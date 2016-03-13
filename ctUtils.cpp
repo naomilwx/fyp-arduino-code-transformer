@@ -72,18 +72,29 @@ bool isConstantType(SgType *nType) {
 	return isConst;
 }
 
+FunctionSet getDefinedFunctions(SgProject *project) {
+	static std::map<SgProject *, FunctionSet> definedFunctions;
+	if(definedFunctions.find(project) != definedFunctions.end()) {
+		return definedFunctions[project];
+	}
+	DefinedFunctionCollector definedFuncsCollector;
+	definedFuncsCollector.traverseInputFiles(project, preorder);
+	definedFunctions[project] = definedFuncsCollector.getDefinedFuncs();
+	return definedFunctions[project];
+}
+
 SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
 	static std::map<SgProject *, SgIncidenceDirectedGraph*> callGraphs;
 	//if(callGraph != NULL) {
 	if(callGraphs.find(project) != callGraphs.end()){	
 		return callGraphs[project];
 	}
-	DefinedFunctionCollector definedFuncsCollector;
-	definedFuncsCollector.traverseInputFiles(project, preorder);
-	definedFuncsCollector.printDefinedFunctions();
+//	DefinedFunctionCollector definedFuncsCollector;
+//	definedFuncsCollector.traverseInputFiles(project, preorder);
+//	definedFuncsCollector.printDefinedFunctions();
 
 	CallGraphBuilder cgb(project);
-	cgb.buildCallGraph(definedFuncsFilter(definedFuncsCollector.getDefinedFuncs()));
+	cgb.buildCallGraph(definedFuncsFilter(getDefinedFunctions(project)));
 	SgIncidenceDirectedGraph *callGraph = cgb.getGraph();
         callGraphs[project] = callGraph;
 	return callGraph;
@@ -126,12 +137,6 @@ NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode)){
 	unsigned int index = getNodeDataflowIndex(n);
 	CFGNode cfgn(n, index);
 	DataflowNode dfn(cfgn, f);
-//	auto states = NodeState::getNodeStates(dfn);
-//	if( states.size() < (index + 1)) {
-//		return states[0];
-//	} else {
-//		return states[index];
-//	}
 	return getNodeStateForDataflowNode(dfn, index);
 }
 

@@ -47,6 +47,7 @@ int main( int argc, char * argv[] ) {
   SgProject* project = frontend(argc,argv);
 
   initAnalysis(project);
+  cfgUtils::initCFGUtils(project);
   Dbg::init("propagation test", "./proptest", "index.html");
 
 //  liveDeadAnalysisDebugLevel = 1;
@@ -68,9 +69,10 @@ int main( int argc, char * argv[] ) {
 //  printAnalysis(&strValProp, false);
 
 
-  PointerAliasAnalysis pal(NULL, lanalysis.getLiteralMap());
+  PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   ContextInsensitiveInterProceduralDataflow interpt(&pal, buildProjectCallGraph(project));
-  interpt.runAnalysis();
+//  interpt.runAnalysis();  
+pal.runAnalysis();
   printAnalysis(&pal, false);
 
   printf("done\n");
