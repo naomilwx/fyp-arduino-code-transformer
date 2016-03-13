@@ -111,6 +111,20 @@ class PointerAliasAnalysis : public IntraFWDataflow
 
 		bool doAnalysis(const Function& func, NodeState* fState, bool analyzeDueToCallers, set<Function> calleesUpdated);
 		void runAnalysis();
+	private:
+	static bool paaFilter(CFGNode cfgn) {
+		SgNode *node = cfgn.getNode();
+		SgNode *par = node;
+
+		while(par != NULL && !isSgFunctionDefinition(par)) {
+			par = par->get_parent();
+		}
+
+		if(!isSgFunctionDefinition(par)) {
+			return false;
+		}
+		return defaultFilter(cfgn);
+	}
 };
 
 #endif

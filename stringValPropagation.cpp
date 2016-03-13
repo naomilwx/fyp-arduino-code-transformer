@@ -201,10 +201,7 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
 		if(SageInterface::isReferenceType(arg->get_type())){
 			left.derefLevel += 1;
 		}
-		//assert(scope);
-
 		PointerAliasLattice* lhsLat =  getLattice(left.vID);
-
 
 		if(lhsLat){
 	//		printf("arglat\n");
@@ -258,7 +255,6 @@ void PointerAliasAnalysisTransfer::visit(SgAggregateInitializer *sgn) {
 	aliasDerefCount leftArNode;
 	processLHS(lhs, leftArNode);
 	//printf("start\n");
-
 	PointerAliasLattice* lhsLat =  getLattice(leftArNode.vID);
 	if(lhsLat){
 		lhsLat->setState(PointerAliasLattice::INITIALIZED);
@@ -655,6 +651,7 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode& n, const NodeState& state,std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts){
 	map<varID, Lattice*> emptyM;
 	initLattices.push_back(new FiniteVarsExprsProductLattice((Lattice*) new PointerAliasLattice(), emptyM, (Lattice*)NULL,NULL, n, state) );
+//	printf("init node %s\n", n.getNode()->class_name().c_str());
 }
 
 PointerAliasAnalysis::PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map)   
@@ -662,6 +659,7 @@ PointerAliasAnalysis::PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject
 	this->ldva = ldva;   
 	this->literalMap = map;
 	this->project = project;
+	this->filter = PointerAliasAnalysis::paaFilter;
 }
 
 
@@ -688,17 +686,16 @@ bool PointerAliasAnalysis::doAnalysis(const Function& func, NodeState* fState, b
 	// Initialize the lattices used by this analysis, if this is the first time the analysis visits this function
 	if(firstVisit)    {
 		//Dbg::dbg << "Initializing Dataflow State"<<endl; 
-		InitDataflowState ids(this/*, initState*/);
+		InitDataflowState ids(this);
 		ids.runAnalysis(func, fState);
 
 		visited.insert(func);
 	}
 
 
-	DataflowNode funcCFGStart = cfgUtils::getFuncStartCFG(func.get_definition(),filter);
-	DataflowNode funcCFGEnd   = cfgUtils::getFuncEndCFG(func.get_definition(),filter);
-
-	NodeState* entryState = *(NodeState::getNodeStates(funcCFGEnd).rbegin()); 
+//	DataflowNode funcCFGStart = cfgUtils::getFuncStartCFG(func.get_definition(),filter);
+//	DataflowNode funcCFGEnd   = cfgUtils::getFuncEndCFG(func.get_definition(),filter);
+//	NodeState* entryState = *(NodeState::getNodeStates(funcCFGEnd).rbegin()); 
 
 	auto_ptr<VirtualCFG::dataflow> workList(getInitialWorklist(func, firstVisit, analyzeDueToCallers, calleesUpdated, fState));
 
@@ -762,6 +759,7 @@ bool PointerAliasAnalysis::doAnalysis(const Function& func, NodeState* fState, b
 			}
 
 			//if this is a call site, call transfer function of the associated interprocedural analysis
+			//TODO: modify this...
 			if (isSgFunctionCallExp(sgn))
 				transferFunctionCall(func, n, state);
 
