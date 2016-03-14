@@ -70,8 +70,6 @@ int main( int argc, char * argv[] ) {
 
 
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
-//  ContextInsensitiveInterProceduralDataflow interpt(&pal, buildProjectCallGraph(project));
-//  interpt.runAnalysis();  
   pal.runAnalysis();
   printAnalysis(&pal, false);
 

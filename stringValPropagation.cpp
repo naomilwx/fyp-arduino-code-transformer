@@ -684,19 +684,21 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 
 }
 
-NodeState *PointerAliasAnalysis::initializeFunctionNodeState(const Function &func, NodeState *fState){
-  DataflowNode funcCFGStart = cfgUtils::getFuncStartCFG(func.get_definition(), filter);
-  DataflowNode funcCFGEnd   = cfgUtils::getFuncEndCFG(func.get_definition(), filter);
-  
+//NodeState *PointerAliasAnalysis::initializeFunctionNodeState(const Function &func, NodeState *fState){
+//  DataflowNode funcCFGStart = cfgUtils::getFuncStartCFG(func.get_definition(), filter);
+//  DataflowNode funcCFGEnd   = cfgUtils::getFuncEndCFG(func.get_definition(), filter);
+//
+//
+//  // Initialize the function's entry NodeState
+//  NodeState* entryState = *(NodeState::getNodeStates(funcCFGStart).begin());
+//
+////  NodeState::copyLattices_aEQa(this, *entryState, /*interAnalysis*/this, *fState);
+//
+//  return entryState;
+//}
+void PointerAliasAnalysis::transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state) {
 
-  // Initialize the function's entry NodeState 
-  NodeState* entryState = *(NodeState::getNodeStates(funcCFGStart).begin());
-        
-//  NodeState::copyLattices_aEQa(this, *entryState, /*interAnalysis*/this, *fState);
-
-  return entryState;
 }
-
 void PointerAliasAnalysis::runAnalysis() {
 	ctOverallDataflowAnalyser overallAnalyser(project, this);
 	overallAnalyser.runAnalysis();

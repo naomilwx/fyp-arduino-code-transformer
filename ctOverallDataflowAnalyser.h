@@ -16,7 +16,7 @@
 #include "VariableStateTransfer.h"
 
 
-class ctOverallDataflowAnalyser: public virtual InterProceduralDataflow {
+class ctOverallDataflowAnalyser: public ContextInsensitiveInterProceduralDataflow {
 	protected:
 		SgProject *project;
 		//	std::map<SgFunctionDeclaration *, std::vector<FunctionDataflowInfo>> functionRetInfo;
