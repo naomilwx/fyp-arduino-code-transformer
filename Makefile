@@ -13,8 +13,8 @@ all: analyser
 testlive: testStringLivenessAnalysis.o ctUtils.o liveStringsLattice.o stringLivenessAnalysis.o stringValLattice.o stringValPropagation.o stringLiteralAnalysis.o
 	$(GPP) testStringLivenessAnalysis.o ctUtils.o liveStringsLattice.o stringLivenessAnalysis.o stringValLattice.o stringValPropagation.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o testlive
 
-testprop: testStringValPropagation.o ctUtils.o stringValLattice.o stringValPropagation.o stringLiteralAnalysis.o
-	$(GPP) testStringValPropagation.o ctUtils.o stringValPropagation.o stringValLattice.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o testprop
+testprop: testStringValPropagation.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o
+	$(GPP) testStringValPropagation.o ctUtils.o ctOverallDataflowAnalyser.o stringValPropagation.o stringValLattice.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o testprop
 	
 analyser: testStringLiteralAnalysis.o stringLiteralAnalysis.o 
 	$(GPP) testStringLiteralAnalysis.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o analyser
@@ -45,7 +45,10 @@ stringLivenessAnalysis.o: stringLivenessAnalysis.cpp stringLivenessAnalysis.h
 
 liveStringsLattice.o: liveStringsLattice.cpp liveStringsLattice.h
 	$(GPP) -c liveStringsLattice.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
-	
+
+ctOverallDataflowAnalyser.o: ctOverallDataflowAnalyser.cpp ctOverallDataflowAnalyser.h
+	$(GPP) -c ctOverallDataflowAnalyser.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
+
 ctUtils.o: ctUtils.cpp ctUtils.h
 	$(GPP) -c ctUtils.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 	

@@ -11,6 +11,7 @@
 #include "ctUtils.h"
 #include "stringValLattice.h"
 #include "stringLiteralAnalysis.h"
+#include "ctOverallDataflowAnalyser.h"
 
 class StringValPropagation : public IntraFWDataflow {
 	protected:
@@ -95,11 +96,14 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 
 class PointerAliasAnalysis : public IntraFWDataflow
 {
+public:
+
 	protected:
 		LiveDeadVarsAnalysis* ldva;
 		LiteralMap *literalMap;
 		SgProject *project;
-		std::map<SgFunctionDeclaration *, std::vector<FunctionDataflowInfo>> functionRetInfo;
+		std::map<varID, Lattice*> globalVarsLattice;
+//		std::map<SgFunctionDeclaration *, std::vector<FunctionDataflowInfo>> functionRetInfo;
 	public:
 		PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map);
 
@@ -112,8 +116,9 @@ class PointerAliasAnalysis : public IntraFWDataflow
 				n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
 
-		bool doAnalysis(const Function& func, NodeState* fState, bool analyzeDueToCallers, set<Function> calleesUpdated);
 		void runAnalysis();
+		void runGlobalVarAnalysis();
+		NodeState * initializeFunctionNodeState(const Function &func, NodeState *fState);
 	private:
 		static bool paaFilter(CFGNode cfgn) {
 			SgNode *node = cfgn.getNode();
