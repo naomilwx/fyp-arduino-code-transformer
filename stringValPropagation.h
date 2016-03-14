@@ -119,7 +119,6 @@ public:
 		void runAnalysis();
 		void runGlobalVarAnalysis();
 		void transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state);
-//		NodeState * initializeFunctionNodeState(const Function &func, NodeState *fState);
 	private:
 		static bool paaFilter(CFGNode cfgn) {
 			SgNode *node = cfgn.getNode();

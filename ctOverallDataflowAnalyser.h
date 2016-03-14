@@ -16,15 +16,14 @@
 #include "VariableStateTransfer.h"
 
 
-class ctOverallDataflowAnalyser: public ContextInsensitiveInterProceduralDataflow {
+class ctOverallDataflowAnalyser: public virtual InterProceduralDataflow {
 	protected:
 		SgProject *project;
-		//	std::map<SgFunctionDeclaration *, std::vector<FunctionDataflowInfo>> functionRetInfo;
-
 
 	public:
 		ctOverallDataflowAnalyser(SgProject *project, IntraUniDirectionalDataflow *analyser);
 		void runAnalysis();
+		void visit(const Function& func);
 		bool transfer(const Function& func, const DataflowNode& n, NodeState& state,
 				const std::vector<Lattice*>& dfInfo, std::vector<Lattice*>** retState, bool fw);
 };

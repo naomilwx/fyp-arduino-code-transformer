@@ -684,21 +684,21 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 
 }
 
-//NodeState *PointerAliasAnalysis::initializeFunctionNodeState(const Function &func, NodeState *fState){
-//  DataflowNode funcCFGStart = cfgUtils::getFuncStartCFG(func.get_definition(), filter);
-//  DataflowNode funcCFGEnd   = cfgUtils::getFuncEndCFG(func.get_definition(), filter);
-//
-//
-//  // Initialize the function's entry NodeState
-//  NodeState* entryState = *(NodeState::getNodeStates(funcCFGStart).begin());
-//
-////  NodeState::copyLattices_aEQa(this, *entryState, /*interAnalysis*/this, *fState);
-//
-//  return entryState;
-//}
 void PointerAliasAnalysis::transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state) {
-
+////			std::vector<FunctionDataflowInfo> retInfo;
+//			Rose_STL_Container<SgNode *> returnStmts = NodeQuery::querySubTree(func, V_SgReturnStmt);
+//			for(Rose_STL_Container<SgNode*>::const_iterator i = returnStmts.begin(); i != returnStmts.end(); ++i) {
+//				SgReturnStmt *returnStmt = isSgReturnStmt(*i);
+//				FunctionDataflowInfo info;
+//				info.returnStmt = returnStmt;
+//				NodeState *ns = getNodeStateForNode(returnStmt, analyser->filter);
+//				auto res = ns->getLatticeBelow(analyser);
+//				info.lattice = dynamic_cast<FiniteVarsExprsProductLattice *>(*(res.begin()));
+//				retInfo.push_back(info);
+//			}
+//			functionRetInfo[func] = retInfo;
 }
+
 void PointerAliasAnalysis::runAnalysis() {
 	ctOverallDataflowAnalyser overallAnalyser(project, this);
 	overallAnalyser.runAnalysis();
