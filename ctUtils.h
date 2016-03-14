@@ -32,6 +32,7 @@ struct ROSE_DLL_API definedFuncsFilter : public std::unary_function<bool, SgFunc
 	}
 };
 
+bool isFromLibrary(SgInitializedName* initName);
 
 FunctionSet getDefinedFunctions(SgProject *project);
 
@@ -48,5 +49,12 @@ NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));
 NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index);
 
 bool isArduinoStringType(SgType *type);
+
+std::vector<SgInitializedName *>getGlobalVars(SgProject *project);
+
+struct FunctionDataflowInfo {
+	SgReturnStmt *returnStmt;
+	Lattice *lattice;
+};
 
 #endif

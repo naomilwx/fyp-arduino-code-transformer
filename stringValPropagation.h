@@ -70,7 +70,7 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		void visit(SgConstructorInitializer *sgn);
 		void visit(SgAggregateInitializer *sgn);        
 		void visit(SgFunctionDefinition *def);
-//		void visit(SgFunctionParameterList *params);
+		//		void visit(SgFunctionParameterList *params);
 		bool finish();
 
 		PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map);
@@ -99,6 +99,7 @@ class PointerAliasAnalysis : public IntraFWDataflow
 		LiveDeadVarsAnalysis* ldva;
 		LiteralMap *literalMap;
 		SgProject *project;
+		std::map<SgFunctionDeclaration *, std::vector<FunctionDataflowInfo>> functionRetInfo;
 	public:
 		PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map);
 
@@ -106,25 +107,27 @@ class PointerAliasAnalysis : public IntraFWDataflow
 
 		void genInitState(const Function& func, const DataflowNode& n, const NodeState& state,std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
 		bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+
 		boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& 
 				n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+
 
 		bool doAnalysis(const Function& func, NodeState* fState, bool analyzeDueToCallers, set<Function> calleesUpdated);
 		void runAnalysis();
 	private:
-	static bool paaFilter(CFGNode cfgn) {
-		SgNode *node = cfgn.getNode();
-		SgNode *par = node;
+		static bool paaFilter(CFGNode cfgn) {
+			SgNode *node = cfgn.getNode();
+			SgNode *par = node;
 
-		while(par != NULL && !isSgFunctionDefinition(par)) {
-			par = par->get_parent();
-		}
+			while(par != NULL && !isSgFunctionDefinition(par)) {
+				par = par->get_parent();
+			}
 
-		if(!isSgFunctionDefinition(par)) {
-			return false;
+			if(!isSgFunctionDefinition(par)) {
+				return false;
+			}
+			return defaultFilter(cfgn);
 		}
-		return defaultFilter(cfgn);
-	}
 };
 
 #endif

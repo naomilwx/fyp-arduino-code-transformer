@@ -78,7 +78,6 @@ struct aliasDerefCount{
     }
 };
 
-
 /*
     Lattices:   Per variable lattices using the FiniteVarsExprProductLattice
                 Each variable maintains a set<varID> and set< pair<aliasDerefCount,aliasDerefCount> >
