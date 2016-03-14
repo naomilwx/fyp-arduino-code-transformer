@@ -71,7 +71,7 @@ int main( int argc, char * argv[] ) {
 
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
-  printAnalysis(&pal, false);
+//  printAnalysis(&pal, false);
 
   printf("done\n");
 }

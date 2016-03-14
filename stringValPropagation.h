@@ -48,7 +48,7 @@ class StringValPropagationTransfer : public VariableStateTransfer<StringValLatti
 
 extern int PointerAliasAnalysisDebugLevel;
 
-
+class PointerAliasAnalysis;
 
 /*
 Transfer:   We define visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer
@@ -63,6 +63,7 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 	private:
 		using VariableStateTransfer<PointerAliasLattice>::getLattices;
 		LiteralMap *literalMap;
+		PointerAliasAnalysis* analysis;
 	public:
 		//Visit function to apply "transfer" on the specified SgNode in CFG
 		void visit(SgFunctionCallExp *sgn);
@@ -74,10 +75,15 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		//		void visit(SgFunctionParameterList *params);
 		bool finish();
 
-		PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map);
+		PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis);
 	private:
+		std::string functionParamTagPrefix =  "__function_param_";
+		std::vector<aliasDerefCount> getReturnAliasForFunctionCall(SgFunctionCallExp *fcall);
+
+		int getFunctionParamNumberFromTag(const std::string& paramTag);
 
 		void processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode);
+
 		//processes LHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
 		void processLHS(SgNode *node, struct aliasDerefCount &arNode);
 
@@ -103,7 +109,7 @@ public:
 		LiteralMap *literalMap;
 		SgProject *project;
 		std::map<varID, Lattice*> globalVarsLattice;
-//		std::map<SgFunctionDeclaration *, std::vector<FunctionDataflowInfo>> functionRetInfo;
+
 	public:
 		PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map);
 

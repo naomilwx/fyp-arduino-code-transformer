@@ -1,4 +1,5 @@
 #include "boost/mem_fn.hpp"
+#include <string>
 
 #include "stringValPropagation.h"
 #include "analysisCommon.h"
@@ -120,9 +121,10 @@ void StringValPropagation::runAnalysis() {
 
 int PointerAliasAnalysisDebugLevel = 1;
 
-PointerAliasAnalysisTransfer::PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map)
+PointerAliasAnalysisTransfer::PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis)
 	: VariableStateTransfer<PointerAliasLattice>(func, n, state, dfInfo, PointerAliasAnalysisDebugLevel){
 		this->literalMap = map;
+		this->analysis = analysis;
 	}
 
 
@@ -141,12 +143,9 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 	SageInterface::isAssignmentStatement(sgn,&lhs, &rhs);
 	Dbg::dbg << "AssignOP Stement"<<lhs->variantT()<<"and"<<rhs->variantT()<<"\n"; 
 	processLHS(lhs,leftARNode);
-	processRHS(rhs,rightARNode);
 
-	//      if(isSgPntrArrRefExp(lhs)){
-	//    	  printf("array: %s %s\n", leftARNode.vID.str().c_str(), lhs->unparseToString().c_str());
-	//      }
 
+	//Update state of variable
 	set <varID>  result;
 	PointerAliasLattice *lhsLat;
 	computeAliases(getLattice(leftARNode.vID), leftARNode.vID, leftARNode.derefLevel, result);
@@ -163,17 +162,71 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 		}
 
 	}
+//	getReturnAliasForFunctionCall
+	if(isSgFunctionCallExp(rhs)) {
+		std::vector<aliasDerefCount> rhsRefs = getReturnAliasForFunctionCall(isSgFunctionCallExp(rhs));
+		for(auto &ref: rhsRefs) {
+			resLat->setAliasRelation(make_pair(leftARNode, ref));
+		}
+	}else {
+		processRHS(rhs,rightARNode);
+			//Establish the per CFG-node alias relations
+			if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
+				resLat->setAliasRelation(make_pair(leftARNode,rightARNode));
+	}
 
-	//Establish the per CFG-node alias relations
-	if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
-		resLat->setAliasRelation(make_pair(leftARNode,rightARNode)); 
-	//TODO: handle array
+
+
 	//Update the aliasedVariables(Compact Representation Graph)
 	if(isSgPntrArrRefExp(lhs)){
 		updateAliases(resLat->getAliasRelations(),0);
 	} else { 
 		updateAliases(resLat->getAliasRelations(),1);
 	}
+}
+
+std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunctionCall(SgFunctionCallExp *fcall){
+	Function callee(fcall);
+	FunctionState* fState = FunctionState::getDefinedFuncState(func);
+	DFStateAtReturns* dfsar = dynamic_cast<DFStateAtReturns*>(fState->state.getFact(analysis, 0));
+
+	std::vector<aliasDerefCount> refs;
+
+	if(dfsar) {
+		std::vector<Lattice*>& latsRetVal = dfsar->getLatsRetVal();
+		Lattice *lat = NULL;
+		for(auto &retLat: latsRetVal) {
+			if(lat==NULL){
+				lat = retLat->copy();
+			} else {
+				lat->meetUpdate(retLat);
+			}
+		}
+		if(lat == NULL){
+			return refs;
+		}
+		varID key("$");
+		PointerAliasLattice *retAliasLat = dynamic_cast<PointerAliasLattice *>((dynamic_cast<VarsExprsProductLattice*>(lat))->getVarLattice(key));
+
+		if(retAliasLat == NULL) {
+			return refs;
+		}
+		SgExpressionPtrList params = fcall->get_args()->get_expressions();
+		for(auto &aliasRel: retAliasLat->getAliasRelations()){
+			std::string name = aliasRel.second.var->get_name().str();
+			int index = getFunctionParamNumberFromTag(name);
+			if(index >= 0) {
+				aliasDerefCount paramNode;
+				processRHS(params[index], paramNode);
+				refs.push_back(paramNode);
+
+			} else if(name.substr(0, STRING_LITERAL_PREFIX.length()) == STRING_LITERAL_PREFIX) {
+				refs.push_back(aliasRel.second);
+			}
+
+		}
+	}
+	return refs;
 }
 
 
@@ -388,13 +441,22 @@ void PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varI
 void PointerAliasAnalysisTransfer::processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode){
 	SgType *type = param->get_type();
 	std::stringstream ss;
-	ss << "__function_param_"<< index;
+	ss << functionParamTagPrefix << index;
 	std::string name = ss.str();
 	SgName var_name = name;
 	SgVariableDeclaration *dec = SageBuilder::buildVariableDeclaration_nfi(var_name, type, NULL, scope);   
 	arNode.var = scope->lookup_variable_symbol(var_name);
 	arNode.vID = varID(name);
 	arNode.derefLevel = -1;	
+}
+
+int PointerAliasAnalysisTransfer::getFunctionParamNumberFromTag(const std::string& paramTag){
+	int prefixLen = functionParamTagPrefix.length();
+	std::string prefix = paramTag.substr(0, prefixLen);
+	if(prefix == functionParamTagPrefix) {
+		int num = std::stoi(paramTag.substr(prefixLen));
+	}
+	return -1;
 }
 
 
@@ -672,7 +734,7 @@ bool PointerAliasAnalysis::transfer(const Function& func, const DataflowNode& n,
 	boost::shared_ptr<IntraDFTransferVisitor>
 PointerAliasAnalysis::getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo)
 {
-	return boost::shared_ptr<IntraDFTransferVisitor>(new PointerAliasAnalysisTransfer(func, n, state, dfInfo, literalMap));
+	return boost::shared_ptr<IntraDFTransferVisitor>(new PointerAliasAnalysisTransfer(func, n, state, dfInfo, literalMap, this));
 }
 
 PointerAliasLattice *PointerAliasAnalysis::getAliasLattice(NodeState *s, varID var){
@@ -685,18 +747,7 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 }
 
 void PointerAliasAnalysis::transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state) {
-////			std::vector<FunctionDataflowInfo> retInfo;
-//			Rose_STL_Container<SgNode *> returnStmts = NodeQuery::querySubTree(func, V_SgReturnStmt);
-//			for(Rose_STL_Container<SgNode*>::const_iterator i = returnStmts.begin(); i != returnStmts.end(); ++i) {
-//				SgReturnStmt *returnStmt = isSgReturnStmt(*i);
-//				FunctionDataflowInfo info;
-//				info.returnStmt = returnStmt;
-//				NodeState *ns = getNodeStateForNode(returnStmt, analyser->filter);
-//				auto res = ns->getLatticeBelow(analyser);
-//				info.lattice = dynamic_cast<FiniteVarsExprsProductLattice *>(*(res.begin()));
-//				retInfo.push_back(info);
-//			}
-//			functionRetInfo[func] = retInfo;
+	//TODO: this is for gathering info about globals affected by the function call
 }
 
 void PointerAliasAnalysis::runAnalysis() {
