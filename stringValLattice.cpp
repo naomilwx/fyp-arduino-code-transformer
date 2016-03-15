@@ -141,7 +141,6 @@ Lattice* PointerAliasLattice::copy() const
 void PointerAliasLattice::copy(Lattice* that_arg)
 {
     PointerAliasLattice *that = dynamic_cast<PointerAliasLattice*>(that_arg);
-    Dbg::dbg<<"Entering COPY : That:" <<that<<" -- "<< that->str(" ") << "This :"<< endl << " -- " << str(" ")<<endl ;
     this->aliasedVariables = that->aliasedVariables;
     this->aliasRelations = that->aliasRelations;
     this->state = that->state;
@@ -192,6 +191,10 @@ void PointerAliasLattice::setAliasedVariables(varID al)
     aliasedVariables.insert(al);
 }
 
+void PointerAliasLattice::setAliasedVariables(std::set<varID> als){
+	for(auto &al: als)
+		aliasedVariables.insert(al);
+}
 
 //Add a new Alias relation pair
 void PointerAliasLattice::setAliasRelation(std::pair < aliasDerefCount, aliasDerefCount > alRel)

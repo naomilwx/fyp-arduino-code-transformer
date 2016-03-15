@@ -76,26 +76,30 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		bool finish();
 
 		PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis);
+
+		//processes LHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
+		static void processLHS(SgNode *node, struct aliasDerefCount &arNode);
+		
+		//processes RHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
+		static void processRHS(SgNode *node, struct aliasDerefCount &arNode, LiteralMap *map);
+
+		void processRHS(SgNode *node, struct aliasDerefCount &arNode);
+
 	private:
 		std::string functionParamTagPrefix =  "__function_param_";
 		std::vector<aliasDerefCount> getReturnAliasForFunctionCall(SgFunctionCallExp *fcall);
-
-		int getFunctionParamNumberFromTag(const std::string& paramTag);
-
-		void processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode);
-
-		//processes LHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
-		void processLHS(SgNode *node, struct aliasDerefCount &arNode);
-
-
-		//processes RHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
-		void processRHS(SgNode *node, struct aliasDerefCount &arNode);
 
 		//Updates the 'aliasedVariables' set by establishing an relation('edge' in compact representation graph) between 'aliasRelations' pair. 'isMust' denotes may or must alias
 		bool updateAliases(set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRelations,int isMust);
 
 		//Recursive function to traverse the per-variable lattices to compute Aliases for 'var' at deref count of 'derefLevel'
 		void computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
+
+		int getFunctionParamNumberFromTag(const std::string& paramTag);
+
+		void processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode);
+
+
 }; 
 
 
@@ -126,6 +130,9 @@ public:
 		void runGlobalVarAnalysis();
 		void transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state);
 	private:
+		void setGlobalAliasRelationForLat(PointerAliasLattice *lat, aliasDerefCount& lhs, SgNode *rhsExp);
+		void computeGlobalAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
+
 		static bool paaFilter(CFGNode cfgn) {
 			SgNode *node = cfgn.getNode();
 			SgNode *par = node;

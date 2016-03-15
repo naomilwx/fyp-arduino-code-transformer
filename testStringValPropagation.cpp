@@ -5,8 +5,6 @@
 //#include "liveDeadVarAnalysis.h"
 #include "ctUtils.h"
 
-//#include "pointerAliasAnalysis.h"
-
 bool gfilter (CFGNode cfgn)
 {
   SgNode *node = cfgn.getNode();

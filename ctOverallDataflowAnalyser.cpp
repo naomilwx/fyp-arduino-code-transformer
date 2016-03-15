@@ -6,6 +6,7 @@ using std::auto_ptr;
 
 ctOverallDataflowAnalyser::ctOverallDataflowAnalyser(SgProject *project, IntraUniDirectionalDataflow *analyser): InterProceduralAnalysis((IntraProceduralAnalysis *) analyser), InterProceduralDataflow((IntraProceduralDataflow *)analyser) {
 	this->project = project;
+
 	set<FunctionState*> allFuncs = FunctionState::getAllDefinedFuncs();
 	for(set<FunctionState*>::iterator it=allFuncs.begin(); it!=allFuncs.end(); it++)
 	{
@@ -139,6 +140,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 			}
 
 			std::set<Function> emptyFunc;
+
 			// Run the intra-procedural dataflow analysis on the current function
 			dynamic_cast<IntraProceduralDataflow*>(intraAnalysis)->
 				runAnalysis(func, &(fState->state), 
@@ -154,6 +156,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 	}
 	void ctOverallDataflowAnalyser::runAnalysis() {
 		//	std::vector<SgInitializedName *>globalVars = getGlobalVars(project);
+		printf("begin analysis\n");
 		FunctionSet funcs = getDefinedFunctions(project);
 		SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
 		for(auto &func: funcs){

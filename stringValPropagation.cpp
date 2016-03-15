@@ -187,7 +187,7 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 
 std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunctionCall(SgFunctionCallExp *fcall){
 	Function callee(fcall);
-	FunctionState* fState = FunctionState::getDefinedFuncState(func);
+	FunctionState* fState = FunctionState::getDefinedFuncState(callee);
 	DFStateAtReturns* dfsar = dynamic_cast<DFStateAtReturns*>(fState->state.getFact(analysis, 0));
 
 	std::vector<aliasDerefCount> refs;
@@ -455,6 +455,7 @@ int PointerAliasAnalysisTransfer::getFunctionParamNumberFromTag(const std::strin
 	std::string prefix = paramTag.substr(0, prefixLen);
 	if(prefix == functionParamTagPrefix) {
 		int num = std::stoi(paramTag.substr(prefixLen));
+		return num;
 	}
 	return -1;
 }
@@ -563,6 +564,10 @@ void PointerAliasAnalysisTransfer::processLHS(SgNode *node,struct aliasDerefCoun
 //- The newly found alias relation is placed in the arNode. 
 //- Alias relations are established only for pointer and references.
 void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCount &arNode) {
+	PointerAliasAnalysisTransfer::processRHS(node, arNode, this->literalMap);
+}
+
+void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCount &arNode, LiteralMap *literalMap) {
 	if(node == NULL)
 		return;
 
@@ -593,7 +598,7 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 			{
 				SgPointerDerefExp *ptr_exp = isSgPointerDerefExp(node);
 				ROSE_ASSERT(ptr_exp != NULL);
-				processRHS(ptr_exp->get_operand(), arNode);
+				processRHS(ptr_exp->get_operand(), arNode, literalMap);
 				derefLevel++;
 				arNode.derefLevel += derefLevel;
 				return;
@@ -604,7 +609,7 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 			{
 				SgAddressOfOp *add_exp = isSgAddressOfOp(node);
 				ROSE_ASSERT(add_exp != NULL);
-				processRHS(add_exp->get_operand(), arNode);
+				processRHS(add_exp->get_operand(), arNode, literalMap);
 				sym = arNode.var;
 				var = arNode.vID;
 				derefLevel = arNode.derefLevel-1;
@@ -616,7 +621,7 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 			{
 				SgBinaryOp *bin_exp = isSgBinaryOp(node);
 				ROSE_ASSERT(bin_exp != NULL);
-				processRHS(bin_exp->get_rhs_operand(), arNode);
+				processRHS(bin_exp->get_rhs_operand(), arNode, literalMap);
 				return;
 			}
 			break;
@@ -627,7 +632,7 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 				SgExpression *rhs = NULL;
 				if(SageInterface::isAssignmentStatement(node,&lhs, &rhs)){
 					ROSE_ASSERT(rhs != NULL);
-					processRHS(rhs, arNode);
+					processRHS(rhs, arNode, literalMap);
 					return;
 				}
 			}
@@ -636,7 +641,7 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 		case V_SgCastExp:
 			{
 				SgCastExp *cast_exp = isSgCastExp(node);
-				processRHS(cast_exp->get_operand(), arNode);
+				processRHS(cast_exp->get_operand(), arNode, literalMap);
 				return;
 			}
 			break;
@@ -712,8 +717,9 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 // **********************************************************************
 void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode& n, const NodeState& state,std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts){
 	map<varID, Lattice*> emptyM;
-	initLattices.push_back(new FiniteVarsExprsProductLattice((Lattice*) new PointerAliasLattice(), emptyM, (Lattice*)NULL,NULL, n, state) );
-	//	printf("init node %s\n", n.getNode()->class_name().c_str());
+	initLattices.push_back(new FiniteVarsExprsProductLattice((Lattice*) new PointerAliasLattice(), emptyM
+, (Lattice*)NULL,NULL, n, state));
+//printf("init node %s\n", n.getNode()->class_name().c_str());
 }
 
 PointerAliasAnalysis::PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map)   
@@ -742,8 +748,59 @@ PointerAliasLattice *PointerAliasAnalysis::getAliasLattice(NodeState *s, varID v
 	return dynamic_cast<PointerAliasLattice *>(lat->getVarLattice(var)); 
 }
 
+void PointerAliasAnalysis::setGlobalAliasRelationForLat(PointerAliasLattice *lat, aliasDerefCount& lhs, SgNode *rhsExp){
+	aliasDerefCount rhs;
+	PointerAliasAnalysisTransfer::processRHS(rhsExp, rhs, literalMap);
+	if((lhs.var !=NULL) && (rhs.var !=NULL)){
+		lat->setAliasRelation(make_pair(lhs,rhs));
+		set<varID> result;
+		computeGlobalAliases(lat, rhs.vID, rhs.derefLevel + 1, result);
+		lat->setAliasedVariables(result);
+	}
+}
+
+void PointerAliasAnalysis::computeGlobalAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result)
+{
+	if(derefLevel==0)
+		result.insert(var);
+	else
+	{
+		set<varID> outS = lat->getAliasedVariables();
+		for(set<varID>::iterator outVar = outS.begin(); outVar != outS.end(); outVar++)
+		{
+			PointerAliasLattice *outLat = dynamic_cast<PointerAliasLattice *>(globalVarsLattice[*outVar]);
+			if(outLat)
+				computeGlobalAliases(outLat,*outVar,derefLevel-1,result);
+		}
+	}
+}
 void PointerAliasAnalysis::runGlobalVarAnalysis() {
 
+	std::vector<SgInitializedName *> vars = getGlobalVars(project);
+	for(auto &initName: vars) {
+		aliasDerefCount lhs;
+		PointerAliasAnalysisTransfer::processLHS(initName, lhs);
+//		lhs.vID = varID(initName);
+
+		PointerAliasLattice* lat = new PointerAliasLattice();
+		SgInitializer* initializer = initName->get_initializer();
+		if(initializer) {
+			lat->setState(PointerAliasLattice::INITIALIZED);
+			if(isSgAssignInitializer(initializer)) {
+				SgExpression *rhsExp = isSgAssignInitializer(initializer)->get_operand();
+				setGlobalAliasRelationForLat(lat, lhs, rhsExp);
+			}else if(isSgAggregateInitializer(initializer)) {
+				SgExprListExp *lst = isSgAggregateInitializer(initializer)->get_initializers();
+				for(auto &exp: lst->get_expressions()) {
+					setGlobalAliasRelationForLat(lat, lhs, exp);
+				}
+			}
+		}
+
+		globalVarsLattice[lhs.vID] = lat;
+//		globalVarsLattice[varID(initName)] = lat; 
+//		printf("lat:%s\n", lat->str(" ").c_str());
+	}
 }
 
 void PointerAliasAnalysis::transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state) {
@@ -751,6 +808,8 @@ void PointerAliasAnalysis::transferFunctionCall(const Function &func, const Data
 }
 
 void PointerAliasAnalysis::runAnalysis() {
+	runGlobalVarAnalysis();
+
 	ctOverallDataflowAnalyser overallAnalyser(project, this);
 	overallAnalyser.runAnalysis();
 }

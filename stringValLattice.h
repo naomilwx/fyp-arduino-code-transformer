@@ -133,6 +133,7 @@ public:
         std::string str(std::string);
 
         void setAliasedVariables(varID al);
+        void setAliasedVariables(std::set<varID> als);
         void clearAliasedVariables();
         void setAliasRelation(std::pair < aliasDerefCount, aliasDerefCount > alRel);
         set< std::pair<aliasDerefCount, aliasDerefCount> > getAliasRelations();

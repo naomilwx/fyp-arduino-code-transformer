@@ -155,9 +155,8 @@ bool isFromLibrary(SgInitializedName* initName) {
   if (fi->isCompilerGenerated())
     return true;
   string filename = fi->get_filenameString();
-  if ((filename.find("/include/") != std::string::npos) || (filename.find("Arduino//hardware") != std::string::npos))
+  if ((filename.find("/include/") != std::string::npos) || (filename.find("Arduino/hardware") != std::string::npos) || (filename.find("NULL_FILE") != std::string::npos))
       return true;
-
   return false; 
 }
 
