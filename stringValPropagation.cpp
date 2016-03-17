@@ -836,6 +836,15 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 void PointerAliasAnalysis::transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state) {
 	//TODO: this is for gathering info about globals affected by the function call
 	//printf("transfer function call\n");
+	 vector<Lattice*> dfInfoBelow = state->getLatticeBelow(this);
+	 vector<Lattice*>* retState = NULL;
+	 ctOverallDataflowAnalyser *interAnalyser = dynamic_cast<ctOverallDataflowAnalyser*>(interAnalysis);
+	 if(interAnalyser) {
+		 interAnalyser->transfer(func, n, *state, dfInfoBelow, true, false);
+	 }
+//	  dynamic_cast<InterProceduralDataflow*>(interAnalysis)->
+//	    transfer(func, n, *state, dfInfoBelow, &retState, true);
+
 }
 
 void PointerAliasAnalysis::runAnalysis() {

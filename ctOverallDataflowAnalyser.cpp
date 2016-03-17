@@ -26,7 +26,12 @@ ctOverallDataflowAnalyser::ctOverallDataflowAnalyser(SgProject *project, IntraUn
 }
 
 bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNode& n, NodeState& state,
-		const std::vector<Lattice*>& dfInfo, std::vector<Lattice*>** retState, bool fw){
+				const std::vector<Lattice*>& dfInfo, std::vector<Lattice*>** retState, bool fw){
+	return false;
+}
+
+bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNode& n, NodeState& state,
+		const std::vector<Lattice*>& dfInfo, bool fw, bool remapArgs){
 
 
 	bool modified = false;
@@ -35,7 +40,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 	ROSE_ASSERT(call);
 
 	if(analysisDebugLevel > 0)
-		Dbg::dbg << "ContextInsensitiveInterProceduralDataflow::transfer "
+		Dbg::dbg << "ctOverallDataflowAnalyser::transfer "
 			<<func.get_name().getString()<<"()=>"<<callee.get_name().getString()<<"()\n";
 
 	if(callee.get_definition()){
@@ -58,16 +63,20 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 				Dbg::dbg << "      Before calleeL=["<<calleeL<<"] "<<calleeL->str("        ")<<endl;
 			}
 			// Create a copy of the current lattice, remapped for the called function's variables
-			Lattice* remappedL = callerL->copy();
-			map<varID, varID> argParamMap;
-			FunctionState::setArgParamMap(call, argParamMap);
+			if(remapArgs){
+				Lattice* remappedL = callerL->copy();
+				map<varID, varID> argParamMap;
+				FunctionState::setArgParamMap(call, argParamMap);
 
-			remappedL->remapVars(argParamMap, callee);
+				remappedL->remapVars(argParamMap, callee);
+				Dbg::dbg << "      remappedL=["<<calleeL<<"] "<<remappedL->str("        ")<<endl;
 
-			Dbg::dbg << "      remappedL=["<<calleeL<<"] "<<remappedL->str("        ")<<endl;
+				// update the callee's Lattice with the new information at the call site
+				modified = calleeL->meetUpdate(remappedL) || modified;
+			} else {
+				modified = calleeL->meetUpdate(callerL);
+			}
 
-			// update the callee's Lattice with the new information at the call site
-			modified = calleeL->meetUpdate(remappedL) || modified;
 
 			if(analysisDebugLevel>=1)
 				Dbg::dbg << "      After modified = "<<modified
@@ -76,48 +85,44 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 		}
 
 		// The lattices after the function (forward: before=above, after=below; backward: before=below, after=above).
-		const vector<Lattice*>* funcLatticesAfter;
-		if(fw) funcLatticesAfter = &(funcS->state.getLatticeBelow((Analysis*)intraAnalysis));
-		else   funcLatticesAfter = &(funcS->state.getLatticeAbove((Analysis*)intraAnalysis));
+//		const vector<Lattice*>* funcLatticesAfter;
+//		if(fw) funcLatticesAfter = &(funcS->state.getLatticeBelow((Analysis*)intraAnalysis));
+//		else   funcLatticesAfter = &(funcS->state.getLatticeAbove((Analysis*)intraAnalysis));
 
 		//Dbg::dbg << "        funcLatticesAfter->size()="<<funcLatticesAfter->size()<<endl;
-		if(analysisDebugLevel>=1)
-			Dbg::dbg << "      ----%%%%%%%%%%%%%%%%%%%%---------\n";
+//		if(analysisDebugLevel>=1)
+//			Dbg::dbg << "      ----%%%%%%%%%%%%%%%%%%%%---------\n";
 
 		// Transfer the result of the function call into the dfInfo Lattices.
-		vector<Lattice*>::const_iterator itCalleeAfter, itCallerAfter;
-		for(itCallerAfter = dfInfo.begin(), itCalleeAfter = funcLatticesAfter->begin();
-				itCallerAfter!=dfInfo.end() && itCalleeAfter!=funcLatticesAfter->end();
-				itCallerAfter++, itCalleeAfter++){
-			Lattice* callerL = *itCallerAfter;
-			Lattice* calleeL = *itCalleeAfter;
-			//Dbg::dbg << "      calleeL-after=["<<calleeL<<"] "<<calleeL->str("        ")<<endl;
-
-			// Create a copy of the current lattice, remapped for the callee function's variables
-			Lattice* remappedL = calleeL->copy();
-			if(analysisDebugLevel>=1)
-				Dbg::dbg << "      remappedL-after=["<<remappedL<<"] "
-					<<calleeL->str("        ")<<endl << remappedL->str(" ")<<endl;
-			map<varID, varID> paramArgByRefMap;
-			FunctionState::setParamArgByRefMap(call, paramArgByRefMap);
-
-			remappedL->remapVars(paramArgByRefMap, func);
-
-			//Dbg::dbg << "      callerL-after=["<<callerL<<"] "<<callerL->str("        ")<<endl;
-			Dbg::dbg << "      +remappedL-after=["<<remappedL<<"] "<<remappedL->str("        ")<<endl;
-
-			// update the caller's Lattice with the new information at the call site
-			callerL->incorporateVars(remappedL);
-
-			if(analysisDebugLevel>=1)
-				Dbg::dbg << "      ==> callerL-after=["<<callerL<<"] "<<callerL->str("        ")<<endl;
-			//Dbg::dbg << "      calleeL-after=["<<calleeL<<"] "<<calleeL->str("        ")<<endl;
-			modified = true;
-		}
-
-		//		if(retState){
-		//			*retState = &(funcS->retState.getLatticeBelowMod((Analysis*)intraAnalysis));
-		//		}
+//		vector<Lattice*>::const_iterator itCalleeAfter, itCallerAfter;
+//		for(itCallerAfter = dfInfo.begin(), itCalleeAfter = funcLatticesAfter->begin();
+//				itCallerAfter!=dfInfo.end() && itCalleeAfter!=funcLatticesAfter->end();
+//				itCallerAfter++, itCalleeAfter++){
+//			Lattice* callerL = *itCallerAfter;
+//			Lattice* calleeL = *itCalleeAfter;
+//
+//			// Create a copy of the current lattice, remapped for the callee function's variables
+//			Lattice* remappedL = calleeL->copy();
+//			if(analysisDebugLevel>=1)
+//				Dbg::dbg << "      remappedL-after=["<<remappedL<<"] "
+//					<<calleeL->str("        ")<<endl << remappedL->str(" ")<<endl;
+//			map<varID, varID> paramArgByRefMap;
+//			FunctionState::setParamArgByRefMap(call, paramArgByRefMap);
+//
+//			remappedL->remapVars(paramArgByRefMap, func);
+//
+//			Dbg::dbg << "      +remappedL-after=["<<remappedL<<"] "<<remappedL->str("        ")<<endl;
+//
+//			// update the caller's Lattice with the new information at the call site
+//			callerL->incorporateVars(remappedL);
+//
+//			if(analysisDebugLevel>=1)
+//				Dbg::dbg << "      ==> callerL-after=["<<callerL<<"] "<<callerL->str("        ")<<endl;
+//			modified = true;
+//		}
+			if(modified) {
+				funcsToRerun.insert(funcS->getFunc());
+			}
 		}
 		return modified;
 	}

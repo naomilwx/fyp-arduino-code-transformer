@@ -19,11 +19,13 @@
 class ctOverallDataflowAnalyser: public virtual InterProceduralDataflow {
 	protected:
 		SgProject *project;
-
+		std::set<Function> funcsToRerun;
 	public:
 		ctOverallDataflowAnalyser(SgProject *project, IntraUniDirectionalDataflow *analyser);
 		void runAnalysis();
 		void visit(const Function& func);
+		bool transfer(const Function& func, const DataflowNode& n, NodeState& state,
+						const std::vector<Lattice*>& dfInfo, bool fw, bool remapArgs);
 		bool transfer(const Function& func, const DataflowNode& n, NodeState& state,
 				const std::vector<Lattice*>& dfInfo, std::vector<Lattice*>** retState, bool fw);
 };
