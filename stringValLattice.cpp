@@ -133,8 +133,9 @@ void PointerAliasLattice::initialize(){}
  
 
 // Returns a copy of this lattice
-Lattice* PointerAliasLattice::copy() const
-{ return new PointerAliasLattice(*this); }
+Lattice* PointerAliasLattice::copy() const{
+	return new PointerAliasLattice(*this);
+}
 
 
 // Copies that lattice into this
@@ -285,4 +286,62 @@ set<varID> PointerAliasLattice::getAliasedVariables()
 void PointerAliasLattice::clearAliasedVariables()
 {
     aliasedVariables.clear();
+}
+
+/**
+ * Modified version of FiniteVarsProductLattice
+ * */
+
+// Initial blank ctVarsExprsProductLattice
+ctVarsExprsProductLattice::ctVarsExprsProductLattice(const DataflowNode& n, const NodeState& state) :
+		FiniteVarsExprsProductLattice(n, state), VarsExprsProductLattice(n, state,filter)
+{}
+
+// Retrns a blank instance of a VarsExprsProductLattice that only has the fields n and state set
+VarsExprsProductLattice* ctVarsExprsProductLattice::blankVEPL(const DataflowNode& n, const NodeState& state)
+{
+        return new ctVarsExprsProductLattice(n, state);
+}
+
+
+ctVarsExprsProductLattice::ctVarsExprsProductLattice(
+                                      Lattice* perVarLattice,
+                                      const map<varID, Lattice*>& constVarLattices,
+                                      Lattice* allVarLattice,
+                                      LiveDeadVarsAnalysis* ldva,
+                                      const DataflowNode& n, const NodeState& state, std::map<varID, Lattice *> globalLattices) :
+	FiniteVarsExprsProductLattice(perVarLattice, constVarLattices, allVarLattice, ldva, n, state),
+    VarsExprsProductLattice(perVarLattice, constVarLattices, allVarLattice, ldva, n, state),
+    FiniteProductLattice()
+{
+		incorporateVarsMap(globalLattices, true);
+		verifyFinite();
+}
+
+ctVarsExprsProductLattice::ctVarsExprsProductLattice(const ctVarsExprsProductLattice& that) :
+		FiniteVarsExprsProductLattice(that), VarsExprsProductLattice(that), FiniteProductLattice()
+{
+        //Dbg::dbg << "ctVarsExprsProductLattice::copy n="<<n.getNode()<<" = <"<<Dbg::escape(n.getNode()->unparseToString())<<" | "<<n.getNode()->class_name()<<" | "<<n.getIndex()<<">"<<endl;
+        verifyFinite();
+}
+
+// returns a copy of this lattice
+Lattice* ctVarsExprsProductLattice::copy() const
+{
+        return new ctVarsExprsProductLattice(*this);
+}
+
+void ctVarsExprsProductLattice::incorporateVarsMap(std::map<varID, Lattice *> lats, bool overwrite) {
+
+	for(auto&item : lats) {
+		if(varLatticeIndex.find(item.first) == varLatticeIndex.end()){
+			varLatticeIndex[item.first] = lattices.size();
+			lattices.push_back(item.second);
+		} else if(overwrite){
+			lattices[varLatticeIndex[item.first]]->copy(item.second);
+		} else {
+			Lattice *origLat = lattices[varLatticeIndex[item.first]];
+			origLat->meetUpdate(item.second);
+		}
+	}
 }

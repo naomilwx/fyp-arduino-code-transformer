@@ -717,9 +717,11 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 // **********************************************************************
 void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode& n, const NodeState& state,std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts){
 	map<varID, Lattice*> emptyM;
-	initLattices.push_back(new FiniteVarsExprsProductLattice((Lattice*) new PointerAliasLattice(), emptyM
-, (Lattice*)NULL,NULL, n, state));
-//printf("init node %s\n", n.getNode()->class_name().c_str());
+	auto res = new ctVarsExprsProductLattice((Lattice*) new PointerAliasLattice(), emptyM, (Lattice*)NULL,NULL, n, state, globalVarsLattice);
+	initLattices.push_back(res);
+//	for(auto &item: globalVarsLattice)
+//		printf("%s: %s", item.first.str().c_str(), item.second->str(" ").c_str());
+printf("init node %s\n", n.getNode()->class_name().c_str());
 }
 
 PointerAliasAnalysis::PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map)   
@@ -744,7 +746,7 @@ PointerAliasAnalysis::getTransferVisitor(const Function& func, const DataflowNod
 }
 
 PointerAliasLattice *PointerAliasAnalysis::getAliasLattice(NodeState *s, varID var){
-	FiniteVarsExprsProductLattice *lat = dynamic_cast<FiniteVarsExprsProductLattice *>(*(s->getLatticeBelow(this).begin()));
+	ctVarsExprsProductLattice *lat = dynamic_cast<ctVarsExprsProductLattice *>(*(s->getLatticeBelow(this).begin()));
 	return dynamic_cast<PointerAliasLattice *>(lat->getVarLattice(var)); 
 }
 
@@ -797,14 +799,15 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 			}
 		}
 
-		globalVarsLattice[lhs.vID] = lat;
-//		globalVarsLattice[varID(initName)] = lat; 
+//		globalVarsLattice[lhs.vID] = lat;
+		globalVarsLattice[varID(initName)] = lat;
 //		printf("lat:%s\n", lat->str(" ").c_str());
 	}
 }
 
 void PointerAliasAnalysis::transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state) {
 	//TODO: this is for gathering info about globals affected by the function call
+	printf("transfer function call\n");
 }
 
 void PointerAliasAnalysis::runAnalysis() {

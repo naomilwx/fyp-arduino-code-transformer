@@ -51,11 +51,11 @@ int main( int argc, char * argv[] ) {
 //  liveDeadAnalysisDebugLevel = 1;
   analysisDebugLevel = 1;
 
-  //LiveDeadVarsAnalysis ldva(project);
+//  LiveDeadVarsAnalysis ldva(project);
 //       ldva.filter = gfilter; // the defaultFitler can provide the same semantics now
- // UnstructuredPassInterDataflow ciipd_ldva(&ldva);
+//  UnstructuredPassInterDataflow ciipd_ldva(&ldva);
   //     assert (ciipd_ldva.filter == gfilter);
-  //ciipd_ldva.runAnalysis();
+//  ciipd_ldva.runAnalysis();
 
 
 
