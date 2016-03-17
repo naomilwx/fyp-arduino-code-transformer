@@ -84,42 +84,6 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 
 		}
 
-		// The lattices after the function (forward: before=above, after=below; backward: before=below, after=above).
-//		const vector<Lattice*>* funcLatticesAfter;
-//		if(fw) funcLatticesAfter = &(funcS->state.getLatticeBelow((Analysis*)intraAnalysis));
-//		else   funcLatticesAfter = &(funcS->state.getLatticeAbove((Analysis*)intraAnalysis));
-
-		//Dbg::dbg << "        funcLatticesAfter->size()="<<funcLatticesAfter->size()<<endl;
-//		if(analysisDebugLevel>=1)
-//			Dbg::dbg << "      ----%%%%%%%%%%%%%%%%%%%%---------\n";
-
-		// Transfer the result of the function call into the dfInfo Lattices.
-//		vector<Lattice*>::const_iterator itCalleeAfter, itCallerAfter;
-//		for(itCallerAfter = dfInfo.begin(), itCalleeAfter = funcLatticesAfter->begin();
-//				itCallerAfter!=dfInfo.end() && itCalleeAfter!=funcLatticesAfter->end();
-//				itCallerAfter++, itCalleeAfter++){
-//			Lattice* callerL = *itCallerAfter;
-//			Lattice* calleeL = *itCalleeAfter;
-//
-//			// Create a copy of the current lattice, remapped for the callee function's variables
-//			Lattice* remappedL = calleeL->copy();
-//			if(analysisDebugLevel>=1)
-//				Dbg::dbg << "      remappedL-after=["<<remappedL<<"] "
-//					<<calleeL->str("        ")<<endl << remappedL->str(" ")<<endl;
-//			map<varID, varID> paramArgByRefMap;
-//			FunctionState::setParamArgByRefMap(call, paramArgByRefMap);
-//
-//			remappedL->remapVars(paramArgByRefMap, func);
-//
-//			Dbg::dbg << "      +remappedL-after=["<<remappedL<<"] "<<remappedL->str("        ")<<endl;
-//
-//			// update the caller's Lattice with the new information at the call site
-//			callerL->incorporateVars(remappedL);
-//
-//			if(analysisDebugLevel>=1)
-//				Dbg::dbg << "      ==> callerL-after=["<<callerL<<"] "<<callerL->str("        ")<<endl;
-//			modified = true;
-//		}
 			if(modified) {
 				funcsToRerun.insert(funcS->getFunc());
 			}
@@ -132,7 +96,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 		{
 			FunctionState* fState = FunctionState::getDefinedFuncState(func);
 			assert(fState!=NULL);
-
+			printf("here\n");
 			IntraProceduralDataflow *intraDataflow = dynamic_cast<IntraProceduralDataflow *>(intraAnalysis);
 			assert(intraDataflow!=NULL);
 			if (intraDataflow->visited.find(func) == intraDataflow->visited.end()) {
@@ -145,13 +109,11 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 			}
 
 			std::set<Function> emptyFunc;
-
 			// Run the intra-procedural dataflow analysis on the current function
 			dynamic_cast<IntraProceduralDataflow*>(intraAnalysis)->
 				runAnalysis(func, &(fState->state), 
-						false,
+						true,
 						emptyFunc);
-
 			// Merge the dataflow states above all the return statements in the function, storing the results in Fact 0 of
 			// the function
 			DFStateAtReturns* dfsar = dynamic_cast<DFStateAtReturns*>(fState->state.getFact(intraAnalysis, 0));
@@ -163,13 +125,40 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 		//	std::vector<SgInitializedName *>globalVars = getGlobalVars(project);
 		printf("begin analysis\n");
 		FunctionSet funcs = getDefinedFunctions(project);
-		SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
+//		SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
+		SgFunctionDeclaration *setupFunc = NULL;
+		SgFunctionDeclaration *loopFunc = NULL;
 		for(auto &func: funcs){
-			FunctionState* fState = FunctionState::getFuncState(Function(func));
+//			FunctionState* fState = FunctionState::getFuncState(Function(func));
+			if(func->get_name().getString() == "setup") {
+				setupFunc = func;
+				printf("%p %s\n", setupFunc, setupFunc->get_name().str());
+			}
+			if(func->get_name().getString() == "loop") {
+				loopFunc = func;
+				printf("%p %s\n", loopFunc, loopFunc->get_name().str());
+				printf("found loop\n");
+			}
 			printf("running\n");
 
-			visit(func);
+			visit(Function(func));
 
 			printf("done running\n");
 		}
+
+		do {
+			if(setupFunc){
+//				printf("%p %s\n", setupFunc, setupFunc->get_name().str());
+				visit(Function(setupFunc));
+			}
+			if(loopFunc) {
+//				printf("%p %s\n", loopFunc, loopFunc->get_name().str());
+				visit(Function(loopFunc));
+			}
+			std::set<Function> funcsSet(funcsToRerun);
+			funcsToRerun.clear();
+			for(auto&func: funcsSet) {
+				visit(Function(func));
+			}
+		} while(funcsToRerun.empty() == false);
 	}
