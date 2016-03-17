@@ -50,6 +50,8 @@ extern int PointerAliasAnalysisDebugLevel;
 
 class PointerAliasAnalysis;
 
+const std::string FUNC_PARAM_TAG_PREFIX =  "__function_param_";
+
 /*
 Transfer:   We define visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer
 i.e., the CFG nodes that could potentially update any pointers.
@@ -65,6 +67,7 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		LiteralMap *literalMap;
 		PointerAliasAnalysis* analysis;
 	public:
+
 		//Visit function to apply "transfer" on the specified SgNode in CFG
 		void visit(SgFunctionCallExp *sgn);
 		void visit(SgAssignOp *sgn);
@@ -86,7 +89,6 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		void processRHS(SgNode *node, struct aliasDerefCount &arNode);
 
 	private:
-		std::string functionParamTagPrefix =  "__function_param_";
 		std::vector<aliasDerefCount> getReturnAliasForFunctionCall(SgFunctionCallExp *fcall);
 
 		//Updates the 'aliasedVariables' set by establishing an relation('edge' in compact representation graph) between 'aliasRelations' pair. 'isMust' denotes may or must alias
@@ -99,7 +101,9 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 
 		void processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode);
 
-
+		void approximateFunctionCallEffect(SgFunctionCallExp *fcall);
+		//Over approximates effect of function calls:
+		//Assume all parameters passed as non const pointers or reference are modified
 }; 
 
 

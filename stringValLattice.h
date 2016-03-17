@@ -182,6 +182,8 @@ class ctVarsExprsProductLattice : public FiniteVarsExprsProductLattice {
 
         ctVarsExprsProductLattice(const ctVarsExprsProductLattice& that);
 
+        Lattice* addSlotForVariable(varID var);
+
         void incorporateVarsMap(std::map<varID, Lattice *> lats, bool overwrite);
         // returns a copy of this lattice
         Lattice* copy() const;

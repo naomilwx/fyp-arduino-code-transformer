@@ -326,9 +326,18 @@ ctVarsExprsProductLattice::ctVarsExprsProductLattice(const ctVarsExprsProductLat
 }
 
 // returns a copy of this lattice
-Lattice* ctVarsExprsProductLattice::copy() const
-{
-        return new ctVarsExprsProductLattice(*this);
+Lattice* ctVarsExprsProductLattice::copy() const {
+    return new ctVarsExprsProductLattice(*this);
+}
+
+Lattice* ctVarsExprsProductLattice::addSlotForVariable(varID var) {
+	if(varLatticeIndex.find(var) == varLatticeIndex.end()) {
+		varLatticeIndex[var] = lattices.size();
+		Lattice *lat = perVarLattice->copy();
+	    lattices.push_back(lat);
+	    return lat;
+	}
+	return lattices[varLatticeIndex[var]];
 }
 
 void ctVarsExprsProductLattice::incorporateVarsMap(std::map<varID, Lattice *> lats, bool overwrite) {

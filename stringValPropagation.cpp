@@ -235,8 +235,26 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 //Gets the lattice of the function call expression and updates lattice with alias information
 void PointerAliasAnalysisTransfer::visit(SgFunctionCallExp *sgn) {
 	//TODO: handle arguments modified by function
+	approximateFunctionCallEffect(sgn);
 	PointerAliasLattice *resLat = getLattice(sgn);
 	updateAliases(resLat->getAliasRelations(),1);
+}
+
+void PointerAliasAnalysisTransfer::approximateFunctionCallEffect(SgFunctionCallExp *fcall){
+	SgExpression *funcRef = getFunctionRef(fcall);
+	SgExpressionPtrList params = fcall->get_args()->get_expressions();
+		if(funcRef != NULL) {
+			SgFunctionType *funcType = dynamic_cast<SgFunctionType *>(funcRef->get_type());
+			SgTypePtrList fArgs = funcType->get_arguments();
+			int argIdx = 0;
+			for(auto &fArg : fArgs) {
+				if(SageInterface::isPointerToNonConstType(fArg) || SageInterface::isReferenceType(fArg)) {
+					PointerAliasLattice *lat = getLattice(params[argIdx]);
+					lat->setState(PointerAliasLattice::MODIFIED);
+				}
+				argIdx++;
+			}
+		}
 }
 
 void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
@@ -251,13 +269,9 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
 
 		processLHS(arg, left);
 
-		if(SageInterface::isReferenceType(arg->get_type())){
-			left.derefLevel += 1;
-		}
 		PointerAliasLattice* lhsLat =  getLattice(left.vID);
 
 		if(lhsLat){
-			//		printf("arglat\n");
 			lhsLat->setState(PointerAliasLattice::INITIALIZED);
 		}
 
@@ -433,7 +447,10 @@ void PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varI
 		set<varID> outS = lat->getAliasedVariables();
 		for(set<varID>::iterator outVar = outS.begin(); outVar != outS.end(); outVar++)
 		{
-			computeAliases(getLattice(*outVar),*outVar,derefLevel-1,result);
+			PointerAliasLattice *outLat = getLattice(*outVar);
+			if(outLat){
+				computeAliases(outLat,*outVar,derefLevel-1,result);
+			}
 		}
 	}
 }
@@ -441,7 +458,7 @@ void PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varI
 void PointerAliasAnalysisTransfer::processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode){
 	SgType *type = param->get_type();
 	std::stringstream ss;
-	ss << functionParamTagPrefix << index;
+	ss << FUNC_PARAM_TAG_PREFIX << index;
 	std::string name = ss.str();
 	SgName var_name = name;
 	SgVariableDeclaration *dec = SageBuilder::buildVariableDeclaration_nfi(var_name, type, NULL, scope);   
@@ -451,9 +468,9 @@ void PointerAliasAnalysisTransfer::processParam(int index, SgScopeStatement *sco
 }
 
 int PointerAliasAnalysisTransfer::getFunctionParamNumberFromTag(const std::string& paramTag){
-	int prefixLen = functionParamTagPrefix.length();
+	int prefixLen = FUNC_PARAM_TAG_PREFIX.length();
 	std::string prefix = paramTag.substr(0, prefixLen);
-	if(prefix == functionParamTagPrefix) {
+	if(prefix == FUNC_PARAM_TAG_PREFIX) {
 		int num = std::stoi(paramTag.substr(prefixLen));
 		return num;
 	}
@@ -504,6 +521,9 @@ void PointerAliasAnalysisTransfer::processLHS(SgNode *node,struct aliasDerefCoun
 				SgType *type = SageInterface::getElementType(var_exp->get_type());
 				if(type != NULL && SageInterface::isPointerType(type)){
 					isArrayOfPtr = true;
+				}
+				if(SageInterface::isReferenceType(var_exp->get_type())) {
+					derefLevel++;
 				}
 			}
 			break;
@@ -718,10 +738,19 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode& n, const NodeState& state,std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts){
 	map<varID, Lattice*> emptyM;
 	auto res = new ctVarsExprsProductLattice((Lattice*) new PointerAliasLattice(), emptyM, (Lattice*)NULL,NULL, n, state, globalVarsLattice);
+	if(func.get_definition()) {
+		int idx = 0;
+		for(auto&param: func.get_declaration()->get_args()) {
+			std::stringstream ss;
+			ss << FUNC_PARAM_TAG_PREFIX << idx;
+			Lattice *lat = res->addSlotForVariable(varID(ss.str()));
+			dynamic_cast<PointerAliasLattice *>(lat)->setState(PointerAliasLattice::INITIALIZED);
+		}
+	}
 	initLattices.push_back(res);
 //	for(auto &item: globalVarsLattice)
 //		printf("%s: %s", item.first.str().c_str(), item.second->str(" ").c_str());
-printf("init node %s\n", n.getNode()->class_name().c_str());
+//printf("init node %s\n", n.getNode()->class_name().c_str());
 }
 
 PointerAliasAnalysis::PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map)   
@@ -801,13 +830,12 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 
 //		globalVarsLattice[lhs.vID] = lat;
 		globalVarsLattice[varID(initName)] = lat;
-//		printf("lat:%s\n", lat->str(" ").c_str());
 	}
 }
 
 void PointerAliasAnalysis::transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state) {
 	//TODO: this is for gathering info about globals affected by the function call
-	printf("transfer function call\n");
+	//printf("transfer function call\n");
 }
 
 void PointerAliasAnalysis::runAnalysis() {
