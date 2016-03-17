@@ -121,6 +121,12 @@ void StringValPropagation::runAnalysis() {
 
 int PointerAliasAnalysisDebugLevel = 1;
 
+std::string getPlaceholderNameForArgNum(int num){
+	std::stringstream ss;
+	ss << FUNC_PARAM_TAG_PREFIX << num;
+	return ss.str();
+}
+
 PointerAliasAnalysisTransfer::PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis)
 	: VariableStateTransfer<PointerAliasLattice>(func, n, state, dfInfo, PointerAliasAnalysisDebugLevel){
 		this->literalMap = map;
@@ -235,7 +241,7 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 //Gets the lattice of the function call expression and updates lattice with alias information
 void PointerAliasAnalysisTransfer::visit(SgFunctionCallExp *sgn) {
 	//TODO: handle arguments modified by function
-	approximateFunctionCallEffect(sgn);
+	propagateFunctionCallEffect(sgn);
 	PointerAliasLattice *resLat = getLattice(sgn);
 	updateAliases(resLat->getAliasRelations(),1);
 }
@@ -255,6 +261,57 @@ void PointerAliasAnalysisTransfer::approximateFunctionCallEffect(SgFunctionCallE
 				argIdx++;
 			}
 		}
+}
+
+void PointerAliasAnalysisTransfer::propagateFunctionCallEffect(SgFunctionCallExp *fcall){
+	Function callee(fcall);
+
+	if(callee.get_definition()){
+
+		FunctionState* funcS = FunctionState::getDefinedFuncState(callee);
+		const vector<Lattice*>* funcLatticesAfter = &(funcS->state.getLatticeBelow(analysis));
+		vector<Lattice*>::const_iterator itCalleeAfter, itCallerAfter;
+
+
+		for(itCallerAfter = dfInfo.begin(), itCalleeAfter = funcLatticesAfter->begin();
+						itCallerAfter!=dfInfo.end() && itCalleeAfter!=funcLatticesAfter->end();
+						itCallerAfter++, itCalleeAfter++){
+			ctVarsExprsProductLattice* callerL =dynamic_cast<ctVarsExprsProductLattice*>(*itCallerAfter);
+			ctVarsExprsProductLattice* calleeL = dynamic_cast<ctVarsExprsProductLattice*>(*itCalleeAfter);
+
+			//			// Create a copy of the current lattice, remapped for the callee function's variables
+			Lattice* remappedL = calleeL->copy();
+
+			map<varID, varID> paramArgByRefMap = getPlaceholderToArgMap(fcall);
+
+			remappedL->remapVars(paramArgByRefMap, func);
+			callerL->incorporateVars(remappedL, [](Lattice *lat){
+				PointerAliasLattice* l = dynamic_cast<PointerAliasLattice *>(lat);
+				if(l) {
+					return (l->getState() <= PointerAliasLattice::INITIALIZED);
+				}
+				return true;
+			});
+
+		}
+	}else {
+		approximateFunctionCallEffect(fcall);
+	}
+}
+
+std::map<varID,varID> PointerAliasAnalysisTransfer::getPlaceholderToArgMap(SgFunctionCallExp *fcall){
+	SgExpressionPtrList args = fcall->get_args()->get_expressions();
+	int idx = 0;
+	std::map<varID,varID> res;
+
+	for(auto& arg: args){
+		std::string placeholder = getPlaceholderNameForArgNum(idx);
+		if(isVarExpr(arg)){
+			res[varID(placeholder)] = varID(arg);
+		}
+		idx++;
+	}
+	return res;
 }
 
 void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
@@ -457,9 +514,7 @@ void PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varI
 
 void PointerAliasAnalysisTransfer::processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode){
 	SgType *type = param->get_type();
-	std::stringstream ss;
-	ss << FUNC_PARAM_TAG_PREFIX << index;
-	std::string name = ss.str();
+	std::string name = getPlaceholderNameForArgNum(index);
 	SgName var_name = name;
 	SgVariableDeclaration *dec = SageBuilder::buildVariableDeclaration_nfi(var_name, type, NULL, scope);   
 	arNode.var = scope->lookup_variable_symbol(var_name);
@@ -730,8 +785,6 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 	arNode.vID = var;
 }
 
-
-
 // **********************************************************************
 //                     PointerAliasAnalysis
 // **********************************************************************
@@ -741,10 +794,9 @@ void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode
 	if(func.get_definition()) {
 		int idx = 0;
 		for(auto&param: func.get_declaration()->get_args()) {
-			std::stringstream ss;
-			ss << FUNC_PARAM_TAG_PREFIX << idx;
-			Lattice *lat = res->addSlotForVariable(varID(ss.str()));
+			Lattice *lat = res->addSlotForVariable(varID(getPlaceholderNameForArgNum(idx)));
 			dynamic_cast<PointerAliasLattice *>(lat)->setState(PointerAliasLattice::INITIALIZED);
+			idx++;
 		}
 	}
 	initLattices.push_back(res);
@@ -834,8 +886,6 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 }
 
 void PointerAliasAnalysis::transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state) {
-	//TODO: this is for gathering info about globals affected by the function call
-	//printf("transfer function call\n");
 	 vector<Lattice*> dfInfoBelow = state->getLatticeBelow(this);
 	 vector<Lattice*>* retState = NULL;
 	 ctOverallDataflowAnalyser *interAnalyser = dynamic_cast<ctOverallDataflowAnalyser*>(interAnalysis);
@@ -844,7 +894,6 @@ void PointerAliasAnalysis::transferFunctionCall(const Function &func, const Data
 	 }
 //	  dynamic_cast<InterProceduralDataflow*>(interAnalysis)->
 //	    transfer(func, n, *state, dfInfoBelow, &retState, true);
-
 }
 
 void PointerAliasAnalysis::runAnalysis() {

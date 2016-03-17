@@ -52,6 +52,7 @@ class PointerAliasAnalysis;
 
 const std::string FUNC_PARAM_TAG_PREFIX =  "__function_param_";
 
+std::string getPlaceholderNameForArgNum(int num);
 /*
 Transfer:   We define visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer
 i.e., the CFG nodes that could potentially update any pointers.
@@ -104,6 +105,10 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		void approximateFunctionCallEffect(SgFunctionCallExp *fcall);
 		//Over approximates effect of function calls:
 		//Assume all parameters passed as non const pointers or reference are modified
+
+		void propagateFunctionCallEffect(SgFunctionCallExp *fcall);
+
+		std::map<varID,varID> getPlaceholderToArgMap(SgFunctionCallExp *fcall);
 }; 
 
 

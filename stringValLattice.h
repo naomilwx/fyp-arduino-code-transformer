@@ -187,5 +187,7 @@ class ctVarsExprsProductLattice : public FiniteVarsExprsProductLattice {
         void incorporateVarsMap(std::map<varID, Lattice *> lats, bool overwrite);
         // returns a copy of this lattice
         Lattice* copy() const;
+
+        void incorporateVars(Lattice *that_arg, bool(*ignoreVarLattice)(Lattice*));
 };
 #endif

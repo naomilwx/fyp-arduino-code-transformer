@@ -354,3 +354,43 @@ void ctVarsExprsProductLattice::incorporateVarsMap(std::map<varID, Lattice *> la
 		}
 	}
 }
+
+void ctVarsExprsProductLattice::incorporateVars(Lattice *that_arg, bool(*f)(Lattice*)){
+	initialize();
+
+	ctVarsExprsProductLattice* that = dynamic_cast<ctVarsExprsProductLattice*>(that_arg); ROSE_ASSERT(that);
+    // Both lattices need to be talking about variables in the same function
+
+	        if(that->allVarLattice) {
+	                ROSE_ASSERT(allVarLattice);
+	                this->allVarLattice->copy(that->allVarLattice);
+	        }
+
+	        // Iterate through all the lattices of constant variables, copying any lattices in That to This
+	        for(map<varID, Lattice*>::iterator var=that->constVarLattices.begin(); var!=that->constVarLattices.end(); var++) {
+
+	        		if(constVarLattices.find(var->first) != constVarLattices.end()) {
+	                        ROSE_ASSERT(constVarLattices[var->first]);
+	                        constVarLattices[var->first]->copy(var->second);
+	                } else {
+	                        ROSE_ASSERT(var->second);
+	                        constVarLattices.insert(make_pair(var->first, var->second->copy()));
+	                }
+	        }
+
+	        // Iterate through all the variables mapped by this lattice, copying any lattices in That to This
+	        for(map<varID, int>::iterator var = that->varLatticeIndex.begin(); var != that->varLatticeIndex.end(); var++)
+	        {
+	                if(f(that->lattices[var->second])) {
+	                	continue;
+	                }
+	        		if(varLatticeIndex.find(var->first) != varLatticeIndex.end()) {
+	                        ROSE_ASSERT(lattices[varLatticeIndex[var->first]]);
+	                        lattices[varLatticeIndex[var->first]]->copy(that->lattices[var->second]);
+	                } else {
+	                        varLatticeIndex[var->first] = lattices.size();
+	                        ROSE_ASSERT(that->lattices[var->second]);
+	                        lattices.push_back(that->lattices[var->second]->copy());
+	                }
+	        }
+}
