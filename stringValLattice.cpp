@@ -103,10 +103,6 @@ bool PointerAliasLattice::meetUpdate(Lattice* that_arg)
     PointerAliasLattice *that = dynamic_cast<PointerAliasLattice*>(that_arg);
     Dbg::dbg<<"IN MEETTPDATE That:" << that->str(" ") << "This :"<< str(" ")<<endl ;
     
-    if(that->state > state){
-	state = that->state;
-	modified = true;
-    }
     //Union of Aliasrelations
     set< std::pair<aliasDerefCount, aliasDerefCount> > thisAliasRelations= aliasRelations;
     set< std::pair<aliasDerefCount, aliasDerefCount> > thatAliasRelations= that->getAliasRelations();
@@ -130,6 +126,15 @@ bool PointerAliasLattice::meetUpdate(Lattice* that_arg)
          this->setAliasedVariables(*al);
          modified = true;
         }
+    }
+
+    //Update state
+    if(state < StateVal::REASSIGNED_MULTIPLE && aliasedVariables.size() >1) {
+    	state = StateVal::REASSIGNED_MULTIPLE;
+    }
+    if(that->state > state){
+    	state = that->state;
+    	modified = true;
     }
 return modified;
 }

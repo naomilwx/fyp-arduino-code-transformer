@@ -40,7 +40,7 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 	processLHS(lhs,leftARNode);
 
 	bool changed = false;
-//	getReturnAliasForFunctionCall
+	//	getReturnAliasForFunctionCall
 	if(isSgFunctionCallExp(rhs)) {
 		std::vector<aliasDerefCount> rhsRefs = getReturnAliasForFunctionCall(isSgFunctionCallExp(rhs));
 		for(auto &ref: rhsRefs) {
@@ -48,12 +48,19 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 		}
 	}else {
 		processRHS(rhs,rightARNode);
-			//Establish the per CFG-node alias relations
-			if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
-				changed = resLat->setAliasRelation(make_pair(leftARNode,rightARNode)) || changed;
+		//Establish the per CFG-node alias relations
+		if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
+			changed = resLat->setAliasRelation(make_pair(leftARNode,rightARNode)) || changed;
 	}
 
 	set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRels = resLat->getAliasRelations();
+
+	//Update the aliasedVariables(Compact Representation Graph)
+	if(isSgPntrArrRefExp(lhs)){
+		updateAliases(aliasRels,0);
+	} else { 
+		updateAliases(aliasRels,1);
+	}
 
 	//Update state of variable
 	if(changed){
@@ -68,7 +75,7 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 				} else if(isSgPntrArrRefExp(lhs)){
 					lhsLat->setState(PointerAliasLattice::MODIFIED);
 				} else {
-					if(aliasRels.size() > 1) {
+					if(lhsLat->getAliasedVariables().size() > 1) {
 						lhsLat->setState(PointerAliasLattice::REASSIGNED_MULTIPLE);
 					} else if(lhsLat->getState() != PointerAliasLattice::REASSIGNED_MULTIPLE) {
 						lhsLat->setState(PointerAliasLattice::REASSIGNED);
@@ -77,13 +84,6 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 			}
 
 		}
-	}
-
-	//Update the aliasedVariables(Compact Representation Graph)
-	if(isSgPntrArrRefExp(lhs)){
-		updateAliases(aliasRels,0);
-	} else { 
-		updateAliases(aliasRels,1);
 	}
 }
 
@@ -129,21 +129,7 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 				paramNode.var = isSgVariableSymbol(alias.components.at(0)->get_symbol_from_symbol_table());
 				refs.push_back(paramNode);
 			}
-
 		}
-//		for(auto &aliasRel: retAliasLat->getAliasRelations()){
-//					std::string name = aliasRel.second.var->get_name().str();
-//					int index = getFunctionParamNumberFromTag(name);
-//					if(index >= 0) {
-//						aliasDerefCount paramNode;
-//						processRHS(params[index], paramNode);
-//						refs.push_back(paramNode);
-//
-//					} else if(name.substr(0, STRING_LITERAL_PREFIX.length()) == STRING_LITERAL_PREFIX) {
-//						refs.push_back(aliasRel.second);
-//					}
-//
-//				}
 	}
 	return refs;
 }
@@ -162,18 +148,18 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionCallExp *sgn) {
 void PointerAliasAnalysisTransfer::approximateFunctionCallEffect(SgFunctionCallExp *fcall){
 	SgExpression *funcRef = getFunctionRef(fcall);
 	SgExpressionPtrList params = fcall->get_args()->get_expressions();
-		if(funcRef != NULL) {
-			SgFunctionType *funcType = dynamic_cast<SgFunctionType *>(funcRef->get_type());
-			SgTypePtrList fArgs = funcType->get_arguments();
-			int argIdx = 0;
-			for(auto &fArg : fArgs) {
-				if(SageInterface::isPointerToNonConstType(fArg) || SageInterface::isReferenceType(fArg)) {
-					PointerAliasLattice *lat = getLattice(params[argIdx]);
-					lat->setState(PointerAliasLattice::MODIFIED);
-				}
-				argIdx++;
+	if(funcRef != NULL) {
+		SgFunctionType *funcType = dynamic_cast<SgFunctionType *>(funcRef->get_type());
+		SgTypePtrList fArgs = funcType->get_arguments();
+		int argIdx = 0;
+		for(auto &fArg : fArgs) {
+			if(SageInterface::isPointerToNonConstType(fArg) || SageInterface::isReferenceType(fArg)) {
+				PointerAliasLattice *lat = getLattice(params[argIdx]);
+				lat->setState(PointerAliasLattice::MODIFIED);
 			}
+			argIdx++;
 		}
+	}
 }
 
 void PointerAliasAnalysisTransfer::propagateFunctionCallEffect(SgFunctionCallExp *fcall){
@@ -187,8 +173,8 @@ void PointerAliasAnalysisTransfer::propagateFunctionCallEffect(SgFunctionCallExp
 
 
 		for(itCallerAfter = dfInfo.begin(), itCalleeAfter = funcLatticesAfter->begin();
-						itCallerAfter!=dfInfo.end() && itCalleeAfter!=funcLatticesAfter->end();
-						itCallerAfter++, itCalleeAfter++){
+				itCallerAfter!=dfInfo.end() && itCalleeAfter!=funcLatticesAfter->end();
+				itCallerAfter++, itCalleeAfter++){
 			ctVarsExprsProductLattice* callerL =dynamic_cast<ctVarsExprsProductLattice*>(*itCallerAfter);
 			ctVarsExprsProductLattice* calleeL = dynamic_cast<ctVarsExprsProductLattice*>(*itCalleeAfter);
 
@@ -199,12 +185,12 @@ void PointerAliasAnalysisTransfer::propagateFunctionCallEffect(SgFunctionCallExp
 
 			remappedL->remapVars(paramArgByRefMap, func);
 			callerL->incorporateVars(remappedL, [](Lattice *lat){
-				PointerAliasLattice* l = dynamic_cast<PointerAliasLattice *>(lat);
-				if(l) {
+					PointerAliasLattice* l = dynamic_cast<PointerAliasLattice *>(lat);
+					if(l) {
 					return (l->getState() <= PointerAliasLattice::INITIALIZED);
-				}
-				return true;
-			});
+					}
+					return true;
+					});
 
 		}
 	}else {
@@ -219,9 +205,9 @@ std::map<varID,varID> PointerAliasAnalysisTransfer::getPlaceholderToArgMap(SgFun
 
 	for(auto& arg: args){
 		std::string placeholder = getPlaceholderNameForArgNum(idx);
-//		if(isVarExpr(arg)){
+		//		if(isVarExpr(arg)){
 		res[varID(placeholder)] = SgExpr2Var(arg);
-//		}
+		//		}
 		idx++;
 	}
 	return res;
@@ -697,9 +683,9 @@ void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode
 		}
 	}
 	initLattices.push_back(res);
-//	for(auto &item: globalVarsLattice)
-//		printf("%s: %s", item.first.str().c_str(), item.second->str(" ").c_str());
-//printf("init node %s\n", n.getNode()->class_name().c_str());
+	//	for(auto &item: globalVarsLattice)
+	//		printf("%s: %s", item.first.str().c_str(), item.second->str(" ").c_str());
+	//printf("init node %s\n", n.getNode()->class_name().c_str());
 }
 
 PointerAliasAnalysis::PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map)   
@@ -760,7 +746,7 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 	for(auto &initName: vars) {
 		aliasDerefCount lhs;
 		PointerAliasAnalysisTransfer::processLHS(initName, lhs);
-//		lhs.vID = varID(initName);
+		//		lhs.vID = varID(initName);
 
 		PointerAliasLattice* lat = new PointerAliasLattice();
 		SgInitializer* initializer = initName->get_initializer();
@@ -777,20 +763,20 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 			}
 		}
 
-//		globalVarsLattice[lhs.vID] = lat;
+		//		globalVarsLattice[lhs.vID] = lat;
 		globalVarsLattice[varID(initName)] = lat;
 	}
 }
 
 void PointerAliasAnalysis::transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state) {
-	 vector<Lattice*> dfInfoBelow = state->getLatticeBelow(this);
-	 vector<Lattice*>* retState = NULL;
-	 ctOverallDataflowAnalyser *interAnalyser = dynamic_cast<ctOverallDataflowAnalyser*>(interAnalysis);
-	 if(interAnalyser) {
-		 interAnalyser->transfer(func, n, *state, dfInfoBelow, true, false);
-	 }
-//	  dynamic_cast<InterProceduralDataflow*>(interAnalysis)->
-//	    transfer(func, n, *state, dfInfoBelow, &retState, true);
+	vector<Lattice*> dfInfoBelow = state->getLatticeBelow(this);
+	vector<Lattice*>* retState = NULL;
+	ctOverallDataflowAnalyser *interAnalyser = dynamic_cast<ctOverallDataflowAnalyser*>(interAnalysis);
+	if(interAnalyser) {
+		interAnalyser->transfer(func, n, *state, dfInfoBelow, true, false);
+	}
+	//	  dynamic_cast<InterProceduralDataflow*>(interAnalysis)->
+	//	    transfer(func, n, *state, dfInfoBelow, &retState, true);
 }
 
 void PointerAliasAnalysis::runAnalysis() {
