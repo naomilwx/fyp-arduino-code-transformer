@@ -65,6 +65,7 @@ public:
 		BOTTOM,
 		INITIALIZED,
 		REASSIGNED,
+		REASSIGNED_MULTIPLE,
 		MODIFIED
 	};
 protected:

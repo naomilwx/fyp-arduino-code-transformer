@@ -44,7 +44,7 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 	if(isSgFunctionCallExp(rhs)) {
 		std::vector<aliasDerefCount> rhsRefs = getReturnAliasForFunctionCall(isSgFunctionCallExp(rhs));
 		for(auto &ref: rhsRefs) {
-			changed = resLat->setAliasRelation(make_pair(leftARNode, ref)) || changed;
+			resLat->setAliasRelation(make_pair(leftARNode, ref)) || changed;
 		}
 	}else {
 		processRHS(rhs,rightARNode);
@@ -53,6 +53,7 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 				changed = resLat->setAliasRelation(make_pair(leftARNode,rightARNode)) || changed;
 	}
 
+	set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRels = resLat->getAliasRelations();
 
 	//Update state of variable
 	if(changed){
@@ -66,8 +67,12 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 					lhsLat->setState(PointerAliasLattice::INITIALIZED);
 				} else if(isSgPntrArrRefExp(lhs)){
 					lhsLat->setState(PointerAliasLattice::MODIFIED);
-				} else{
-					lhsLat->setState(PointerAliasLattice::REASSIGNED);
+				} else {
+					if(aliasRels.size() > 1) {
+						lhsLat->setState(PointerAliasLattice::REASSIGNED_MULTIPLE);
+					} else if(lhsLat->getState() != PointerAliasLattice::REASSIGNED_MULTIPLE) {
+						lhsLat->setState(PointerAliasLattice::REASSIGNED);
+					}
 				}
 			}
 
@@ -76,9 +81,9 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 
 	//Update the aliasedVariables(Compact Representation Graph)
 	if(isSgPntrArrRefExp(lhs)){
-		updateAliases(resLat->getAliasRelations(),0);
+		updateAliases(aliasRels,0);
 	} else { 
-		updateAliases(resLat->getAliasRelations(),1);
+		updateAliases(aliasRels,1);
 	}
 }
 
@@ -388,17 +393,12 @@ Ex :  computeAliases('x',2,result) -->computeAliases('p', 1, result)  --> comput
  */
 void PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result)
 {
-	if(derefLevel==0)
+	if(derefLevel==0) {
 		result.insert(var);
-	else
-	{
+	} else if(lat){
 		set<varID> outS = lat->getAliasedVariables();
-		for(set<varID>::iterator outVar = outS.begin(); outVar != outS.end(); outVar++)
-		{
-			PointerAliasLattice *outLat = getLattice(*outVar);
-			if(outLat){
-				computeAliases(outLat,*outVar,derefLevel-1,result);
-			}
+		for(set<varID>::iterator outVar = outS.begin(); outVar != outS.end(); outVar++) {
+			computeAliases(getLattice(*outVar),*outVar,derefLevel-1,result);
 		}
 	}
 }
