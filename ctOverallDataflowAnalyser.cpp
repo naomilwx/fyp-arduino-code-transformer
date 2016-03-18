@@ -20,7 +20,6 @@ ctOverallDataflowAnalyser::ctOverallDataflowAnalyser(SgProject *project, IntraUn
 						funcS->retState.getLatticeBelowMod((Analysis*)analyser)));
 			Dbg::dbg << "Return state for function " << funcS << " " << funcS->func.get_name().getString() << endl
 				<< "funcS->state" << funcS->state.str(analyser) << endl;
-			//                                 << "funcS->retState="<<  funcS->retState.str(intraDataflowAnalysis) << endl;
 		}
 	}
 }
@@ -96,7 +95,6 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 		{
 			FunctionState* fState = FunctionState::getDefinedFuncState(func);
 			assert(fState!=NULL);
-			printf("here\n");
 			IntraProceduralDataflow *intraDataflow = dynamic_cast<IntraProceduralDataflow *>(intraAnalysis);
 			assert(intraDataflow!=NULL);
 			if (intraDataflow->visited.find(func) == intraDataflow->visited.end()) {
@@ -132,12 +130,11 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 //			FunctionState* fState = FunctionState::getFuncState(Function(func));
 			if(func->get_name().getString() == "setup") {
 				setupFunc = func;
-				printf("%p %s\n", setupFunc, setupFunc->get_name().str());
+//				printf("%p %s\n", setupFunc, setupFunc->get_name().str());
 			}
 			if(func->get_name().getString() == "loop") {
 				loopFunc = func;
-				printf("%p %s\n", loopFunc, loopFunc->get_name().str());
-				printf("found loop\n");
+//				printf("%p %s\n", loopFunc, loopFunc->get_name().str());
 			}
 			printf("running\n");
 
@@ -147,6 +144,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 		}
 
 		do {
+			printf("in interproc loop\n");
 			if(setupFunc){
 //				printf("%p %s\n", setupFunc, setupFunc->get_name().str());
 				visit(Function(setupFunc));
@@ -160,5 +158,6 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 			for(auto&func: funcsSet) {
 				visit(Function(func));
 			}
+
 		} while(funcsToRerun.empty() == false);
 	}

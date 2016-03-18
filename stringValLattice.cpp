@@ -198,9 +198,13 @@ void PointerAliasLattice::setAliasedVariables(std::set<varID> als){
 }
 
 //Add a new Alias relation pair
-void PointerAliasLattice::setAliasRelation(std::pair < aliasDerefCount, aliasDerefCount > alRel)
+bool PointerAliasLattice::setAliasRelation(std::pair < aliasDerefCount, aliasDerefCount > alRel)
 {
-    aliasRelations.insert(alRel);
+    if(aliasRelations.find(alRel) != aliasRelations.end()) {
+    	return false;
+    }
+	aliasRelations.insert(alRel);
+	return true;
 }
 
 bool PointerAliasLattice::setState(StateVal state){

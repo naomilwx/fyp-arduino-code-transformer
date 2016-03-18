@@ -150,38 +150,40 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 	Dbg::dbg << "AssignOP Stement"<<lhs->variantT()<<"and"<<rhs->variantT()<<"\n"; 
 	processLHS(lhs,leftARNode);
 
-
-	//Update state of variable
-	set <varID>  result;
-	PointerAliasLattice *lhsLat;
-	computeAliases(getLattice(leftARNode.vID), leftARNode.vID, leftARNode.derefLevel, result);
-	for(auto &var: result) {
-		lhsLat = getLattice(var);
-		if(lhsLat) {
-			if(lhsLat->getState() == PointerAliasLattice::BOTTOM) {
-				lhsLat->setState(PointerAliasLattice::INITIALIZED);
-			} else if(isSgPntrArrRefExp(lhs)){
-				lhsLat->setState(PointerAliasLattice::MODIFIED);
-			} else{
-				lhsLat->setState(PointerAliasLattice::REASSIGNED);
-			}
-		}
-
-	}
+	bool changed = false;
 //	getReturnAliasForFunctionCall
 	if(isSgFunctionCallExp(rhs)) {
 		std::vector<aliasDerefCount> rhsRefs = getReturnAliasForFunctionCall(isSgFunctionCallExp(rhs));
 		for(auto &ref: rhsRefs) {
-			resLat->setAliasRelation(make_pair(leftARNode, ref));
+			changed = resLat->setAliasRelation(make_pair(leftARNode, ref)) || changed;
 		}
 	}else {
 		processRHS(rhs,rightARNode);
 			//Establish the per CFG-node alias relations
 			if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
-				resLat->setAliasRelation(make_pair(leftARNode,rightARNode));
+				changed = resLat->setAliasRelation(make_pair(leftARNode,rightARNode)) || changed;
 	}
 
 
+	//Update state of variable
+	if(changed){
+		set <varID>  result;
+		PointerAliasLattice *lhsLat;
+		computeAliases(getLattice(leftARNode.vID), leftARNode.vID, leftARNode.derefLevel, result);
+		for(auto &var: result) {
+			lhsLat = getLattice(var);
+			if(lhsLat) {
+				if(lhsLat->getState() == PointerAliasLattice::BOTTOM) {
+					lhsLat->setState(PointerAliasLattice::INITIALIZED);
+				} else if(isSgPntrArrRefExp(lhs)){
+					lhsLat->setState(PointerAliasLattice::MODIFIED);
+				} else{
+					lhsLat->setState(PointerAliasLattice::REASSIGNED);
+				}
+			}
+
+		}
+	}
 
 	//Update the aliasedVariables(Compact Representation Graph)
 	if(isSgPntrArrRefExp(lhs)){
@@ -306,9 +308,9 @@ std::map<varID,varID> PointerAliasAnalysisTransfer::getPlaceholderToArgMap(SgFun
 
 	for(auto& arg: args){
 		std::string placeholder = getPlaceholderNameForArgNum(idx);
-		if(isVarExpr(arg)){
-			res[varID(placeholder)] = varID(arg);
-		}
+//		if(isVarExpr(arg)){
+		res[varID(placeholder)] = SgExpr2Var(arg);
+//		}
 		idx++;
 	}
 	return res;
