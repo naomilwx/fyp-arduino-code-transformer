@@ -5,8 +5,6 @@
 //#include "liveDeadVarAnalysis.h"
 #include "ctUtils.h"
 
-//#include "pointerAliasAnalysis.h"
-
 bool gfilter (CFGNode cfgn)
 {
   SgNode *node = cfgn.getNode();
@@ -47,16 +45,17 @@ int main( int argc, char * argv[] ) {
   SgProject* project = frontend(argc,argv);
 
   initAnalysis(project);
+  cfgUtils::initCFGUtils(project);
   Dbg::init("propagation test", "./proptest", "index.html");
 
 //  liveDeadAnalysisDebugLevel = 1;
   analysisDebugLevel = 1;
 
-  //LiveDeadVarsAnalysis ldva(project);
+//  LiveDeadVarsAnalysis ldva(project);
 //       ldva.filter = gfilter; // the defaultFitler can provide the same semantics now
- // UnstructuredPassInterDataflow ciipd_ldva(&ldva);
+//  UnstructuredPassInterDataflow ciipd_ldva(&ldva);
   //     assert (ciipd_ldva.filter == gfilter);
-  //ciipd_ldva.runAnalysis();
+//  ciipd_ldva.runAnalysis();
 
 
 
@@ -68,10 +67,9 @@ int main( int argc, char * argv[] ) {
 //  printAnalysis(&strValProp, false);
 
 
-  PointerAliasAnalysis pal(NULL, lanalysis.getLiteralMap());
-  ContextInsensitiveInterProceduralDataflow interpt(&pal, buildProjectCallGraph(project));
-  interpt.runAnalysis();
-  printAnalysis(&pal, false);
+  PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
+  pal.runAnalysis();
+//  printAnalysis(&pal, false);
 
   printf("done\n");
 }

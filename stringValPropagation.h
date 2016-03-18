@@ -11,100 +11,150 @@
 #include "ctUtils.h"
 #include "stringValLattice.h"
 #include "stringLiteralAnalysis.h"
+#include "ctOverallDataflowAnalyser.h"
 
 class StringValPropagation : public IntraFWDataflow {
-protected:
-	SgProject *project;
+	protected:
+		SgProject *project;
 	public:
-	StringValPropagation(SgProject *project){
-		this->project = project;
-	}
+		StringValPropagation(SgProject *project){
+			this->project = project;
+		}
 
-	void genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
+		void genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
 
-    bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+		bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
-    boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+		boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
-    StringValLattice *getValLattice(SgNode *n, SgNode *var);
-    StringValLattice *getValLattice(NodeState *s, varID var);
+		StringValLattice *getValLattice(SgNode *n, SgNode *var);
+		StringValLattice *getValLattice(NodeState *s, varID var);
 
-    bool isModifiedStringRef(SgFunctionDefinition *def, SgVarRefExp *ref);
+		bool isModifiedStringRef(SgFunctionDefinition *def, SgVarRefExp *ref);
 
-    void runAnalysis();
+		void runAnalysis();
 };
 
 class StringValPropagationTransfer : public VariableStateTransfer<StringValLattice> {
-public:
-	StringValPropagationTransfer(const Function &func, const DataflowNode &n, NodeState &state, const std::vector<Lattice *>& dfInfo);
-	void visit(SgStringVal *n);
-	void visit(SgPntrArrRefExp *n);
-	void visit(SgFunctionCallExp *n);
-//	void visit(SgAssignOp *n);
-	void visit(SgInitializedName *n);
-	bool finish();
+	public:
+		StringValPropagationTransfer(const Function &func, const DataflowNode &n, NodeState &state, const std::vector<Lattice *>& dfInfo);
+		void visit(SgStringVal *n);
+		void visit(SgPntrArrRefExp *n);
+		void visit(SgFunctionCallExp *n);
+		void visit(SgInitializedName *n);
+		bool finish();
 };
 
 
 extern int PointerAliasAnalysisDebugLevel;
 
+class PointerAliasAnalysis;
 
+const std::string FUNC_PARAM_TAG_PREFIX =  "__function_param_";
 
+std::string getPlaceholderNameForArgNum(int num);
 /*
-    Transfer:   We define visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer
-                i.e., the CFG nodes that could potentially update any pointers.
-                processLHS() and processRHS() functions are used to find the AliasRelations at a CFG node, using the LHS and RHS of 
-                the given expression. 
-                updateAliases() is used to update the compact representation graph, which is nothing but the set of Aliases at each CFG node.
-                computeAliases() is used to compute the Aliases for a given variable, using the compact representation graph 
-*/
+Transfer:   We define visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer
+i.e., the CFG nodes that could potentially update any pointers.
+processLHS() and processRHS() functions are used to find the AliasRelations at a CFG node, using the LHS and RHS of 
+the given expression. 
+updateAliases() is used to update the compact representation graph, which is nothing but the set of Aliases at each CFG node.
+computeAliases() is used to compute the Aliases for a given variable, using the compact representation graph 
+ */
 class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLattice>
 {
-    private:
-          using VariableStateTransfer<PointerAliasLattice>::getLattices;
-	  LiteralMap *literalMap;
-    public:
-          //Visit function to apply "transfer" on the specified SgNode in CFG
-          void visit(SgFunctionCallExp *sgn);
-          void visit(SgAssignOp *sgn);
-          void visit(SgAssignInitializer *sgn);
-          void visit(SgConstructorInitializer *sgn);
-	  void visit(SgAggregateInitializer *sgn);        
-          bool finish();
-    	
-          PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map);
-    private:
-         
-          //processes LHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
-          void processLHS(SgNode *node, struct aliasDerefCount &arNode);
+	private:
+		using VariableStateTransfer<PointerAliasLattice>::getLattices;
+		LiteralMap *literalMap;
+		PointerAliasAnalysis* analysis;
+	public:
 
+		//Visit function to apply "transfer" on the specified SgNode in CFG
+		void visit(SgFunctionCallExp *sgn);
+		void visit(SgAssignOp *sgn);
+		void visit(SgAssignInitializer *sgn);
+		void visit(SgConstructorInitializer *sgn);
+		void visit(SgAggregateInitializer *sgn);        
+		void visit(SgFunctionDefinition *def);
+		//		void visit(SgFunctionParameterList *params);
+		bool finish();
 
-          //processes RHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
-          void processRHS(SgNode *node, struct aliasDerefCount &arNode);
-          
-          //Updates the 'aliasedVariables' set by establishing an relation('edge' in compact representation graph) between 'aliasRelations' pair. 'isMust' denotes may or must alias
-          bool updateAliases(set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRelations,int isMust);
+		PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis);
 
-          //Recursive function to traverse the per-variable lattices to compute Aliases for 'var' at deref count of 'derefLevel'
-          void computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
+		//processes LHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
+		static void processLHS(SgNode *node, struct aliasDerefCount &arNode);
+		
+		//processes RHS of an expression 'node' and populates 'arNode' with the varID and its derefCount
+		static void processRHS(SgNode *node, struct aliasDerefCount &arNode, LiteralMap *map);
+
+		void processRHS(SgNode *node, struct aliasDerefCount &arNode);
+
+	private:
+		std::vector<aliasDerefCount> getReturnAliasForFunctionCall(SgFunctionCallExp *fcall);
+
+		//Updates the 'aliasedVariables' set by establishing an relation('edge' in compact representation graph) between 'aliasRelations' pair. 'isMust' denotes may or must alias
+		bool updateAliases(set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRelations,int isMust);
+
+		//Recursive function to traverse the per-variable lattices to compute Aliases for 'var' at deref count of 'derefLevel'
+		void computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
+
+		int getFunctionParamNumberFromTag(const std::string& paramTag);
+
+		void processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode);
+
+		void approximateFunctionCallEffect(SgFunctionCallExp *fcall);
+		//Over approximates effect of function calls:
+		//Assume all parameters passed as non const pointers or reference are modified
+
+		void propagateFunctionCallEffect(SgFunctionCallExp *fcall);
+
+		std::map<varID,varID> getPlaceholderToArgMap(SgFunctionCallExp *fcall);
 }; 
 
 
 
 class PointerAliasAnalysis : public IntraFWDataflow
 {
-protected:
-    LiveDeadVarsAnalysis* ldva;
-    LiteralMap *literalMap;
 public:
-    PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, LiteralMap *map);
-   
-    PointerAliasLattice *getAliasLattice(NodeState *s, varID var);
-    
-    void genInitState(const Function& func, const DataflowNode& n, const NodeState& state,std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
-    bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
-    boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& 
-n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+
+	protected:
+		LiveDeadVarsAnalysis* ldva;
+		LiteralMap *literalMap;
+		SgProject *project;
+		std::map<varID, Lattice*> globalVarsLattice;
+
+	public:
+		PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map);
+
+		PointerAliasLattice *getAliasLattice(NodeState *s, varID var);
+
+		void genInitState(const Function& func, const DataflowNode& n, const NodeState& state,std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
+		bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+
+		boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& 
+				n, NodeState& state, const std::vector<Lattice*>& dfInfo);
+
+
+		void runAnalysis();
+		void runGlobalVarAnalysis();
+		void transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state);
+	private:
+		void setGlobalAliasRelationForLat(PointerAliasLattice *lat, aliasDerefCount& lhs, SgNode *rhsExp);
+		void computeGlobalAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
+
+		static bool paaFilter(CFGNode cfgn) {
+			SgNode *node = cfgn.getNode();
+			SgNode *par = node;
+
+			while(par != NULL && !isSgFunctionDefinition(par)) {
+				par = par->get_parent();
+			}
+
+			if(!isSgFunctionDefinition(par)) {
+				return false;
+			}
+			return defaultFilter(cfgn);
+		}
 };
 
 #endif

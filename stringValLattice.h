@@ -3,6 +3,7 @@
 #include <string>
 #include <set>
 #include "latticeFull.h"
+#include "liveDeadVarAnalysis.h"
 
 class StringValLattice: public FiniteLattice {
   public:
@@ -78,7 +79,6 @@ struct aliasDerefCount{
     }
 };
 
-
 /*
     Lattices:   Per variable lattices using the FiniteVarsExprProductLattice
                 Each variable maintains a set<varID> and set< pair<aliasDerefCount,aliasDerefCount> >
@@ -120,6 +120,11 @@ protected:
 	StateVal state;
 public:
         PointerAliasLattice():state(BOTTOM){};
+        PointerAliasLattice(const PointerAliasLattice& lat): state(lat.state), aliasedVariables(lat.aliasedVariables), aliasRelations(lat.aliasRelations){
+        }
+        ~PointerAliasLattice() {
+//        	printf("deleting %s\n", this->str(" ").c_str());
+        }
         void initialize();
         Lattice* copy()const ;
         void copy(Lattice* that);
@@ -134,11 +139,55 @@ public:
         std::string str(std::string);
 
         void setAliasedVariables(varID al);
+        void setAliasedVariables(std::set<varID> als);
         void clearAliasedVariables();
         void setAliasRelation(std::pair < aliasDerefCount, aliasDerefCount > alRel);
         set< std::pair<aliasDerefCount, aliasDerefCount> > getAliasRelations();
         set<varID> getAliasedVariables();
 private:
         template <typename T> bool search(set<T> thisSet, T value);
+};
+
+/**
+ * Modified version of FiniteVarsProductLattice
+ * */
+
+class ctVarsExprsProductLattice : public FiniteVarsExprsProductLattice {
+        protected:
+        // Minimal constructor that initializes just the portions of the object required to make an
+        // initial blank VarsExprsProductLattice
+		ctVarsExprsProductLattice(const DataflowNode& n, const NodeState& state);
+
+        // Returns a blank instance of a VarsExprsProductLattice that only has the fields n and state set
+        VarsExprsProductLattice* blankVEPL(const DataflowNode& n, const NodeState& state);
+
+        public:
+        // creates a new VarsExprsProductLattice
+        // perVarLattice - sample lattice that will be associated with every variable in scope at node n
+        //     it should be assumed that the object pointed to by perVarLattice will be either
+        //     used internally by this VarsExprsProductLattice object or deallocated
+        // constVarLattices - map of additional variables and their associated lattices, that will be
+        //     incorporated into this VarsExprsProductLattice in addition to any other lattices for
+        //     currently live variables (these correspond to various useful constant variables like zeroVar)
+        // allVarLattice - the lattice associated with allVar (the variable that represents all of memory)
+        //     if allVarLattice==NULL, no support is provided for allVar
+        // func - the current function
+        // n - the dataflow node that this lattice will be associated with
+        // state - the NodeState at this dataflow node
+        ctVarsExprsProductLattice(Lattice* perVarLattice,
+                                     const std::map<varID, Lattice*>& constVarLattices,
+                                     Lattice* allVarLattice,
+                                     LiveDeadVarsAnalysis* ldva,
+                                     const DataflowNode& n, const NodeState& state, std::map<varID, Lattice *> globalLattices);
+
+        ctVarsExprsProductLattice(const ctVarsExprsProductLattice& that);
+
+        Lattice* addSlotForVariable(varID var);
+
+        void incorporateVarsMap(std::map<varID, Lattice *> lats, bool overwrite);
+        // returns a copy of this lattice
+        Lattice* copy() const;
+
+        void incorporateVars(Lattice *that_arg, bool(*ignoreVarLattice)(Lattice*));
 };
 #endif

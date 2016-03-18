@@ -133,15 +133,15 @@ void PointerAliasLattice::initialize(){}
  
 
 // Returns a copy of this lattice
-Lattice* PointerAliasLattice::copy() const
-{ return new PointerAliasLattice(*this); }
+Lattice* PointerAliasLattice::copy() const{
+	return new PointerAliasLattice(*this);
+}
 
 
 // Copies that lattice into this
 void PointerAliasLattice::copy(Lattice* that_arg)
 {
     PointerAliasLattice *that = dynamic_cast<PointerAliasLattice*>(that_arg);
-    Dbg::dbg<<"Entering COPY : That:" <<that<<" -- "<< that->str(" ") << "This :"<< endl << " -- " << str(" ")<<endl ;
     this->aliasedVariables = that->aliasedVariables;
     this->aliasRelations = that->aliasRelations;
     this->state = that->state;
@@ -192,6 +192,10 @@ void PointerAliasLattice::setAliasedVariables(varID al)
     aliasedVariables.insert(al);
 }
 
+void PointerAliasLattice::setAliasedVariables(std::set<varID> als){
+	for(auto &al: als)
+		aliasedVariables.insert(al);
+}
 
 //Add a new Alias relation pair
 void PointerAliasLattice::setAliasRelation(std::pair < aliasDerefCount, aliasDerefCount > alRel)
@@ -282,4 +286,111 @@ set<varID> PointerAliasLattice::getAliasedVariables()
 void PointerAliasLattice::clearAliasedVariables()
 {
     aliasedVariables.clear();
+}
+
+/**
+ * Modified version of FiniteVarsProductLattice
+ * */
+
+// Initial blank ctVarsExprsProductLattice
+ctVarsExprsProductLattice::ctVarsExprsProductLattice(const DataflowNode& n, const NodeState& state) :
+		FiniteVarsExprsProductLattice(n, state), VarsExprsProductLattice(n, state,filter)
+{}
+
+// Retrns a blank instance of a VarsExprsProductLattice that only has the fields n and state set
+VarsExprsProductLattice* ctVarsExprsProductLattice::blankVEPL(const DataflowNode& n, const NodeState& state)
+{
+        return new ctVarsExprsProductLattice(n, state);
+}
+
+
+ctVarsExprsProductLattice::ctVarsExprsProductLattice(
+                                      Lattice* perVarLattice,
+                                      const map<varID, Lattice*>& constVarLattices,
+                                      Lattice* allVarLattice,
+                                      LiveDeadVarsAnalysis* ldva,
+                                      const DataflowNode& n, const NodeState& state, std::map<varID, Lattice *> globalLattices) :
+	FiniteVarsExprsProductLattice(perVarLattice, constVarLattices, allVarLattice, ldva, n, state),
+    VarsExprsProductLattice(perVarLattice, constVarLattices, allVarLattice, ldva, n, state),
+    FiniteProductLattice()
+{
+		incorporateVarsMap(globalLattices, true);
+		verifyFinite();
+}
+
+ctVarsExprsProductLattice::ctVarsExprsProductLattice(const ctVarsExprsProductLattice& that) :
+		FiniteVarsExprsProductLattice(that), VarsExprsProductLattice(that), FiniteProductLattice()
+{
+        //Dbg::dbg << "ctVarsExprsProductLattice::copy n="<<n.getNode()<<" = <"<<Dbg::escape(n.getNode()->unparseToString())<<" | "<<n.getNode()->class_name()<<" | "<<n.getIndex()<<">"<<endl;
+        verifyFinite();
+}
+
+// returns a copy of this lattice
+Lattice* ctVarsExprsProductLattice::copy() const {
+    return new ctVarsExprsProductLattice(*this);
+}
+
+Lattice* ctVarsExprsProductLattice::addSlotForVariable(varID var) {
+	if(varLatticeIndex.find(var) == varLatticeIndex.end()) {
+		varLatticeIndex[var] = lattices.size();
+		Lattice *lat = perVarLattice->copy();
+	    lattices.push_back(lat);
+	    return lat;
+	}
+	return lattices[varLatticeIndex[var]];
+}
+
+void ctVarsExprsProductLattice::incorporateVarsMap(std::map<varID, Lattice *> lats, bool overwrite) {
+
+	for(auto&item : lats) {
+		if(varLatticeIndex.find(item.first) == varLatticeIndex.end()){
+			varLatticeIndex[item.first] = lattices.size();
+			lattices.push_back(item.second);
+		} else if(overwrite){
+			lattices[varLatticeIndex[item.first]]->copy(item.second);
+		} else {
+			Lattice *origLat = lattices[varLatticeIndex[item.first]];
+			origLat->meetUpdate(item.second);
+		}
+	}
+}
+
+void ctVarsExprsProductLattice::incorporateVars(Lattice *that_arg, bool(*f)(Lattice*)){
+	initialize();
+
+	ctVarsExprsProductLattice* that = dynamic_cast<ctVarsExprsProductLattice*>(that_arg); ROSE_ASSERT(that);
+    // Both lattices need to be talking about variables in the same function
+
+	        if(that->allVarLattice) {
+	                ROSE_ASSERT(allVarLattice);
+	                this->allVarLattice->copy(that->allVarLattice);
+	        }
+
+	        // Iterate through all the lattices of constant variables, copying any lattices in That to This
+	        for(map<varID, Lattice*>::iterator var=that->constVarLattices.begin(); var!=that->constVarLattices.end(); var++) {
+
+	        		if(constVarLattices.find(var->first) != constVarLattices.end()) {
+	                        ROSE_ASSERT(constVarLattices[var->first]);
+	                        constVarLattices[var->first]->copy(var->second);
+	                } else {
+	                        ROSE_ASSERT(var->second);
+	                        constVarLattices.insert(make_pair(var->first, var->second->copy()));
+	                }
+	        }
+
+	        // Iterate through all the variables mapped by this lattice, copying any lattices in That to This
+	        for(map<varID, int>::iterator var = that->varLatticeIndex.begin(); var != that->varLatticeIndex.end(); var++)
+	        {
+	                if(f(that->lattices[var->second])) {
+	                	continue;
+	                }
+	        		if(varLatticeIndex.find(var->first) != varLatticeIndex.end()) {
+	                        ROSE_ASSERT(lattices[varLatticeIndex[var->first]]);
+	                        lattices[varLatticeIndex[var->first]]->copy(that->lattices[var->second]);
+	                } else {
+	                        varLatticeIndex[var->first] = lattices.size();
+	                        ROSE_ASSERT(that->lattices[var->second]);
+	                        lattices.push_back(that->lattices[var->second]->copy());
+	                }
+	        }
 }
