@@ -114,19 +114,36 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 			return refs;
 		}
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
-		for(auto &aliasRel: retAliasLat->getAliasRelations()){
-			std::string name = aliasRel.second.var->get_name().str();
+		for(auto &alias: retAliasLat->getAliasedVariables()){
+			std::string name = alias.str();
+			printf("return val %s\n", name.c_str());
 			int index = getFunctionParamNumberFromTag(name);
+			aliasDerefCount paramNode;
 			if(index >= 0) {
-				aliasDerefCount paramNode;
 				processRHS(params[index], paramNode);
 				refs.push_back(paramNode);
 
 			} else if(name.substr(0, STRING_LITERAL_PREFIX.length()) == STRING_LITERAL_PREFIX) {
-				refs.push_back(aliasRel.second);
+				paramNode.vID = alias;
+				paramNode.derefLevel = -1;
+				paramNode.var = isSgVariableSymbol(alias.components.at(0)->get_symbol_from_symbol_table());
+				refs.push_back(paramNode);
 			}
 
 		}
+//		for(auto &aliasRel: retAliasLat->getAliasRelations()){
+//					std::string name = aliasRel.second.var->get_name().str();
+//					int index = getFunctionParamNumberFromTag(name);
+//					if(index >= 0) {
+//						aliasDerefCount paramNode;
+//						processRHS(params[index], paramNode);
+//						refs.push_back(paramNode);
+//
+//					} else if(name.substr(0, STRING_LITERAL_PREFIX.length()) == STRING_LITERAL_PREFIX) {
+//						refs.push_back(aliasRel.second);
+//					}
+//
+//				}
 	}
 	return refs;
 }
