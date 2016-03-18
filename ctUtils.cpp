@@ -70,18 +70,18 @@ SgExpression *getFunctionRef(SgFunctionCallExp *call) {
 	return NULL;
 }
 
-bool isConstantType(SgType *nType) {
-	bool isConst = false;
-	Rose_STL_Container<SgType*> typeVector = nType->getInternalTypes();
-	for(Rose_STL_Container<SgType*>::iterator i = typeVector.begin(); i != typeVector.end(); i++){
-		//printf("type %s\n", (*i)->class_name().c_str());
-		SgModifierType* modifierType = isSgModifierType(*i);
-		if (modifierType != NULL)  {
-			isConst = modifierType->get_typeModifier().get_constVolatileModifier().isConst() || isConst;
-		}
-	}
-	return isConst;
-}
+//bool isConstantType(SgType *nType) {
+//	bool isConst = false;
+//	Rose_STL_Container<SgType*> typeVector = nType->getInternalTypes();
+//	for(Rose_STL_Container<SgType*>::iterator i = typeVector.begin(); i != typeVector.end(); i++){
+//		//printf("type %s\n", (*i)->class_name().c_str());
+//		SgModifierType* modifierType = isSgModifierType(*i);
+//		if (modifierType != NULL)  {
+//			isConst = modifierType->get_typeModifier().get_constVolatileModifier().isConst() || isConst;
+//		}
+//	}
+//	return isConst;
+//}
 
 FunctionSet getDefinedFunctions(SgProject *project) {
 	static std::map<SgProject *, FunctionSet> definedFunctions;
@@ -195,3 +195,20 @@ bool isArduinoStringType(SgType *type) {
 	return false;
 }
 
+namespace FunctionAnalysisHelper {
+std::string getPlaceholderNameForArgNum(int num){
+	std::stringstream ss;
+	ss << FUNC_PARAM_TAG_PREFIX << num;
+	return ss.str();
+}
+
+int getFunctionParamNumberFromTag(const std::string& paramTag){
+	int prefixLen = FUNC_PARAM_TAG_PREFIX.length();
+	std::string prefix = paramTag.substr(0, prefixLen);
+	if(prefix == FUNC_PARAM_TAG_PREFIX) {
+		int num = std::stoi(paramTag.substr(prefixLen));
+		return num;
+	}
+	return -1;
+}
+}

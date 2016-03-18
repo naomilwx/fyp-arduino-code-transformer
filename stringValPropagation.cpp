@@ -6,6 +6,7 @@
 #include "ctUtils.h"
 using std::auto_ptr;
 
+using namespace FunctionAnalysisHelper;
 
 // **********************************************************************
 //                     PointerAliasAnalysisTransfer
@@ -14,11 +15,6 @@ using std::auto_ptr;
 
 int PointerAliasAnalysisDebugLevel = 1;
 
-std::string getPlaceholderNameForArgNum(int num){
-	std::stringstream ss;
-	ss << FUNC_PARAM_TAG_PREFIX << num;
-	return ss.str();
-}
 
 PointerAliasAnalysisTransfer::PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis)
 	: VariableStateTransfer<PointerAliasLattice>(func, n, state, dfInfo, PointerAliasAnalysisDebugLevel){
@@ -416,17 +412,6 @@ void PointerAliasAnalysisTransfer::processParam(int index, SgScopeStatement *sco
 	arNode.vID = varID(name);
 	arNode.derefLevel = -1;	
 }
-
-int PointerAliasAnalysisTransfer::getFunctionParamNumberFromTag(const std::string& paramTag){
-	int prefixLen = FUNC_PARAM_TAG_PREFIX.length();
-	std::string prefix = paramTag.substr(0, prefixLen);
-	if(prefix == FUNC_PARAM_TAG_PREFIX) {
-		int num = std::stoi(paramTag.substr(prefixLen));
-		return num;
-	}
-	return -1;
-}
-
 
 //- process left hand side of expressions(node) and calculate the dereference count for pointer and reference variables
 //- The newly found alias relation is placed in the arNode. 

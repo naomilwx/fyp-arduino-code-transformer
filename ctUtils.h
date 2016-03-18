@@ -19,23 +19,24 @@ public:
 };
 
 SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project);
-
-bool isFromLibrary(SgInitializedName* initName);
-
-std::vector<SgInitializedName *>getGlobalVars(SgProject *project);
-
 FunctionSet getDefinedFunctions(SgProject *project);
-
 SgExpression *getFunctionRef(SgFunctionCallExp *call);
 
-bool isConstantType(SgType *nType);
+bool isFromLibrary(SgInitializedName* initName);
+std::vector<SgInitializedName *>getGlobalVars(SgProject *project);
+
+//bool isConstantType(SgType *nType);
+bool isArduinoStringType(SgType *type);
 
 unsigned int getNodeDataflowIndex(SgNode *n);
-
 NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));
-
 NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index);
 
-bool isArduinoStringType(SgType *type);
+namespace FunctionAnalysisHelper {
+	const std::string FUNC_PARAM_TAG_PREFIX =  "__function_param_";
+	std::string getPlaceholderNameForArgNum(int num);
+	int getFunctionParamNumberFromTag(const std::string& paramTag);
+
+}
 
 #endif

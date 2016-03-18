@@ -18,9 +18,6 @@ extern int PointerAliasAnalysisDebugLevel;
 
 class PointerAliasAnalysis;
 
-const std::string FUNC_PARAM_TAG_PREFIX =  "__function_param_";
-
-std::string getPlaceholderNameForArgNum(int num);
 /*
 Transfer:   We define visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer
 i.e., the CFG nodes that could potentially update any pointers.
@@ -65,8 +62,6 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 
 		//Recursive function to traverse the per-variable lattices to compute Aliases for 'var' at deref count of 'derefLevel'
 		void computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
-
-		int getFunctionParamNumberFromTag(const std::string& paramTag);
 
 		void processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode);
 
