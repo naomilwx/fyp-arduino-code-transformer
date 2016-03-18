@@ -18,15 +18,17 @@ public:
 	void printDefinedFunctions();
 };
 
+SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project);
+
 bool isFromLibrary(SgInitializedName* initName);
+
+std::vector<SgInitializedName *>getGlobalVars(SgProject *project);
 
 FunctionSet getDefinedFunctions(SgProject *project);
 
 SgExpression *getFunctionRef(SgFunctionCallExp *call);
 
 bool isConstantType(SgType *nType);
-
-SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project);
 
 unsigned int getNodeDataflowIndex(SgNode *n);
 
@@ -35,7 +37,5 @@ NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));
 NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index);
 
 bool isArduinoStringType(SgType *type);
-
-std::vector<SgInitializedName *>getGlobalVars(SgProject *project);
 
 #endif
