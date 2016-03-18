@@ -101,7 +101,13 @@ public:
 		void runAnalysis();
 		void runGlobalVarAnalysis();
 		void transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state);
+
+		bool isUnmodifiedStringOrCharArray(SgFunctionDeclaration *func, SgNode *exp);
+		bool isMultiAssignmentPointer(SgFunctionDeclaration *func, SgNode *exp);
+		std::set<varID> getAliasesForVariableAtNode(SgNode *node, varID var);
 	private:
+		PointerAliasLattice *getReturnStateAliasLattice(SgFunctionDeclaration *func, SgNode *exp);
+		ctVarsExprsProductLattice *getReturnStateLattice(SgFunctionDeclaration *func);
 		void setGlobalAliasRelationForLat(PointerAliasLattice *lat, aliasDerefCount& lhs, SgNode *rhsExp);
 		void computeGlobalAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
 

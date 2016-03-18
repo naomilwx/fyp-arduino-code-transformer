@@ -202,13 +202,22 @@ std::string getPlaceholderNameForArgNum(int num){
 	return ss.str();
 }
 
+bool isFunctionParamPlaceholder(const std::string& p){
+	int prefixLen = FUNC_PARAM_TAG_PREFIX.length();
+		std::string prefix = p.substr(0, prefixLen);
+		if(prefix == FUNC_PARAM_TAG_PREFIX) {
+			return true;
+		}
+		return false;
+}
+
 int getFunctionParamNumberFromTag(const std::string& paramTag){
 	int prefixLen = FUNC_PARAM_TAG_PREFIX.length();
-	std::string prefix = paramTag.substr(0, prefixLen);
-	if(prefix == FUNC_PARAM_TAG_PREFIX) {
+	if(isFunctionParamPlaceholder(paramTag)) {
 		int num = std::stoi(paramTag.substr(prefixLen));
 		return num;
 	}
 	return -1;
 }
+
 }

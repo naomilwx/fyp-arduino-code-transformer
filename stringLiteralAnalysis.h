@@ -42,6 +42,7 @@ class StringLiteralInfo {
 	SgVariableDeclaration *getPlaceholder() {
 		return placeholder;
 	}
+	bool occursInFunc(SgFunctionDeclaration *func) const;
 	protected:
 	bool addFuncOccurance(SgFunctionDeclaration * func, SgStatement* stmt);
 
@@ -69,8 +70,9 @@ public:
 
 	std::string getStringLiteralLabel(const std::string& literal);
 	std::string getStringLiteralForLabel(const std::string& label);
+	StringSet getStringLiteralsInFunction(SgFunctionDeclaration *func);
 	SgVariableDeclaration *getPlaceholderForStringLiteral(const std::string& literal);
-	std::set<std::string> getStringLiterals();
+	StringSet getStringLiterals();
 	int getNumberOfStringLiterals();
 	bool isGlobalStringLiteral(const std::string& str);
 	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);

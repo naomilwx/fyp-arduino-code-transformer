@@ -36,7 +36,7 @@ namespace FunctionAnalysisHelper {
 	const std::string FUNC_PARAM_TAG_PREFIX =  "__function_param_";
 	std::string getPlaceholderNameForArgNum(int num);
 	int getFunctionParamNumberFromTag(const std::string& paramTag);
-
+	bool isFunctionParamPlaceholder(const std::string& p);
 }
 
 #endif

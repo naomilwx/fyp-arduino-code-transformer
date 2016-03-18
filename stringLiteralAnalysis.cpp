@@ -33,6 +33,9 @@ std::string StringLiteralInfo::getSummaryPrintout() const{
 	return out.str();
 }
 
+bool StringLiteralInfo::occursInFunc(SgFunctionDeclaration *func) const{
+	return funcOccurances.find(func) != funcOccurances.end();
+}
 //Implementation of analysis
 
 void StringLiteralAnalysis::runAnalysis() {
@@ -90,6 +93,17 @@ StatementLiteralMap* StringLiteralAnalysis::getStatementLiteralMap() {
 LiteralMap* StringLiteralAnalysis::getLiteralMap() {
 	return &strLiterals;
 }
+
+StringSet StringLiteralAnalysis::getStringLiteralsInFunction(SgFunctionDeclaration *func) {
+	StringSet result;
+	for(auto const& item: strLiterals) {
+		if(item.second.occursInFunc(func)){
+			result.insert(item.first);
+		}
+	}
+	return result;
+}
+
 std::string StringLiteralAnalysis::getAnalysisPrintout(){
 	std::ostringstream out;
 	for(auto const& item: strLiterals) {
