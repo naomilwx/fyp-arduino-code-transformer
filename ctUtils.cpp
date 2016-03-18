@@ -1,5 +1,17 @@
 #include "ctUtils.h"
-//#include "DefUseAnalysis.h"
+
+struct ROSE_DLL_API definedFuncsFilter : public std::unary_function<bool, SgFunctionDeclaration*> {
+	FunctionSet definedFuncs;
+	definedFuncsFilter(FunctionSet funcs): definedFuncs(funcs){}
+	bool operator()(SgFunctionDeclaration *n) {
+		for(auto const& func:  definedFuncs){
+			if( n->get_name().getString() == func->get_name().getString()){
+				return true;
+			}
+		}
+		return false;
+	}
+};
 
 void printAnalysis(Analysis *a, bool bw) {
 	vector<int> factNames;
@@ -23,7 +35,6 @@ FunctionSet DefinedFunctionCollector::getDefinedFuncs() const {
 void DefinedFunctionCollector::visit(SgNode *n){
 	SgFunctionDeclaration *func = isSgFunctionDeclaration(n);
 	if(func != NULL){
-		//		printf("function ptr %p\n", func);
 		if(func->get_definition() != NULL) {
 			definedFuncs.insert(func);
 		}
@@ -89,9 +100,6 @@ SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
 	if(callGraphs.find(project) != callGraphs.end()){	
 		return callGraphs[project];
 	}
-	//	DefinedFunctionCollector definedFuncsCollector;
-	//	definedFuncsCollector.traverseInputFiles(project, preorder);
-	//	definedFuncsCollector.printDefinedFunctions();
 
 	CallGraphBuilder cgb(project);
 	cgb.buildCallGraph(definedFuncsFilter(getDefinedFunctions(project)));

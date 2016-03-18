@@ -141,7 +141,7 @@ public:
         void setAliasedVariables(varID al);
         void setAliasedVariables(std::set<varID> als);
         void clearAliasedVariables();
-        void setAliasRelation(std::pair < aliasDerefCount, aliasDerefCount > alRel);
+        bool setAliasRelation(std::pair < aliasDerefCount, aliasDerefCount > alRel);
         set< std::pair<aliasDerefCount, aliasDerefCount> > getAliasRelations();
         set<varID> getAliasedVariables();
 private:

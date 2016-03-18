@@ -18,25 +18,6 @@ public:
 	void printDefinedFunctions();
 };
 
-struct ROSE_DLL_API definedFuncsFilter : public std::unary_function<bool, SgFunctionDeclaration*> {
-	FunctionSet definedFuncs;
-	definedFuncsFilter(FunctionSet funcs): definedFuncs(funcs){}
-	bool operator()(SgFunctionDeclaration *n) {
-		for(auto const& func:  definedFuncs){
-			if( n->get_name().getString() == func->get_name().getString()){
-//				printf("%p, original: %p\n", n, func);
-				return true;
-			}
-		}
-		return false;
-	}
-};
-
-struct FunctionDataflowInfo {
-	SgReturnStmt *returnStmt;
-	Lattice *lattice;
-};
-
 bool isFromLibrary(SgInitializedName* initName);
 
 FunctionSet getDefinedFunctions(SgProject *project);

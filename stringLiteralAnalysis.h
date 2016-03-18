@@ -21,7 +21,7 @@ class StringLiteralInfo {
 	typedef std::map<SgFunctionDeclaration *, StatementList> FunctionMap;
 
 	std::string tag;
-	FunctionMap funcOccurances;
+	FunctionMap funcOccurances; //Map of function decl to the statements containing the string literal
 	SgVariableDeclaration *placeholder;
 
 	public:
@@ -55,9 +55,9 @@ typedef std::map<SgStatement *, StringSet> StatementLiteralMap;
 class StringLiteralAnalysis {
 protected:
 	int strCount;
-	StringSet globalStrLiterals;
-	LiteralMap strLiterals;
-	StatementLiteralMap slMap;
+	StringSet globalStrLiterals; //String literals used in more than one function
+	LiteralMap strLiterals; //Map of string literals to the statements where they are used, the functions where they occur and the tag assigned to them
+	StatementLiteralMap slMap; //Map of statements to the string literals used in the statements
 	SgProject *project;
 
 
