@@ -6,8 +6,8 @@
 #include "ctUtils.h"
 
 void transformUnmodifiedStringVars(StringLiteralAnalysis *lanalysis, SgProject *project) {
-	analysisDebugLevel = 0;
-	PointerAliasAnalysisDebugLevel = 0;
+	analysisDebugLevel = 1;
+	PointerAliasAnalysisDebugLevel = 1;
 	PointerAliasAnalysis pal(NULL, project, lanalysis->getLiteralMap());
 	pal.runAnalysis();
 
@@ -33,11 +33,12 @@ int main( int argc, char * argv[] ) {
 
   transformUnmodifiedStringVars(&lanalysis, project);
 
-  PointerAliasAnalysisDebugLevel = 0;
+  analysisDebugLevel = 1;
+  PointerAliasAnalysisDebugLevel = 1;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
-  printf("done\n");
-
+//  printf("done\n");
+//
   SimplifyOriginalCode soc(&pal, &lanalysis, project);
   soc.runTransformation();
 

@@ -8,18 +8,23 @@ void PointerAliasLattice::initialize(){}
  
 
 // Returns a copy of this lattice
-Lattice* PointerAliasLattice::copy() const{
+Lattice* PointerAliasLattice::copy() const {
 	return new PointerAliasLattice(*this);
 }
 
 
 // Copies that lattice into this
-void PointerAliasLattice::copy(Lattice* that_arg)
-{
-    PointerAliasLattice *that = dynamic_cast<PointerAliasLattice*>(that_arg);
-    this->aliasedVariables = that->aliasedVariables;
-    this->aliasRelations = that->aliasRelations;
-    this->state = that->state;
+void PointerAliasLattice::copy(Lattice* that_arg) {
+    copy(that_arg, false);
+}
+
+void PointerAliasLattice::copy(Lattice*that_arg, bool overwriteState) {
+	PointerAliasLattice *that = dynamic_cast<PointerAliasLattice*>(that_arg);
+	this->aliasedVariables = that->aliasedVariables;
+	this->aliasRelations = that->aliasRelations;
+	if(overwriteState || that->state > this->state){
+	    this->state = that->state;
+	}
 }
 
 // Checks if that equals this
@@ -129,8 +134,9 @@ bool PointerAliasLattice::meetUpdate(Lattice* that_arg)
     }
 
     //Update state
-    if(state > StateVal::BOTTOM && state < StateVal::REASSIGNED_UNKNOWN && aliasedVariables.size() != 1) {
+    if(state > StateVal::BOTTOM && state < StateVal::REASSIGNED_UNKNOWN && aliasedVariables.size() > 1) {
        	state = StateVal::REASSIGNED_UNKNOWN;
+       	modified = true;
     }
 
     if(that->state > state){
