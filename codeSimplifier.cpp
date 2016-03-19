@@ -62,7 +62,7 @@ void SimplifyFunctionDeclaration::runAssignmentTransformation(SgAssignOp *op) {
 	SgExpression *rhs = NULL;
 
 	SageInterface::isAssignmentStatement(op,&lhs, &rhs);
-	if(varID::isValidVarExp(lhs) && varsToReplace.find(varID(lhs)) != varsToReplace.end()) {
+	if(isVarExprToReplace(lhs)) {
 		SageInterface::removeStatement(isSgStatement(op->get_parent()), false);
 	}
 }
@@ -139,6 +139,7 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	if(varDecl == NULL) {
 		return;
 	}
+
 	printf("checking var decl: %s\n", initName->unparseToString().c_str());
 	SgInitializer* initializer = initName->get_initializer();
 	bool dropVarDecl = false;
@@ -182,6 +183,7 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 		SageInterface::removeStatement(varDecl,false);
 		printf("removing var decl for: %s\n", initName->get_name().str());
 	}
+
 }
 
 void SimplifyFunctionDeclaration::insertStringPlaceholderDecls() {
