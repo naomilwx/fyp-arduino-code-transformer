@@ -63,7 +63,7 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 	}
 
 	//Update state of variable
-	if(changed){
+	if(changed || isSgPntrArrRefExp(lhs)){
 		set <varID>  result;
 		PointerAliasLattice *lhsLat;
 		computeAliases(getLattice(leftARNode.vID), leftARNode.vID, leftARNode.derefLevel, result);
@@ -792,7 +792,7 @@ void PointerAliasAnalysis::runAnalysis() {
 bool PointerAliasAnalysis::isUnmodifiedStringOrCharArray(SgFunctionDeclaration *func, SgNode *exp) {
 	PointerAliasLattice *lat = getReturnStateAliasLattice(func, exp);
 		if(lat) {
-			return lat->getState() == PointerAliasLattice::MODIFIED;
+			return lat->getState() != PointerAliasLattice::MODIFIED;
 		}
 		return false;
 }

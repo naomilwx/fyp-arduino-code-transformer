@@ -195,6 +195,20 @@ bool isArduinoStringType(SgType *type) {
 	return false;
 }
 
+int getPointerLevel(SgType *type) {
+	type = type->stripType(SgType::STRIP_MODIFIER_TYPE);
+	if(type == NULL){
+		return 0;
+	}
+	if(SageInterface::isPointerType(type) || isSgArrayType(type)) {
+		SgType *to = SageInterface::getElementType(type);
+		if(to) {
+			return 1 + getPointerLevel(to);
+		}
+	}
+	return 0;
+}
+
 namespace FunctionAnalysisHelper {
 std::string getPlaceholderNameForArgNum(int num){
 	std::stringstream ss;

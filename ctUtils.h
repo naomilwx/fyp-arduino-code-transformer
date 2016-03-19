@@ -32,6 +32,8 @@ unsigned int getNodeDataflowIndex(SgNode *n);
 NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));
 NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index);
 
+int getPointerLevel(SgType *type);
+
 namespace FunctionAnalysisHelper {
 	const std::string FUNC_PARAM_TAG_PREFIX =  "__function_param_";
 	std::string getPlaceholderNameForArgNum(int num);

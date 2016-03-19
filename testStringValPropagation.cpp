@@ -1,5 +1,6 @@
 #include "stringValPropagation.h"
 #include "stringLiteralAnalysis.h"
+#include "codeSimplifier.h"
 
 #include "analysisCommon.h"
 //#include "liveDeadVarAnalysis.h"
@@ -62,14 +63,16 @@ int main( int argc, char * argv[] ) {
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
 
-//  StringValPropagation strValProp(project);
-//  strValProp.runAnalysis();
-//  printAnalysis(&strValProp, false);
 
 
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
 //  printAnalysis(&pal, false);
-
   printf("done\n");
+
+  SimplifyOriginalCode soc(&pal, &lanalysis, project);
+  soc.runTransformation();
+
+//  backend(project);
+
 }

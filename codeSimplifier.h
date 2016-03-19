@@ -11,7 +11,7 @@
 #include "rose.h"
 #include "stringValPropagation.h"
 
-class SimplifyFunctionDeclaration : public AstSimpleProcessing {
+class SimplifyFunctionDeclaration {
 protected:
 	PointerAliasAnalysis *aliasAnalysis;
 	StringLiteralAnalysis *sla;
@@ -22,24 +22,39 @@ public:
 		this->sla = s;
 		this->func = f;
 	}
-	void visit(SgNode *node);
-	void visit(SgFunctionDefinition *defn);
-	void visit(SgInitializedName *initName);
-	void visit(SgVarRefExp *var);
-	void visit(SgStringVal *strVal);
+
+	void transformVarDecls();
+	void tranformVarRefs();
+	void transformAssignments();
+	void removeStringLiterals();
+	void runTransformation();
 private:
 	std::map<std::string, SgVariableDeclaration *> slPlaceholders;
 	std::set<varID> varsToReplace;
-
-	void insertStringPlaceholderDecls(SgScopeStatement *scope);
+	std::set<SgInitializer *> ignoredInitializers;
+	void runAssignmentTransformation(SgAssignOp *op);
+	void runVarRefsTransformation(SgVarRefExp *var);
+	void runStringLiteralsTransformation(SgStringVal *strVal);
+	void runVarDeclTransfromation(SgInitializedName *initName);
+	void insertStringPlaceholderDecls();
+	void buildStringPlaceholders(SgScopeStatement *scope);
+	void replaceWithAlias(SgVarRefExp *var);
+	bool isVarExprToReplace(SgExpression *expr);
 };
 
-class SimplifyOriginalCode: public AstSimpleProcessing {
+class SimplifyOriginalCode {
 protected:
 	PointerAliasAnalysis *aliasAnalysis;
 	StringLiteralAnalysis *sla;
+	SgProject *project;
 public:
-	void visit(SgNode *node);
+	SimplifyOriginalCode(PointerAliasAnalysis *a, StringLiteralAnalysis* s, SgProject *p){
+		this->aliasAnalysis = a;
+		this->sla = s;
+		this->project = p;
+	};
+	void runTransformation();
+	void simplifyFunction(SgFunctionDeclaration *func);
 };
 
 #endif /* CODESIMPLIFIER_H_ */
