@@ -32,7 +32,9 @@ public:
 	void removeStringLiterals();
 	void runTransformation();
 private:
+	//map of string literal to the placeholder for the string
 	std::map<std::string, SgVariableDeclaration *> slPlaceholders;
+	 //map of the tags assigned to each string literal to the function variable declaration for the string literal
 	std::map<std::string, SgVariableDeclaration *> builtPlaceholders;
 	std::set<varID> varsToReplace;
 	std::set<SgInitializer *> ignoredInitializers;

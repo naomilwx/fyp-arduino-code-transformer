@@ -8,6 +8,8 @@
 
 using namespace FunctionAnalysisHelper;
 
+std::string FUNCTION_STRING_LITERAL_PLACEHOLDER_PREFIX = "f";
+
 void SimplifyFunctionDeclaration::runTransformation() {
 	transformGlobals();
 	transformVarDecls();
@@ -218,7 +220,7 @@ SgVariableDeclaration* SimplifyFunctionDeclaration::buildStringPlaceholder(const
 	SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
 	SgScopeStatement *scope = func->get_definition()->get_body();
 	SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
-	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration(placeholder, type, initializer, scope);
+	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration(FUNCTION_STRING_LITERAL_PLACEHOLDER_PREFIX + placeholder, type, initializer, scope);
 	slPlaceholders[str] = varDec;
 	builtPlaceholders[placeholder] = varDec;
 	return varDec;

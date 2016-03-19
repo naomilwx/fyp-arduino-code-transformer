@@ -73,9 +73,10 @@ int main( int argc, char * argv[] ) {
   SimplifyOriginalCode soc(&pal, &lanalysis, project);
   soc.runTransformation();
 
-  analysisDebugLevel = 1;
-  PointerAliasAnalysisDebugLevel = 1;
-  pal.runAnalysis();
-//  backend(project);
+//  analysisDebugLevel = 1;
+//  PointerAliasAnalysisDebugLevel = 1;
+//  PointerAliasAnalysis newpal(NULL, project, lanalysis.getLiteralMap());
+//  newpal.runAnalysis();
+  backend(project);
 
 }
