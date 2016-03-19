@@ -4,7 +4,7 @@
 #include <string>
 #include <sstream>
 
-
+typedef std::set<std::string> StringSet;
 
 template < typename T > std::string to_string( const T& n ) {
     std::ostringstream stm ;
@@ -12,9 +12,9 @@ template < typename T > std::string to_string( const T& n ) {
     return stm.str() ;
  }
 
-typedef std::set<std::string> StringSet;
 
 const std::string STRING_LITERAL_PREFIX = "__STRLIT_";
+bool isStringLiteralPlaceholder(const std::string& str);
 
 class StringLiteralInfo {
 	typedef  std::vector<SgStatement *> StatementList;

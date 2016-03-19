@@ -3,6 +3,11 @@
 #include <algorithm>
 #include <functional>
 
+
+bool isStringLiteralPlaceholder(const std::string& str) {
+	return str.substr(0, STRING_LITERAL_PREFIX.length()) == STRING_LITERAL_PREFIX;
+}
+
 bool StringLiteralInfo::addFuncOccurance(SgFunctionDeclaration * func, SgStatement *stmt) {
 	bool changed = false;
 	if(funcOccurances.find(func) == funcOccurances.end()){

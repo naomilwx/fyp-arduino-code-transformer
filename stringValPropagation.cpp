@@ -123,7 +123,7 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 				processRHS(params[index], paramNode);
 				refs.push_back(paramNode);
 
-			} else if(name.substr(0, STRING_LITERAL_PREFIX.length()) == STRING_LITERAL_PREFIX) {
+			} else if(isStringLiteralPlaceholder(name)) {
 				paramNode.vID = alias;
 				paramNode.derefLevel = -1;
 				paramNode.var = isSgVariableSymbol(alias.components.at(0)->get_symbol_from_symbol_table());

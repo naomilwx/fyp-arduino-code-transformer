@@ -7,10 +7,11 @@
 #include "codeSimplifier.h"
 
 void SimplifyFunctionDeclaration::runTransformation() {
+	transformGlobals();
 	transformVarDecls();
 	transformAssignments();
 
-	buildStringPlaceholders(func->get_definition()->get_body());
+	buildStringPlaceholders();
 
 	tranformVarRefs();
 	removeStringLiterals();
@@ -29,6 +30,16 @@ void SimplifyFunctionDeclaration::transformVarDecls(){
 	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
 	for(auto& initName: initNames) {
 		runVarDeclTransfromation(isSgInitializedName(initName));
+	}
+}
+
+void SimplifyFunctionDeclaration::transformGlobals() {
+	std::vector<SgInitializedName *> globalVars = getGlobalVars(project);
+	for(auto &var: globalVars) {
+		SgType *type = var->get_type();
+		if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
+			varsToReplace.insert(varID(var));
+		}
 	}
 }
 
@@ -53,6 +64,13 @@ void SimplifyFunctionDeclaration::runAssignmentTransformation(SgAssignOp *op) {
 	SageInterface::isAssignmentStatement(op,&lhs, &rhs);
 	if(varID::isValidVarExp(lhs) && varsToReplace.find(varID(lhs)) != varsToReplace.end()) {
 		SageInterface::removeStatement(isSgStatement(op->get_parent()), false);
+	}
+}
+
+void SimplifyFunctionDeclaration::checkAlias(varID alias) {
+	std::string aliasStr = alias.str();
+	if(isStringLiteralPlaceholder(aliasStr)) {
+		checkAndBuildStringPlaceholder(aliasStr);
 	}
 }
 
@@ -172,14 +190,27 @@ void SimplifyFunctionDeclaration::insertStringPlaceholderDecls() {
 	}
 }
 
-void SimplifyFunctionDeclaration::buildStringPlaceholders(SgScopeStatement *scope){
+void SimplifyFunctionDeclaration::checkAndBuildStringPlaceholder(const std::string placeholder){
+	if(builtPlaceholders.find(placeholder) == builtPlaceholders.end()) {
+		std::string str = sla->getStringLiteralForLabel(placeholder);
+		buildStringPlaceholder(str, placeholder);
+	}
+}
+
+void SimplifyFunctionDeclaration::buildStringPlaceholders(){
 	for(auto& str: sla->getStringLiteralsInFunction(func)){
-			std::string pName = sla->getStringLiteralLabel(str);
-			SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
-			SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
-		 	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration(pName, type, initializer, scope);
-			slPlaceholders[str] = varDec;
-		}
+		std::string pName = sla->getStringLiteralLabel(str);
+		buildStringPlaceholder(str, pName);
+	}
+}
+
+void SimplifyFunctionDeclaration::buildStringPlaceholder(const std::string& str, const std::string& placeholder) {
+	SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
+	SgScopeStatement *scope = func->get_definition()->get_body();
+	SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
+	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration(placeholder, type, initializer, scope);
+	slPlaceholders[str] = varDec;
+	builtPlaceholders.insert(placeholder);
 }
 
 void SimplifyOriginalCode::runTransformation() {
@@ -189,7 +220,7 @@ void SimplifyOriginalCode::runTransformation() {
 }
 
 void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func) {
-	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func);
+	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project);
 	funcHelper.runTransformation();
 	printf("function simp result:\n %s\n", func->unparseToString().c_str());
 }

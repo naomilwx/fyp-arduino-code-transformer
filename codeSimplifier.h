@@ -16,20 +16,24 @@ protected:
 	PointerAliasAnalysis *aliasAnalysis;
 	StringLiteralAnalysis *sla;
 	SgFunctionDeclaration *func;
+	SgProject *project;
 public:
-	SimplifyFunctionDeclaration(PointerAliasAnalysis *a, StringLiteralAnalysis *s, SgFunctionDeclaration *f){
+	SimplifyFunctionDeclaration(PointerAliasAnalysis *a, StringLiteralAnalysis *s, SgFunctionDeclaration *f, SgProject *p){
 		this->aliasAnalysis = a;
 		this->sla = s;
 		this->func = f;
+		this->project = p;
 	}
 
 	void transformVarDecls();
 	void tranformVarRefs();
+	void transformGlobals();
 	void transformAssignments();
 	void removeStringLiterals();
 	void runTransformation();
 private:
 	std::map<std::string, SgVariableDeclaration *> slPlaceholders;
+	std::set<std::string> builtPlaceholders;
 	std::set<varID> varsToReplace;
 	std::set<SgInitializer *> ignoredInitializers;
 	void runAssignmentTransformation(SgAssignOp *op);
@@ -37,7 +41,10 @@ private:
 	void runStringLiteralsTransformation(SgStringVal *strVal);
 	void runVarDeclTransfromation(SgInitializedName *initName);
 	void insertStringPlaceholderDecls();
-	void buildStringPlaceholders(SgScopeStatement *scope);
+	void checkAlias(varID alias);
+	void checkAndBuildStringPlaceholder(const std::string placeholder);
+	void buildStringPlaceholders();
+	void buildStringPlaceholder(const std::string& str, const std::string& placeholder);
 	void replaceWithAlias(SgVarRefExp *var);
 	bool isVarExprToReplace(SgExpression *expr);
 };
