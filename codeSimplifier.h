@@ -42,7 +42,6 @@ private:
 	void runVarRefsTransformation(SgVarRefExp *var);
 	void runStringLiteralsTransformation(SgStringVal *strVal);
 	void runVarDeclTransfromation(SgInitializedName *initName);
-	void transformUnmodifiedStringVars(SgInitializedName *initName);
 	void insertStringPlaceholderDecls();
 	SgExpression * lookupAlias(varID alias);
 	SgVariableDeclaration* checkAndBuildStringPlaceholder(const std::string placeholder);
@@ -65,6 +64,9 @@ public:
 	};
 	void runTransformation();
 	void simplifyFunction(SgFunctionDeclaration *func);
+	void transformUnmodifiedStringVars();
+private:
+	void transformUnmodifiedStringVars(SgFunctionDeclaration *func, SgInitializedName *initName);
 };
 
 #endif /* CODESIMPLIFIER_H_ */

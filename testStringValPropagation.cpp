@@ -41,6 +41,17 @@ bool gfilter (CFGNode cfgn)
 //  }
 }
 
+void transformUnmodifiedStringVars(StringLiteralAnalysis *lanalysis, SgProject *project) {
+	analysisDebugLevel = 0;
+	PointerAliasAnalysisDebugLevel = 0;
+	PointerAliasAnalysis pal(NULL, project, lanalysis->getLiteralMap());
+	pal.runAnalysis();
+
+	SimplifyOriginalCode soc(&pal, lanalysis, project);
+	soc.transformUnmodifiedStringVars();
+	printf("done first transform \n");
+}
+
 
 int main( int argc, char * argv[] ) {
   SgProject* project = frontend(argc,argv);
@@ -63,6 +74,7 @@ int main( int argc, char * argv[] ) {
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
 
+  transformUnmodifiedStringVars(&lanalysis, project);
 
   PointerAliasAnalysisDebugLevel = 0;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());

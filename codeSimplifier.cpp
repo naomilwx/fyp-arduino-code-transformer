@@ -34,7 +34,6 @@ void SimplifyFunctionDeclaration::transformVarDecls(){
 	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
 	for(auto& initName: initNames) {
 		SgInitializedName* iname = isSgInitializedName(initName);
-		transformUnmodifiedStringVars(iname);
 		runVarDeclTransfromation(iname);
 	}
 }
@@ -145,18 +144,6 @@ void SimplifyFunctionDeclaration::runStringLiteralsTransformation(SgStringVal *s
 	printf("done replacing string literal\n");
 }
 
-void SimplifyFunctionDeclaration::transformUnmodifiedStringVars(SgInitializedName *initName) {
-	SgType *type = initName->get_type();
-		//Convert char arrays which have never been modified to const char * pointers to string literals
-		SgType *eleType = SageInterface::getElementType(type);
-	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
-		if(aliasAnalysis->isUnmodifiedStringOrCharArray(func, initName)) {
-			printf("setting type to const char *\n");
-			SgType *newType =  SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
-			initName->set_type(newType);
-		}
-	}
-}
 
 void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *initName) {
 	SgVariableDeclaration * varDecl = isSgVariableDeclaration(initName->get_declaration());
@@ -245,4 +232,27 @@ void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func) {
 	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project);
 	funcHelper.runTransformation();
 	printf("function simp result:\n %s\n", func->unparseToString().c_str());
+}
+
+void SimplifyOriginalCode::transformUnmodifiedStringVars() {
+	for(auto &func: getDefinedFunctions(project)) {
+		Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
+				for(auto& initName: initNames) {
+					SgInitializedName* iname = isSgInitializedName(initName);
+					transformUnmodifiedStringVars(func, iname);
+				}
+	}
+}
+
+void SimplifyOriginalCode::transformUnmodifiedStringVars(SgFunctionDeclaration *func, SgInitializedName *initName) {
+	SgType *type = initName->get_type();
+		//Convert char arrays which have never been modified to const char * pointers to string literals
+		SgType *eleType = SageInterface::getElementType(type);
+	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
+		if(aliasAnalysis->isUnmodifiedStringOrCharArray(func, initName)) {
+			printf("setting type to const char *\n");
+			SgType *newType =  SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
+			initName->set_type(newType);
+		}
+	}
 }
