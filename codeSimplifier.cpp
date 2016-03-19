@@ -6,6 +6,8 @@
  */
 #include "codeSimplifier.h"
 
+using namespace FunctionAnalysisHelper;
+
 void SimplifyFunctionDeclaration::runTransformation() {
 	transformGlobals();
 	transformVarDecls();
@@ -67,11 +69,16 @@ void SimplifyFunctionDeclaration::runAssignmentTransformation(SgAssignOp *op) {
 	}
 }
 
-void SimplifyFunctionDeclaration::checkAlias(varID alias) {
+SgExpression * SimplifyFunctionDeclaration::lookupAlias(varID alias) {
 	std::string aliasStr = alias.str();
+	if(isFunctionParamPlaceholder(aliasStr)) {
+		SgInitializedName *initName = getFunctionParamForPlaceholder(func, aliasStr);
+		return SageBuilder::buildVarRefExp(initName, func->get_scope());
+	}
 	if(isStringLiteralPlaceholder(aliasStr)) {
 		checkAndBuildStringPlaceholder(aliasStr);
 	}
+	return alias.toSgExpression();
 }
 
 void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
@@ -79,9 +86,8 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	while(varsToReplace.find(alias) != varsToReplace.end()) {
 		alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, alias).begin());
 	}
-	checkAlias(alias); //TODO: handle alias to function param
-	SgVarRefExp *ref = SageBuilder::buildVarRefExp(alias.str(), func->get_scope());
-	SgType *aType = alias.toSgExpression()->get_type();
+	SgExpression *aliasExp = lookupAlias(alias); //TODO: handle alias to function param
+	SgType *aType = aliasExp->get_type();
 	SgType *varType = var->get_type();
 	SgExpression *oldExp = var;
 	int diff = 0;
@@ -98,7 +104,7 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 		}
 		diff -= 1;
 	}
-	SageInterface::replaceExpression(oldExp, ref);
+	SageInterface::replaceExpression(oldExp, aliasExp);
 }
 
 bool SimplifyFunctionDeclaration::isVarExprToReplace(SgExpression *expr) {

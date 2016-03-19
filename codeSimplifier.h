@@ -41,7 +41,7 @@ private:
 	void runStringLiteralsTransformation(SgStringVal *strVal);
 	void runVarDeclTransfromation(SgInitializedName *initName);
 	void insertStringPlaceholderDecls();
-	void checkAlias(varID alias);
+	SgExpression * lookupAlias(varID alias);
 	void checkAndBuildStringPlaceholder(const std::string placeholder);
 	void buildStringPlaceholders();
 	void buildStringPlaceholder(const std::string& str, const std::string& placeholder);

@@ -234,4 +234,14 @@ int getFunctionParamNumberFromTag(const std::string& paramTag){
 	return -1;
 }
 
+SgInitializedName *getFunctionParamForPlaceholder(SgFunctionDeclaration * decl, const std::string& p) {
+	int index = getFunctionParamNumberFromTag(p);
+	if(index >= 0) {
+		SgInitializedNamePtrList params = decl->get_args();
+		if(index < params.size()) {
+			return params[index];
+		}
+	}
+	return NULL;
+}
 }

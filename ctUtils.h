@@ -39,6 +39,7 @@ namespace FunctionAnalysisHelper {
 	std::string getPlaceholderNameForArgNum(int num);
 	int getFunctionParamNumberFromTag(const std::string& paramTag);
 	bool isFunctionParamPlaceholder(const std::string& p);
+	SgInitializedName *getFunctionParamForPlaceholder(SgFunctionDeclaration * decl, const std::string& p);
 }
 
 #endif
