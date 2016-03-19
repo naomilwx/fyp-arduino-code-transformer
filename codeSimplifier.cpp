@@ -76,7 +76,7 @@ SgExpression * SimplifyFunctionDeclaration::lookupAlias(varID alias) {
 		return SageBuilder::buildVarRefExp(initName, func->get_scope());
 	}
 	if(isStringLiteralPlaceholder(aliasStr)) {
-		checkAndBuildStringPlaceholder(aliasStr);
+		return SageBuilder::buildVarRefExp(checkAndBuildStringPlaceholder(aliasStr));
 	}
 	return alias.toSgExpression();
 }
@@ -199,11 +199,12 @@ void SimplifyFunctionDeclaration::insertStringPlaceholderDecls() {
 	}
 }
 
-void SimplifyFunctionDeclaration::checkAndBuildStringPlaceholder(const std::string placeholder){
+SgVariableDeclaration* SimplifyFunctionDeclaration::checkAndBuildStringPlaceholder(const std::string placeholder){
 	if(builtPlaceholders.find(placeholder) == builtPlaceholders.end()) {
 		std::string str = sla->getStringLiteralForLabel(placeholder);
-		buildStringPlaceholder(str, placeholder);
+		return buildStringPlaceholder(str, placeholder);
 	}
+	return builtPlaceholders[placeholder];
 }
 
 void SimplifyFunctionDeclaration::buildStringPlaceholders(){
@@ -213,13 +214,14 @@ void SimplifyFunctionDeclaration::buildStringPlaceholders(){
 	}
 }
 
-void SimplifyFunctionDeclaration::buildStringPlaceholder(const std::string& str, const std::string& placeholder) {
+SgVariableDeclaration* SimplifyFunctionDeclaration::buildStringPlaceholder(const std::string& str, const std::string& placeholder) {
 	SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
 	SgScopeStatement *scope = func->get_definition()->get_body();
 	SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
 	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration(placeholder, type, initializer, scope);
 	slPlaceholders[str] = varDec;
-	builtPlaceholders.insert(placeholder);
+	builtPlaceholders[placeholder] = varDec;
+	return varDec;
 }
 
 void SimplifyOriginalCode::runTransformation() {

@@ -33,7 +33,7 @@ public:
 	void runTransformation();
 private:
 	std::map<std::string, SgVariableDeclaration *> slPlaceholders;
-	std::set<std::string> builtPlaceholders;
+	std::map<std::string, SgVariableDeclaration *> builtPlaceholders;
 	std::set<varID> varsToReplace;
 	std::set<SgInitializer *> ignoredInitializers;
 	void runAssignmentTransformation(SgAssignOp *op);
@@ -42,9 +42,9 @@ private:
 	void runVarDeclTransfromation(SgInitializedName *initName);
 	void insertStringPlaceholderDecls();
 	SgExpression * lookupAlias(varID alias);
-	void checkAndBuildStringPlaceholder(const std::string placeholder);
+	SgVariableDeclaration* checkAndBuildStringPlaceholder(const std::string placeholder);
 	void buildStringPlaceholders();
-	void buildStringPlaceholder(const std::string& str, const std::string& placeholder);
+	SgVariableDeclaration* buildStringPlaceholder(const std::string& str, const std::string& placeholder);
 	void replaceWithAlias(SgVarRefExp *var);
 	bool isVarExprToReplace(SgExpression *expr);
 };
