@@ -79,6 +79,7 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	while(varsToReplace.find(alias) != varsToReplace.end()) {
 		alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, alias).begin());
 	}
+	checkAlias(alias); //TODO: handle alias to function param
 	SgVarRefExp *ref = SageBuilder::buildVarRefExp(alias.str(), func->get_scope());
 	SgType *aType = alias.toSgExpression()->get_type();
 	SgType *varType = var->get_type();

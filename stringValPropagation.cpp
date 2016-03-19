@@ -76,8 +76,8 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 					lhsLat->setState(PointerAliasLattice::MODIFIED);
 				} else {
 					if(lhsLat->getAliasedVariables().size() > 1) {
-						lhsLat->setState(PointerAliasLattice::REASSIGNED_MULTIPLE);
-					} else if(lhsLat->getState() != PointerAliasLattice::REASSIGNED_MULTIPLE) {
+						lhsLat->setState(PointerAliasLattice::REASSIGNED_UNKNOWN);
+					} else if(lhsLat->getState() != PointerAliasLattice::REASSIGNED_UNKNOWN) {
 						lhsLat->setState(PointerAliasLattice::REASSIGNED);
 					}
 				}
@@ -800,7 +800,7 @@ bool PointerAliasAnalysis::isUnmodifiedStringOrCharArray(SgFunctionDeclaration *
 bool PointerAliasAnalysis::isMultiAssignmentPointer(SgFunctionDeclaration *func, SgNode *exp) {
 	PointerAliasLattice *lat = getReturnStateAliasLattice(func, exp);
 	if(lat) {
-		return lat->getState() == PointerAliasLattice::REASSIGNED_MULTIPLE;
+		return lat->getState() == PointerAliasLattice::REASSIGNED_UNKNOWN;
 	}
 	return false;
 }

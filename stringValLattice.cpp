@@ -129,8 +129,8 @@ bool PointerAliasLattice::meetUpdate(Lattice* that_arg)
     }
 
     //Update state
-    if(state < StateVal::REASSIGNED_MULTIPLE && aliasedVariables.size() >1) {
-    	state = StateVal::REASSIGNED_MULTIPLE;
+    if(state < StateVal::REASSIGNED_UNKNOWN && aliasedVariables.size() != 1) {
+    	state = StateVal::REASSIGNED_UNKNOWN;
     }
     if(that->state > state){
     	state = that->state;
