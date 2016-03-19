@@ -50,7 +50,7 @@ int main( int argc, char * argv[] ) {
   Dbg::init("propagation test", "./proptest", "index.html");
 
 //  liveDeadAnalysisDebugLevel = 1;
-  analysisDebugLevel = 1;
+  analysisDebugLevel = 0;
 
 //  LiveDeadVarsAnalysis ldva(project);
 //       ldva.filter = gfilter; // the defaultFitler can provide the same semantics now
@@ -64,7 +64,7 @@ int main( int argc, char * argv[] ) {
   lanalysis.runAnalysis();
 
 
-  PointerAliasAnalysisDebugLevel = 1;
+  PointerAliasAnalysisDebugLevel = 0;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
 //  printAnalysis(&pal, false);
@@ -73,7 +73,9 @@ int main( int argc, char * argv[] ) {
   SimplifyOriginalCode soc(&pal, &lanalysis, project);
   soc.runTransformation();
 
-
-  backend(project);
+  analysisDebugLevel = 1;
+  PointerAliasAnalysisDebugLevel = 1;
+  pal.runAnalysis();
+//  backend(project);
 
 }
