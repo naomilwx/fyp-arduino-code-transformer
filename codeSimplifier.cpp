@@ -33,7 +33,9 @@ void SimplifyFunctionDeclaration::transformAssignments() {
 void SimplifyFunctionDeclaration::transformVarDecls(){
 	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
 	for(auto& initName: initNames) {
-		runVarDeclTransfromation(isSgInitializedName(initName));
+		SgInitializedName* iname = isSgInitializedName(initName);
+		transformUnmodifiedStringVars(iname);
+		runVarDeclTransfromation(iname);
 	}
 }
 
@@ -143,6 +145,19 @@ void SimplifyFunctionDeclaration::runStringLiteralsTransformation(SgStringVal *s
 	printf("done replacing string literal\n");
 }
 
+void SimplifyFunctionDeclaration::transformUnmodifiedStringVars(SgInitializedName *initName) {
+	SgType *type = initName->get_type();
+		//Convert char arrays which have never been modified to const char * pointers to string literals
+		SgType *eleType = SageInterface::getElementType(type);
+	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
+		if(aliasAnalysis->isUnmodifiedStringOrCharArray(func, initName)) {
+			printf("setting type to const char *\n");
+			SgType *newType =  SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
+			initName->set_type(newType);
+		}
+	}
+}
+
 void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *initName) {
 	SgVariableDeclaration * varDecl = isSgVariableDeclaration(initName->get_declaration());
 	if(varDecl == NULL) {
@@ -158,14 +173,8 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	SgType *eleType = SageInterface::getElementType(type);
 	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
 		ignoredInitializers.insert(initializer);
-		if(aliasAnalysis->isUnmodifiedStringOrCharArray(func, initName)) {
-			printf("setting type to const char *\n");
-			SgType *newType =  SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
-			initName->set_type(newType);
-		}
 		return;
 	}
-
 
 	//Drop declaration of constant pointers to string literals
 	if(isSgAssignInitializer(initializer)) {

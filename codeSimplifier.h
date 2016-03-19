@@ -42,6 +42,7 @@ private:
 	void runVarRefsTransformation(SgVarRefExp *var);
 	void runStringLiteralsTransformation(SgStringVal *strVal);
 	void runVarDeclTransfromation(SgInitializedName *initName);
+	void transformUnmodifiedStringVars(SgInitializedName *initName);
 	void insertStringPlaceholderDecls();
 	SgExpression * lookupAlias(varID alias);
 	SgVariableDeclaration* checkAndBuildStringPlaceholder(const std::string placeholder);
