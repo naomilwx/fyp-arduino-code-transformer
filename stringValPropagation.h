@@ -105,6 +105,8 @@ public:
 		bool isUnmodifiedStringOrCharArray(SgFunctionDeclaration *func, SgNode *exp);
 		bool isMultiAssignmentPointer(SgFunctionDeclaration *func, SgNode *exp);
 		std::set<varID> getAliasesForVariableAtNode(SgNode *node, varID var);
+		PointerAliasLattice *getReturnValueAliasLattice(SgFunctionDeclaration *func);
+		PointerAliasLattice *getReturnValueAliasLattice(const Function& func);
 	private:
 		PointerAliasLattice *getReturnStateAliasLattice(SgFunctionDeclaration *func, SgNode *exp);
 		ctVarsExprsProductLattice *getReturnStateLattice(SgFunctionDeclaration *func);

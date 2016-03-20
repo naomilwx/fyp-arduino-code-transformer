@@ -91,30 +91,11 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 
 std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunctionCall(SgFunctionCallExp *fcall){
 	Function callee(fcall);
-	FunctionState* fState = FunctionState::getDefinedFuncState(callee);
-	DFStateAtReturns* dfsar = dynamic_cast<DFStateAtReturns*>(fState->state.getFact(analysis, 0));
 
+	PointerAliasLattice *retAliasLat = analysis->getReturnValueAliasLattice(callee);
 	std::vector<aliasDerefCount> refs;
 
-	if(dfsar) {
-		std::vector<Lattice*>& latsRetVal = dfsar->getLatsRetVal();
-		Lattice *lat = NULL;
-		for(auto &retLat: latsRetVal) {
-			if(lat==NULL){
-				lat = retLat->copy();
-			} else {
-				lat->meetUpdate(retLat);
-			}
-		}
-		if(lat == NULL){
-			return refs;
-		}
-		varID key("$");
-		PointerAliasLattice *retAliasLat = dynamic_cast<PointerAliasLattice *>((dynamic_cast<VarsExprsProductLattice*>(lat))->getVarLattice(key));
-
-		if(retAliasLat == NULL) {
-			return refs;
-		}
+	if(retAliasLat) {
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
 		for(auto &alias: retAliasLat->getAliasedVariables()){
 			std::string name = alias.str();
@@ -815,6 +796,34 @@ bool PointerAliasAnalysis::isMultiAssignmentPointer(SgFunctionDeclaration *func,
 	return false;
 }
 
+PointerAliasLattice *PointerAliasAnalysis::getReturnValueAliasLattice(const Function& func){
+	FunctionState* fState = FunctionState::getDefinedFuncState(func);
+	DFStateAtReturns* dfsar = dynamic_cast<DFStateAtReturns*>(fState->state.getFact(this, 0));
+
+	if(dfsar) {
+				std::vector<Lattice*>& retVals = dfsar->getLatsRetVal();
+				Lattice *lat = NULL;
+				for(auto &retVal: retVals) {
+					if(lat==NULL){
+						lat = retVal->copy();
+					} else {
+						lat->meetUpdate(retVal);
+					}
+				}
+
+				if(lat == NULL){
+					return NULL;
+				}
+				varID key("$");
+				PointerAliasLattice *retAliasLat = dynamic_cast<PointerAliasLattice *>((dynamic_cast<ctVarsExprsProductLattice*>(lat))->getVarLattice(key));
+				return retAliasLat;
+			}
+			return NULL;
+}
+PointerAliasLattice *PointerAliasAnalysis::getReturnValueAliasLattice(SgFunctionDeclaration *func){
+	Function fdecl(func);
+	return getReturnValueAliasLattice(fdecl);
+}
 PointerAliasLattice *PointerAliasAnalysis::getReturnStateAliasLattice(SgFunctionDeclaration *func, SgNode *exp) {
 	if(varID::isValidVarExp(exp)) {
 		ctVarsExprsProductLattice *retLat = getReturnStateLattice(func);
