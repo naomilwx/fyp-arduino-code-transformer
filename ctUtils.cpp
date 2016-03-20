@@ -70,18 +70,18 @@ SgExpression *getFunctionRef(SgFunctionCallExp *call) {
 	return NULL;
 }
 
-bool isConstantType(SgType *nType) {
-	bool isConst = false;
-	Rose_STL_Container<SgType*> typeVector = nType->getInternalTypes();
-	for(Rose_STL_Container<SgType*>::iterator i = typeVector.begin(); i != typeVector.end(); i++){
-		//printf("type %s\n", (*i)->class_name().c_str());
-		SgModifierType* modifierType = isSgModifierType(*i);
-		if (modifierType != NULL)  {
-			isConst = modifierType->get_typeModifier().get_constVolatileModifier().isConst() || isConst;
-		}
-	}
-	return isConst;
-}
+//bool isConstantType(SgType *nType) {
+//	bool isConst = false;
+//	Rose_STL_Container<SgType*> typeVector = nType->getInternalTypes();
+//	for(Rose_STL_Container<SgType*>::iterator i = typeVector.begin(); i != typeVector.end(); i++){
+//		//printf("type %s\n", (*i)->class_name().c_str());
+//		SgModifierType* modifierType = isSgModifierType(*i);
+//		if (modifierType != NULL)  {
+//			isConst = modifierType->get_typeModifier().get_constVolatileModifier().isConst() || isConst;
+//		}
+//	}
+//	return isConst;
+//}
 
 FunctionSet getDefinedFunctions(SgProject *project) {
 	static std::map<SgProject *, FunctionSet> definedFunctions;
@@ -195,3 +195,53 @@ bool isArduinoStringType(SgType *type) {
 	return false;
 }
 
+int getPointerLevel(SgType *type) {
+	type = type->stripType(SgType::STRIP_MODIFIER_TYPE);
+	if(type == NULL){
+		return 0;
+	}
+	if(SageInterface::isPointerType(type) || isSgArrayType(type)) {
+		SgType *to = SageInterface::getElementType(type);
+		if(to) {
+			return 1 + getPointerLevel(to);
+		}
+	}
+	return 0;
+}
+
+namespace FunctionAnalysisHelper {
+std::string getPlaceholderNameForArgNum(int num){
+	std::stringstream ss;
+	ss << FUNC_PARAM_TAG_PREFIX << num;
+	return ss.str();
+}
+
+bool isFunctionParamPlaceholder(const std::string& p){
+	int prefixLen = FUNC_PARAM_TAG_PREFIX.length();
+		std::string prefix = p.substr(0, prefixLen);
+		if(prefix == FUNC_PARAM_TAG_PREFIX) {
+			return true;
+		}
+		return false;
+}
+
+int getFunctionParamNumberFromTag(const std::string& paramTag){
+	int prefixLen = FUNC_PARAM_TAG_PREFIX.length();
+	if(isFunctionParamPlaceholder(paramTag)) {
+		int num = std::stoi(paramTag.substr(prefixLen));
+		return num;
+	}
+	return -1;
+}
+
+SgInitializedName *getFunctionParamForPlaceholder(SgFunctionDeclaration * decl, const std::string& p) {
+	int index = getFunctionParamNumberFromTag(p);
+	if(index >= 0) {
+		SgInitializedNamePtrList params = decl->get_args();
+		if(index < params.size()) {
+			return params[index];
+		}
+	}
+	return NULL;
+}
+}

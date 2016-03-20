@@ -13,46 +13,11 @@
 #include "stringLiteralAnalysis.h"
 #include "ctOverallDataflowAnalyser.h"
 
-class StringValPropagation : public IntraFWDataflow {
-	protected:
-		SgProject *project;
-	public:
-		StringValPropagation(SgProject *project){
-			this->project = project;
-		}
-
-		void genInitState(const Function& func, const DataflowNode &n, const NodeState &state, std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts);
-
-		bool transfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
-
-		boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo);
-
-		StringValLattice *getValLattice(SgNode *n, SgNode *var);
-		StringValLattice *getValLattice(NodeState *s, varID var);
-
-		bool isModifiedStringRef(SgFunctionDefinition *def, SgVarRefExp *ref);
-
-		void runAnalysis();
-};
-
-class StringValPropagationTransfer : public VariableStateTransfer<StringValLattice> {
-	public:
-		StringValPropagationTransfer(const Function &func, const DataflowNode &n, NodeState &state, const std::vector<Lattice *>& dfInfo);
-		void visit(SgStringVal *n);
-		void visit(SgPntrArrRefExp *n);
-		void visit(SgFunctionCallExp *n);
-		void visit(SgInitializedName *n);
-		bool finish();
-};
-
 
 extern int PointerAliasAnalysisDebugLevel;
 
 class PointerAliasAnalysis;
 
-const std::string FUNC_PARAM_TAG_PREFIX =  "__function_param_";
-
-std::string getPlaceholderNameForArgNum(int num);
 /*
 Transfer:   We define visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer
 i.e., the CFG nodes that could potentially update any pointers.
@@ -98,8 +63,6 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		//Recursive function to traverse the per-variable lattices to compute Aliases for 'var' at deref count of 'derefLevel'
 		void computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
 
-		int getFunctionParamNumberFromTag(const std::string& paramTag);
-
 		void processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode);
 
 		void approximateFunctionCallEffect(SgFunctionCallExp *fcall);
@@ -138,7 +101,13 @@ public:
 		void runAnalysis();
 		void runGlobalVarAnalysis();
 		void transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state);
+
+		bool isUnmodifiedStringOrCharArray(SgFunctionDeclaration *func, SgNode *exp);
+		bool isMultiAssignmentPointer(SgFunctionDeclaration *func, SgNode *exp);
+		std::set<varID> getAliasesForVariableAtNode(SgNode *node, varID var);
 	private:
+		PointerAliasLattice *getReturnStateAliasLattice(SgFunctionDeclaration *func, SgNode *exp);
+		ctVarsExprsProductLattice *getReturnStateLattice(SgFunctionDeclaration *func);
 		void setGlobalAliasRelationForLat(PointerAliasLattice *lat, aliasDerefCount& lhs, SgNode *rhsExp);
 		void computeGlobalAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
 

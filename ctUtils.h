@@ -18,24 +18,28 @@ public:
 	void printDefinedFunctions();
 };
 
-bool isFromLibrary(SgInitializedName* initName);
-
+SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project);
 FunctionSet getDefinedFunctions(SgProject *project);
-
 SgExpression *getFunctionRef(SgFunctionCallExp *call);
 
-bool isConstantType(SgType *nType);
+bool isFromLibrary(SgInitializedName* initName);
+std::vector<SgInitializedName *>getGlobalVars(SgProject *project);
 
-SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project);
-
-unsigned int getNodeDataflowIndex(SgNode *n);
-
-NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));
-
-NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index);
-
+//bool isConstantType(SgType *nType);
 bool isArduinoStringType(SgType *type);
 
-std::vector<SgInitializedName *>getGlobalVars(SgProject *project);
+unsigned int getNodeDataflowIndex(SgNode *n);
+NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));
+NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index);
+
+int getPointerLevel(SgType *type);
+
+namespace FunctionAnalysisHelper {
+	const std::string FUNC_PARAM_TAG_PREFIX =  "__function_param_";
+	std::string getPlaceholderNameForArgNum(int num);
+	int getFunctionParamNumberFromTag(const std::string& paramTag);
+	bool isFunctionParamPlaceholder(const std::string& p);
+	SgInitializedName *getFunctionParamForPlaceholder(SgFunctionDeclaration * decl, const std::string& p);
+}
 
 #endif

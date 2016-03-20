@@ -4,7 +4,7 @@
 #include <string>
 #include <sstream>
 
-
+typedef std::set<std::string> StringSet;
 
 template < typename T > std::string to_string( const T& n ) {
     std::ostringstream stm ;
@@ -12,9 +12,9 @@ template < typename T > std::string to_string( const T& n ) {
     return stm.str() ;
  }
 
-typedef std::set<std::string> StringSet;
 
 const std::string STRING_LITERAL_PREFIX = "__STRLIT_";
+bool isStringLiteralPlaceholder(const std::string& str);
 
 class StringLiteralInfo {
 	typedef  std::vector<SgStatement *> StatementList;
@@ -42,6 +42,7 @@ class StringLiteralInfo {
 	SgVariableDeclaration *getPlaceholder() {
 		return placeholder;
 	}
+	bool occursInFunc(SgFunctionDeclaration *func) const;
 	protected:
 	bool addFuncOccurance(SgFunctionDeclaration * func, SgStatement* stmt);
 
@@ -69,8 +70,9 @@ public:
 
 	std::string getStringLiteralLabel(const std::string& literal);
 	std::string getStringLiteralForLabel(const std::string& label);
+	StringSet getStringLiteralsInFunction(SgFunctionDeclaration *func);
 	SgVariableDeclaration *getPlaceholderForStringLiteral(const std::string& literal);
-	std::set<std::string> getStringLiterals();
+	StringSet getStringLiterals();
 	int getNumberOfStringLiterals();
 	bool isGlobalStringLiteral(const std::string& str);
 	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);

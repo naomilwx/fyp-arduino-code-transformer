@@ -1,5 +1,6 @@
 #include "stringValPropagation.h"
 #include "stringLiteralAnalysis.h"
+#include "codeSimplifier.h"
 
 #include "analysisCommon.h"
 //#include "liveDeadVarAnalysis.h"
@@ -49,7 +50,7 @@ int main( int argc, char * argv[] ) {
   Dbg::init("propagation test", "./proptest", "index.html");
 
 //  liveDeadAnalysisDebugLevel = 1;
-  analysisDebugLevel = 1;
+  analysisDebugLevel = 0;
 
 //  LiveDeadVarsAnalysis ldva(project);
 //       ldva.filter = gfilter; // the defaultFitler can provide the same semantics now
@@ -62,14 +63,19 @@ int main( int argc, char * argv[] ) {
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
 
-//  StringValPropagation strValProp(project);
-//  strValProp.runAnalysis();
-//  printAnalysis(&strValProp, false);
 
-
+  PointerAliasAnalysisDebugLevel = 0;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
 //  printAnalysis(&pal, false);
-
   printf("done\n");
+
+  SimplifyOriginalCode soc(&pal, &lanalysis, project);
+  soc.runTransformation();
+
+  analysisDebugLevel = 1;
+  PointerAliasAnalysisDebugLevel = 1;
+  pal.runAnalysis();
+//  backend(project);
+
 }

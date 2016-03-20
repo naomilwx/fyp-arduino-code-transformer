@@ -10,17 +10,17 @@ ARDUINO_CORE=$(ARDUINO)/arduino/avr/cores/arduino
 GPP=g++ -std=c++11
 all: analyser
 
-testlive: testStringLivenessAnalysis.o ctUtils.o liveStringsLattice.o stringLivenessAnalysis.o stringValLattice.o stringValPropagation.o stringLiteralAnalysis.o
-	$(GPP) testStringLivenessAnalysis.o ctUtils.o liveStringsLattice.o stringLivenessAnalysis.o stringValLattice.o stringValPropagation.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o testlive
-
-testprop: testStringValPropagation.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o
-	$(GPP) testStringValPropagation.o ctUtils.o ctOverallDataflowAnalyser.o stringValPropagation.o stringValLattice.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o testprop
+testprop: testStringValPropagation.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o codeSimplifier.o
+	$(GPP) testStringValPropagation.o ctUtils.o ctOverallDataflowAnalyser.o stringValPropagation.o stringValLattice.o stringLiteralAnalysis.o codeSimplifier.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o testprop
 	
 analyser: testStringLiteralAnalysis.o stringLiteralAnalysis.o 
 	$(GPP) testStringLiteralAnalysis.o stringLiteralAnalysis.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o analyser
 
-testStringLivenessAnalysis.o: testStringLivenessAnalysis.cpp
-	$(GPP) -c testStringLivenessAnalysis.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
+itransform: simplifyingTransformer.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o codeSimplifier.o
+	$(GPP) simplifyingTransformer.o ctUtils.o ctOverallDataflowAnalyser.o stringValPropagation.o stringValLattice.o stringLiteralAnalysis.o codeSimplifier.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o itransform
+
+simplifyingTransformer.o: simplifyingTransformer.cpp
+	$(GPP) -c simplifyingTransformer.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 
 testStringValPropagation.o: testStringValPropagation.cpp
 	$(GPP) -c testStringValPropagation.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
@@ -40,11 +40,8 @@ stringValLattice.o: stringValLattice.cpp stringValLattice.h
 stringValPropagation.o: stringValPropagation.cpp stringValLattice.h
 	$(GPP) -c stringValPropagation.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 
-stringLivenessAnalysis.o: stringLivenessAnalysis.cpp stringLivenessAnalysis.h
-	$(GPP) -c stringLivenessAnalysis.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
-
-liveStringsLattice.o: liveStringsLattice.cpp liveStringsLattice.h
-	$(GPP) -c liveStringsLattice.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
+codeSimplifier.o: codeSimplifier.cpp codeSimplifier.h
+	$(GPP) -c codeSimplifier.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 
 ctOverallDataflowAnalyser.o: ctOverallDataflowAnalyser.cpp ctOverallDataflowAnalyser.h
 	$(GPP) -c ctOverallDataflowAnalyser.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
@@ -57,9 +54,8 @@ check: analyser
 
 checkprop: testprop
 	./testprop -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
-	
-checklive: testlive
-	./testlive -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
-	
+
+intertransform: itransform
+	./itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
 clean:
-	rm *o analyser testprop testlive
+	rm *o analyser testprop itransform
