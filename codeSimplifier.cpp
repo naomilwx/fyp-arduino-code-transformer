@@ -10,12 +10,12 @@ using namespace FunctionAnalysisHelper;
 
 std::string FUNCTION_STRING_LITERAL_PLACEHOLDER_PREFIX = "f";
 
-void SimplifyFunctionDeclaration::runTransformation() {
-	transformGlobals();
+void SimplifyFunctionDeclaration::runTransformation(bool glob) {
+	if(glob){
+		transformGlobals();
+	}
 	transformVarDecls();
 	transformAssignments();
-
-//	buildStringPlaceholders();
 
 	tranformVarRefs();
 	removeStringLiterals();
@@ -42,8 +42,13 @@ void SimplifyFunctionDeclaration::transformGlobals() {
 	std::vector<SgInitializedName *> globalVars = getGlobalVars(project);
 	for(auto &var: globalVars) {
 		SgType *type = var->get_type();
-		if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
-			varsToReplace.insert(varID(var));
+		if(isSgArrayType(type) || !SageInterface::isPointerType(type)) {
+			return;
+		}
+		if(SageInterface::isPointerToNonConstType(type) == false && isSgTypeChar(type->findBaseType())) {
+			if(aliasAnalysis->isMultiAssignmentPointer(func, var) == false){
+				varsToReplace.insert(varID(var));
+			}
 		}
 	}
 }
@@ -156,7 +161,7 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	bool dropVarDecl = false;
 
 	SgType *type = initName->get_type();
-	//Convert char arrays which have never been modified to const char * pointers to string literals
+	//Convert char arrays cannot be initialised with char* pointers
 	SgType *eleType = SageInterface::getElementType(type);
 	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
 		ignoredInitializers.insert(initializer);
@@ -223,15 +228,15 @@ SgVariableDeclaration* SimplifyFunctionDeclaration::buildStringPlaceholder(const
 	return varDec;
 }
 
-void SimplifyOriginalCode::runTransformation() {
+void SimplifyOriginalCode::runTransformation(bool transformGlobals) {
 	for(auto &func: getDefinedFunctions(project)) {
-		simplifyFunction(func);
+		simplifyFunction(func, transformGlobals);
 	}
 }
 
-void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func) {
+void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, bool transformGlobals) {
 	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project);
-	funcHelper.runTransformation();
+	funcHelper.runTransformation(transformGlobals);
 	printf("function simp result:\n %s\n", func->unparseToString().c_str());
 }
 

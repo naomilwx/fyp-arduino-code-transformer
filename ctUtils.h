@@ -18,7 +18,7 @@ public:
 	void printDefinedFunctions();
 };
 
-SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project);
+SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project, bool ignoreCache);
 FunctionSet getDefinedFunctions(SgProject *project);
 SgExpression *getFunctionRef(SgFunctionCallExp *call);
 

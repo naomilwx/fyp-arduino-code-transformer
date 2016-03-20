@@ -94,10 +94,10 @@ FunctionSet getDefinedFunctions(SgProject *project) {
 	return definedFunctions[project];
 }
 
-SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
+SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project, bool ignoreCache) {
 	static std::map<SgProject *, SgIncidenceDirectedGraph*> callGraphs;
 	//if(callGraph != NULL) {
-	if(callGraphs.find(project) != callGraphs.end()){	
+	if(ignoreCache == false && callGraphs.find(project) != callGraphs.end()){
 		return callGraphs[project];
 	}
 

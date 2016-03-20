@@ -30,7 +30,7 @@ public:
 	void transformGlobals();
 	void transformAssignments();
 	void removeStringLiterals();
-	void runTransformation();
+	void runTransformation(bool transformGlobals);
 private:
 	//map of string literal to the placeholder for the string
 	std::map<std::string, SgVariableDeclaration *> slPlaceholders;
@@ -62,8 +62,9 @@ public:
 		this->sla = s;
 		this->project = p;
 	};
-	void runTransformation();
-	void simplifyFunction(SgFunctionDeclaration *func);
+	void runTransformation(bool transformGlobals);
+	void simplifyFunction(SgFunctionDeclaration *func, bool transformGlobals);
+	//transformGlobals: flag to indicate whether to inline global const char * vars where the values they point to can be statically determined
 	void transformUnmodifiedStringVars();
 private:
 	void transformUnmodifiedStringVars(SgFunctionDeclaration *func, SgInitializedName *initName);

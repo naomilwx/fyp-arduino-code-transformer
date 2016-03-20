@@ -58,7 +58,7 @@ protected:
 	int strCount;
 	StringSet globalStrLiterals; //String literals used in more than one function
 	LiteralMap strLiterals; //Map of string literals to the statements where they are used, the functions where they occur and the tag assigned to them
-	StatementLiteralMap slMap; //Map of statements to the string literals used in the statements
+	StatementLiteralMap slMap; //Map of statements to the string literals used in the statements. (currently not use)_
 	SgProject *project;
 
 
@@ -76,9 +76,9 @@ public:
 	int getNumberOfStringLiterals();
 	bool isGlobalStringLiteral(const std::string& str);
 	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);
-	StatementLiteralMap* getStatementLiteralMap();
 	LiteralMap *getLiteralMap();
 	std::string getAnalysisPrintout();
+	StatementLiteralMap* getStatementLiteralMap();//Not used
 
 	friend class StringLiteralAnalysisVisitor;
 };
