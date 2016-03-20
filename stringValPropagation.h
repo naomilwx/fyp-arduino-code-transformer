@@ -55,7 +55,13 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		void processRHS(SgNode *node, struct aliasDerefCount &arNode);
 
 	private:
+		void updateAliasForFunctionCall(PointerAliasLattice *resLat, const aliasDerefCount& leftARNode, SgFunctionCallExp *fcall);
 		std::vector<aliasDerefCount> getReturnAliasForFunctionCall(SgFunctionCallExp *fcall);
+
+
+		void updateStateForAssignOp(PointerAliasLattice *lhsLat, SgExpression *lhs);
+		void transferFunctionCallReturnForAssignOp(SgExpression *lhs, SgFunctionCallExp *rhs, PointerAliasLattice *resLat);
+		void transferFunctionCallReturn(PointerAliasLattice *resLat,  const aliasDerefCount& leftARNode,  SgFunctionCallExp *rhs);
 
 		//Updates the 'aliasedVariables' set by establishing an relation('edge' in compact representation graph) between 'aliasRelations' pair. 'isMust' denotes may or must alias
 		bool updateAliases(set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRelations,int isMust);
