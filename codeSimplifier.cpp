@@ -25,9 +25,9 @@ void SimplifyFunctionDeclaration::runTransformation(bool glob) {
 void SimplifyFunctionDeclaration::transformAssignments() {
 	//remove assignment statements for variable declarations that have been eliminated
 	Rose_STL_Container<SgNode *> assignOps = NodeQuery::querySubTree(func, V_SgAssignOp);
-		for(auto& assignOp: assignOps) {
-			runAssignmentTransformation(isSgAssignOp(assignOp));
-		}
+	for(auto& assignOp: assignOps) {
+		runAssignmentTransformation(isSgAssignOp(assignOp));
+	}
 }
 
 void SimplifyFunctionDeclaration::transformVarDecls(){
@@ -73,7 +73,17 @@ void SimplifyFunctionDeclaration::runAssignmentTransformation(SgAssignOp *op) {
 
 	SageInterface::isAssignmentStatement(op,&lhs, &rhs);
 	if(isVarExprToReplace(lhs)) {
-		SageInterface::removeStatement(isSgStatement(op->get_parent()), false);
+		SgStatement *oldStmt = isSgStatement(op->get_parent());
+		if(isSgFunctionCallExp(rhs)){
+			SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
+			SgExprStatement * funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
+					call->get_type(),
+					call->get_args(),
+					func->get_definition()->get_body());
+			SageInterface::replaceStatement(oldStmt, funcCallStmt);
+		} else {
+			SageInterface::removeStatement(oldStmt,false);
+		}
 	}
 }
 
@@ -169,15 +179,32 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 		return;
 	}
 
+	SgExprStatement * funcCallStmt = NULL;
 	//Drop declaration of constant pointers to string literals
 	if(isSgAssignInitializer(initializer)) {
-		if(isSgStringVal(isSgAssignInitializer(initializer)->get_operand())){
+		SgExpression *rhs = isSgAssignInitializer(initializer)->get_operand();
+		if(isSgStringVal(rhs)){
 			dropVarDecl = true;
 			printf("marked 1\n");
+		}
+		if(isSgFunctionCallExp(rhs)) {
+			SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
+			funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
+					call->get_type(),
+					call->get_args(),
+					func->get_definition()->get_body());
 		}
 	}
 
 	//Drop additional char * pointers if the values they point to can be statically determined
+	/*TODO: this is problematic when one of the function's param is a reassigned parameter eg:
+	  void f(const char *x) {
+	  const char *orig_x = x;
+	  x = "new str";
+	  ...
+	  }
+	  orig_x will get wrongly subsituted for x. need to write a procedure to search for assignments to reference params...
+	 */
 	if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
 		if(aliasAnalysis->isStaticallyDeterminatePointer(func, initName)){
 			dropVarDecl = true;
@@ -191,7 +218,11 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	//Steps to drop the associated variable declaration
 	if(dropVarDecl) {
 		varsToReplace.insert(varID(initName));
-		SageInterface::removeStatement(varDecl,false);
+		if(funcCallStmt != NULL) {
+			SageInterface::replaceStatement(varDecl, funcCallStmt, true);
+		} else {
+			SageInterface::removeStatement(varDecl,false);
+		}
 		printf("removing var decl for: %s\n", initName->get_name().str());
 	}
 
@@ -244,17 +275,17 @@ void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, bool tr
 void SimplifyOriginalCode::transformUnmodifiedStringVars() {
 	for(auto &func: getDefinedFunctions(project)) {
 		Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
-				for(auto& initName: initNames) {
-					SgInitializedName* iname = isSgInitializedName(initName);
-					transformUnmodifiedStringVars(func, iname);
-				}
+		for(auto& initName: initNames) {
+			SgInitializedName* iname = isSgInitializedName(initName);
+			transformUnmodifiedStringVars(func, iname);
+		}
 	}
 }
 
 void SimplifyOriginalCode::transformUnmodifiedStringVars(SgFunctionDeclaration *func, SgInitializedName *initName) {
 	SgType *type = initName->get_type();
-		//Convert char arrays which have never been modified to const char * pointers to string literals
-		SgType *eleType = SageInterface::getElementType(type);
+	//Convert char arrays which have never been modified to const char * pointers to string literals
+	SgType *eleType = SageInterface::getElementType(type);
 	if(isArduinoStringType(type) || (isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType))) {
 		printf("checking %s\n", initName->unparseToString().c_str());
 		if(aliasAnalysis->isUnmodifiedStringOrCharArray(func, initName)) {

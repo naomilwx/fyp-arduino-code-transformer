@@ -290,6 +290,11 @@ void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn) {
 	} else {
 		processRHS(rhs,rightARNode);
 
+		if(SageInterface::isReferenceType(leftARNode.vID.varType)) {
+			//handle reference variables
+			rightARNode.derefLevel = -1;
+		}
+
 		//Establish the per CFG-node alias relations
 		if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
 			resLat->setAliasRelation(make_pair(leftARNode,rightARNode));
