@@ -46,7 +46,7 @@ void SimplifyFunctionDeclaration::transformGlobals() {
 			return;
 		}
 		if(SageInterface::isPointerToNonConstType(type) == false && isSgTypeChar(type->findBaseType())) {
-			if(aliasAnalysis->isMultiAssignmentPointer(func, var) == false){
+			if(aliasAnalysis->isStaticallyDeterminatePointer(func, var)){
 				varsToReplace.insert(varID(var));
 			}
 		}
@@ -105,6 +105,7 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	}
 	while(diff > 0) {
 		SgExpression* parent = isSgExpression(oldExp->get_parent());
+		printf("parent: %s %s\n", parent->class_name().c_str(), parent->unparseToString().c_str());
 		if(parent) {
 			oldExp = parent;
 		} else {
@@ -178,7 +179,7 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 
 	//Drop additional char * pointers if the values they point to can be statically determined
 	if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
-		if(aliasAnalysis->isMultiAssignmentPointer(func, initName) == false){
+		if(aliasAnalysis->isStaticallyDeterminatePointer(func, initName)){
 			dropVarDecl = true;
 			printf("marked 2\n");
 		} else {

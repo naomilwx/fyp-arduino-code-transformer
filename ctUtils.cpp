@@ -196,7 +196,7 @@ bool isArduinoStringType(SgType *type) {
 }
 
 int getPointerLevel(SgType *type) {
-	type = type->stripType(SgType::STRIP_MODIFIER_TYPE);
+	type = type->stripType(SgType::STRIP_MODIFIER_TYPE | SgType::STRIP_REFERENCE_TYPE);
 	if(type == NULL){
 		return 0;
 	}

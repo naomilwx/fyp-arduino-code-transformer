@@ -846,6 +846,15 @@ bool PointerAliasAnalysis::isUnmodifiedStringOrCharArray(SgFunctionDeclaration *
 	return false;
 }
 
+bool PointerAliasAnalysis::isStaticallyDeterminatePointer(SgFunctionDeclaration *func, SgNode *exp){
+	PointerAliasLattice *lat = getReturnStateAliasLattice(func, exp);
+		if(lat) {
+			return lat->getState() < PointerAliasLattice::STATICALLY_UNKNOWN;
+		}
+		return true;
+}
+
+
 bool PointerAliasAnalysis::isMultiAssignmentPointer(SgFunctionDeclaration *func, SgNode *exp) {
 	PointerAliasLattice *lat = getReturnStateAliasLattice(func, exp);
 	if(lat) {
