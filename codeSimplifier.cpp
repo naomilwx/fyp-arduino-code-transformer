@@ -15,7 +15,7 @@ void SimplifyFunctionDeclaration::runTransformation() {
 	transformVarDecls();
 	transformAssignments();
 
-	buildStringPlaceholders();
+//	buildStringPlaceholders();
 
 	tranformVarRefs();
 	removeStringLiterals();
@@ -138,7 +138,7 @@ void SimplifyFunctionDeclaration::runStringLiteralsTransformation(SgStringVal *s
 		}
 	}
 	printf("replacing string literal: %s %p\n", strVal->get_value().c_str(), strVal);
-	SgVariableDeclaration *placeholder = slPlaceholders[strVal->get_value()];
+	SgVariableDeclaration *placeholder = checkAndBuildPlaceholderForString(strVal->get_value());
 	SgVarRefExp *ref = SageBuilder::buildVarRefExp(placeholder);
 	SageInterface::replaceExpression(strVal, ref);
 	printf("done replacing string literal\n");
@@ -197,7 +197,7 @@ void SimplifyFunctionDeclaration::insertStringPlaceholderDecls() {
 	}
 }
 
-SgVariableDeclaration* SimplifyFunctionDeclaration::checkAndBuildStringPlaceholder(const std::string placeholder){
+SgVariableDeclaration* SimplifyFunctionDeclaration::checkAndBuildStringPlaceholder(const std::string& placeholder){
 	if(builtPlaceholders.find(placeholder) == builtPlaceholders.end()) {
 		std::string str = sla->getStringLiteralForLabel(placeholder);
 		return buildStringPlaceholder(str, placeholder);
@@ -205,11 +205,12 @@ SgVariableDeclaration* SimplifyFunctionDeclaration::checkAndBuildStringPlacehold
 	return builtPlaceholders[placeholder];
 }
 
-void SimplifyFunctionDeclaration::buildStringPlaceholders(){
-	for(auto& str: sla->getStringLiteralsInFunction(func)){
-		std::string pName = sla->getStringLiteralLabel(str);
-		buildStringPlaceholder(str, pName);
+SgVariableDeclaration* SimplifyFunctionDeclaration::checkAndBuildPlaceholderForString(const std::string& str) {
+	if(slPlaceholders.find(str) == slPlaceholders.end()) {
+		std::string placeholder = sla->getStringLiteralLabel(str);
+		return buildStringPlaceholder(str, placeholder);
 	}
+	return slPlaceholders[str];
 }
 
 SgVariableDeclaration* SimplifyFunctionDeclaration::buildStringPlaceholder(const std::string& str, const std::string& placeholder) {

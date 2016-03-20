@@ -44,8 +44,8 @@ private:
 	void runVarDeclTransfromation(SgInitializedName *initName);
 	void insertStringPlaceholderDecls();
 	SgExpression * lookupAlias(varID alias);
-	SgVariableDeclaration* checkAndBuildStringPlaceholder(const std::string placeholder);
-	void buildStringPlaceholders();
+	SgVariableDeclaration* checkAndBuildStringPlaceholder(const std::string& placeholder);
+	SgVariableDeclaration* checkAndBuildPlaceholderForString(const std::string& string);
 	SgVariableDeclaration* buildStringPlaceholder(const std::string& str, const std::string& placeholder);
 	void replaceWithAlias(SgVarRefExp *var);
 	bool isVarExprToReplace(SgExpression *expr);
