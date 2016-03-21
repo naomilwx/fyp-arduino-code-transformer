@@ -40,7 +40,8 @@ int main( int argc, char * argv[] ) {
 //  printf("done\n");
 //
   SimplifyOriginalCode soc(&pal, &lanalysis, project);
-  soc.runTransformation(true);
+  soc.runGlobalTransformation();
+
 
   backend(project);
 }

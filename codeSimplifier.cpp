@@ -8,18 +8,30 @@
 
 using namespace FunctionAnalysisHelper;
 
-std::string FUNCTION_STRING_LITERAL_PLACEHOLDER_PREFIX = "f";
+std::string STRING_LITERAL_PLACEHOLDER_PREFIX = "f";
 
-void SimplifyFunctionDeclaration::runTransformation(bool glob) {
-	if(glob){
-		transformGlobals();
-	}
+void SimplifyFunctionDeclaration::runTransformation() {
 	transformVarDecls();
 	transformAssignments();
 
 	tranformVarRefs();
 	removeStringLiterals();
 	insertStringPlaceholderDecls();
+}
+
+void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVariableDeclaration *> &placeholders){
+	this->slPlaceholders = placeholders;
+	transformVarDecls();
+	transformAssignments();
+
+	tranformVarRefs();
+	removeStringLiterals();
+
+	for(auto &item: slPlaceholders) {
+		if(placeholders.find(item.first) == placeholders.end()){
+			placeholders[item.first] = item.second;
+		}
+	}
 }
 
 void SimplifyFunctionDeclaration::transformAssignments() {
@@ -35,21 +47,6 @@ void SimplifyFunctionDeclaration::transformVarDecls(){
 	for(auto& initName: initNames) {
 		SgInitializedName* iname = isSgInitializedName(initName);
 		runVarDeclTransfromation(iname);
-	}
-}
-
-void SimplifyFunctionDeclaration::transformGlobals() {
-	std::vector<SgInitializedName *> globalVars = getGlobalVars(project);
-	for(auto &var: globalVars) {
-		SgType *type = var->get_type();
-		if(isSgArrayType(type) || !SageInterface::isPointerType(type)) {
-			return;
-		}
-		if(SageInterface::isPointerToNonConstType(type) == false && isSgTypeChar(type->findBaseType())) {
-			if(aliasAnalysis->isStaticallyDeterminatePointer(func, var)){
-				varsToReplace.insert(varID(var));
-			}
-		}
 	}
 }
 
@@ -180,13 +177,13 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	}
 
 	SgExprStatement * funcCallStmt = NULL;
-	//Drop declaration of constant pointers to string literals
+
 	if(isSgAssignInitializer(initializer)) {
 		SgExpression *rhs = isSgAssignInitializer(initializer)->get_operand();
-		if(isSgStringVal(rhs)){
-			dropVarDecl = true;
-			printf("marked 1\n");
-		}
+//		if(isSgStringVal(rhs)){
+//			dropVarDecl = true;
+//			printf("marked 1\n");
+//		}
 		if(isSgFunctionCallExp(rhs)) {
 			SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
 			funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
@@ -198,7 +195,7 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 
 	//Drop additional char * pointers if the values they point to can be statically determined
 	/*TODO: this is problematic when one of the function's param is a reassigned parameter eg:
-	  void f(const char *x) {
+	  void f(const char *&x) {
 	  const char *orig_x = x;
 	  x = "new str";
 	  ...
@@ -206,6 +203,7 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	  orig_x will get wrongly subsituted for x. need to write a procedure to search for assignments to reference params...
 	 */
 	if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
+		//TODO: this is problematic if there is an address on operation on the variable later on
 		if(aliasAnalysis->isStaticallyDeterminatePointer(func, initName)){
 			dropVarDecl = true;
 			printf("marked 2\n");
@@ -235,11 +233,11 @@ void SimplifyFunctionDeclaration::insertStringPlaceholderDecls() {
 }
 
 SgVariableDeclaration* SimplifyFunctionDeclaration::checkAndBuildStringPlaceholder(const std::string& placeholder){
-	if(builtPlaceholders.find(placeholder) == builtPlaceholders.end()) {
-		std::string str = sla->getStringLiteralForLabel(placeholder);
+	std::string str = sla->getStringLiteralForLabel(placeholder);
+	if(slPlaceholders.find(str) == slPlaceholders.end()) {
 		return buildStringPlaceholder(str, placeholder);
 	}
-	return builtPlaceholders[placeholder];
+	return slPlaceholders[str];
 }
 
 SgVariableDeclaration* SimplifyFunctionDeclaration::checkAndBuildPlaceholderForString(const std::string& str) {
@@ -251,24 +249,88 @@ SgVariableDeclaration* SimplifyFunctionDeclaration::checkAndBuildPlaceholderForS
 }
 
 SgVariableDeclaration* SimplifyFunctionDeclaration::buildStringPlaceholder(const std::string& str, const std::string& placeholder) {
+	return SimplifyOriginalCode::buildStringPlaceholder(slPlaceholders, str, placeholder, varDeclsScope);
+}
+
+
+/**
+ * SimplifyOriginalCode
+ * */
+
+SgVariableDeclaration* SimplifyOriginalCode::buildStringPlaceholder(std::map<std::string, SgVariableDeclaration *>& placeholderMap, const std::string& str, const std::string& placeholder, SgScopeStatement *scope) {
 	SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
-	SgScopeStatement *scope = func->get_definition()->get_body();
 	SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
-	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration(FUNCTION_STRING_LITERAL_PLACEHOLDER_PREFIX + placeholder, type, initializer, scope);
-	slPlaceholders[str] = varDec;
-	builtPlaceholders[placeholder] = varDec;
+	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration(STRING_LITERAL_PLACEHOLDER_PREFIX + placeholder, type, initializer, scope);
+	placeholderMap[str] = varDec;
 	return varDec;
 }
 
-void SimplifyOriginalCode::runTransformation(bool transformGlobals) {
+void SimplifyOriginalCode::runTransformation() {
 	for(auto &func: getDefinedFunctions(project)) {
-		simplifyFunction(func, transformGlobals);
+		simplifyFunction(func);
 	}
 }
 
-void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, bool transformGlobals) {
+void SimplifyOriginalCode::transformGlobalVars() {
+	std::vector<SgInitializedName *> globalVars = getGlobalVars(project);
+	std::set<SgInitializedName *> varsToReplace;
+	for(auto &var: globalVars) {
+		SgType *type = var->get_type();
+		if(isSgArrayType(type) || !SageInterface::isPointerType(type)) {
+			return;
+		}
+		if(SageInterface::isPointerToNonConstType(type) == false && isSgTypeChar(type->findBaseType())) {
+			if(isConstantValueGlobalVar(var)) {
+				varsToReplace.insert(var);
+			}
+		}
+	}
+}
+
+void SimplifyOriginalCode::insertPlaceholderDecls() {
+	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	SgStatement *firstDecl = SageInterface::getFirstStatement(global);
+	for(auto &item: sharedPlaceholders) {
+		SageInterface::insertStatement(firstDecl, item.second, true);
+	}
+}
+
+void SimplifyOriginalCode::replaceGlobalVars(std::set<SgInitializedName *> initNames) {
+	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(global, V_SgVarRefExp);
+	for(auto &varRef: varRefs) {
+		SgVarRefExp *ref = isSgVarRefExp(varRef);
+		//TODO:
+	}
+}
+
+bool SimplifyOriginalCode::isConstantValueGlobalVar(SgInitializedName* initName){
+	bool isConstant = true;
+	for(auto &func: getDefinedFunctions(project)) {
+		if(!aliasAnalysis->isNotReassignedOrModified(func, initName)) {
+			return false;
+		}
+	}
+	return isConstant;
+}
+
+void SimplifyOriginalCode::runGlobalTransformation(){
+	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	transformGlobalVars();
+	for(auto &func: getDefinedFunctions(project)) {
+		simplifyFunction(func, global);
+	}
+	insertPlaceholderDecls();
+}
+
+void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope) {
+	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project, varDeclScope);
+	funcHelper.runTransformation(sharedPlaceholders);
+}
+
+void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func) {
 	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project);
-	funcHelper.runTransformation(transformGlobals);
+	funcHelper.runTransformation();
 	printf("function simp result:\n %s\n", func->unparseToString().c_str());
 }
 
@@ -294,4 +356,15 @@ void SimplifyOriginalCode::transformUnmodifiedStringVars(SgFunctionDeclaration *
 			initName->set_type(newType);
 		}
 	}
+}
+
+void  SimplifyOriginalCode::removeStringLiterals() {
+	Rose_STL_Container<SgNode *> stringLiterals = NodeQuery::querySubTree(project, V_SgStringVal);
+	for(auto &strLiteral: stringLiterals) {
+		removeStringLiteral(isSgStringVal(strLiteral));
+	}
+}
+
+void  SimplifyOriginalCode::removeStringLiteral(SgStringVal *strVal) {
+	//TODO:
 }
