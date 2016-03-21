@@ -37,11 +37,8 @@ int main( int argc, char * argv[] ) {
   PointerAliasAnalysisDebugLevel = 1;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
-//  printf("done\n");
-//
+
   SimplifyOriginalCode soc(&pal, &lanalysis, project);
   soc.runGlobalTransformation();
 
-
-  backend(project);
 }

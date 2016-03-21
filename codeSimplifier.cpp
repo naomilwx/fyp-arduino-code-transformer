@@ -356,7 +356,8 @@ void SimplifyOriginalCode::transformUnmodifiedStringVars(SgFunctionDeclaration *
 	SgType *type = initName->get_type();
 	//Convert char arrays which have never been modified to const char * pointers to string literals
 	SgType *eleType = SageInterface::getElementType(type);
-	if(isArduinoStringType(type) || (isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType))) {
+//	if(isArduinoStringType(type) || (isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType))) { //TODO: handle Arduino strings properly
+	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
 		printf("checking %s\n", initName->unparseToString().c_str());
 		if(aliasAnalysis->isUnmodifiedStringOrCharArray(func, initName)) {
 			printf("setting type to const char *\n");

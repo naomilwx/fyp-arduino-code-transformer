@@ -12,7 +12,7 @@
 
 #include "rose.h"
 #include "stringValPropagation.h"
-
+//TODO: write procedure to flatten out function calls
 class SimplifyFunctionDeclaration {
 protected:
 	PointerAliasAnalysis *aliasAnalysis;
@@ -42,7 +42,16 @@ public:
 
 	void removeStringLiterals();
 
+	/**
+	 * Unify string literals: for create a single const char * pointer for each unique String Literal
+	 * Finds all occurances of the string literals and replace them with their respective pointer
+	 * Collaspes char * pointers which point to the same item in memory into a single pointer
+	 *
+	 * */
 	void runTransformation();
+	/**
+	 * slPlaceholders: Global scope place holder variables to be used to replace the string literals
+	 * */
 	void runTransformation(std::map<std::string, SgVariableDeclaration *> &slPlaceholders);
 private:
 	//map of string literal to the placeholder for the string

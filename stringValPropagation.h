@@ -19,7 +19,7 @@ extern int PointerAliasAnalysisDebugLevel;
 class PointerAliasAnalysis;
 
 /*
-Transfer:   We define visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer
+Transfer:  Visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer are defined
 i.e., the CFG nodes that could potentially update any pointers.
 processLHS() and processRHS() functions are used to find the AliasRelations at a CFG node, using the LHS and RHS of 
 the given expression. 
@@ -34,14 +34,12 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		PointerAliasAnalysis* analysis;
 	public:
 
-		//Visit function to apply "transfer" on the specified SgNode in CFG
 		void visit(SgFunctionCallExp *sgn);
 		void visit(SgAssignOp *sgn);
 		void visit(SgAssignInitializer *sgn);
 		void visit(SgConstructorInitializer *sgn);
 		void visit(SgAggregateInitializer *sgn);        
 		void visit(SgFunctionDefinition *def);
-		//		void visit(SgFunctionParameterList *params);
 		bool finish();
 
 		PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis);

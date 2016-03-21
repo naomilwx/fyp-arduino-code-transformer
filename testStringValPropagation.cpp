@@ -27,27 +27,22 @@ int main( int argc, char * argv[] ) {
 //  liveDeadAnalysisDebugLevel = 1;
   analysisDebugLevel = 1;
 
-//  LiveDeadVarsAnalysis ldva(project);
+  LiveDeadVarsAnalysis ldva(project);
 //       ldva.filter = gfilter; // the defaultFitler can provide the same semantics now
-//  UnstructuredPassInterDataflow ciipd_ldva(&ldva);
+  UnstructuredPassInterDataflow ciipd_ldva(&ldva);
   //     assert (ciipd_ldva.filter == gfilter);
-//  ciipd_ldva.runAnalysis();
+  ciipd_ldva.runAnalysis();
 
 
 
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
 
-  transformUnmodifiedStringVars(&lanalysis, project);
-
   PointerAliasAnalysisDebugLevel = 1;
-  PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
+  PointerAliasAnalysis pal(&ldva, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
 //  printAnalysis(&pal, false);
   printf("done\n");
-
-  SimplifyOriginalCode soc(&pal, &lanalysis, project);
-  soc.runTransformation();
 
 //    AstTests::runAllTests(project);
    
@@ -56,6 +51,6 @@ int main( int argc, char * argv[] ) {
 //  PointerAliasAnalysisDebugLevel = 1;
 //  PointerAliasAnalysis newpal(NULL, project, lanalysis.getLiteralMap());
 //  newpal.runAnalysis();
-  backend(project);
+//  backend(project);
 
 }

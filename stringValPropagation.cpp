@@ -727,7 +727,22 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 // **********************************************************************
 void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode& n, const NodeState& state,std::vector<Lattice*>& initLattices, std::vector<NodeFact*>& initFacts){
 	map<varID, Lattice*> emptyM;
-	auto res = new ctVarsExprsProductLattice((Lattice*) new PointerAliasLattice(), emptyM, (Lattice*)NULL,NULL, n, state, globalVarsLattice);
+	ctVarsExprsProductLattice* res;
+	if(ldva){
+		varIDSet liveVars = getAllLiveVarsAt(ldva, state, "    ");
+		std::map<varID, Lattice *> globalsMap;
+		for(auto& item:globalVarsLattice){
+			if(liveVars.find(item.first) != liveVars.end()){
+				globalsMap[item.first] = item.second;
+			}
+		}
+		res= new ctVarsExprsProductLattice((Lattice*) new PointerAliasLattice(), emptyM, (Lattice*)NULL,NULL, n, state, globalsMap);
+
+	}
+	else{
+		res= new ctVarsExprsProductLattice((Lattice*) new PointerAliasLattice(), emptyM, (Lattice*)NULL,NULL, n, state, globalVarsLattice);
+	}
+
 	if(func.get_definition()) {
 		int idx = 0;
 		for(auto&param: func.get_declaration()->get_args()) {

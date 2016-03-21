@@ -56,14 +56,14 @@ typedef std::map<SgStatement *, StringSet> StatementLiteralMap;
 class StringLiteralAnalysis {
 protected:
 	int strCount;
-	StringSet globalStrLiterals; //String literals used in more than one function
+//	StringSet globalStrLiterals; //String literals used in more than one function
 	LiteralMap strLiterals; //Map of string literals to the statements where they are used, the functions where they occur and the tag assigned to them
-	StatementLiteralMap slMap; //Map of statements to the string literals used in the statements. (currently not use)_
+//	StatementLiteralMap slMap; //Map of statements to the string literals used in the statements. (currently not use)_
 	SgProject *project;
 
 
 public:
-	StringLiteralAnalysis(SgProject *project): strCount(0), globalStrLiterals(), strLiterals(), slMap(){
+	StringLiteralAnalysis(SgProject *project): strCount(0), strLiterals(){
 		this->project = project;
 	}
 	void runAnalysis();
@@ -74,11 +74,10 @@ public:
 	SgVariableDeclaration *getPlaceholderForStringLiteral(const std::string& literal);
 	StringSet getStringLiterals();
 	int getNumberOfStringLiterals();
-	bool isGlobalStringLiteral(const std::string& str);
 	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);
 	LiteralMap *getLiteralMap();
 	std::string getAnalysisPrintout();
-	StatementLiteralMap* getStatementLiteralMap();//Not used
+//	StatementLiteralMap* getStatementLiteralMap();//Not used
 
 	friend class StringLiteralAnalysisVisitor;
 };
