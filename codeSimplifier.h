@@ -37,10 +37,11 @@ public:
 				this->varDeclsScope = scope;
 	}
 
-	void transformVarDecls();
-	void tranformVarRefs();
-	void transformAssignments();
+	void replaceVarRefs(std::map<std::string, SgVariableDeclaration *>& placeholderMap, std::set<varID> vars); //Method to replace vars in list with their alias. Assumes that the vars are not reassigned.
+
+
 	void removeStringLiterals();
+
 	void runTransformation();
 	void runTransformation(std::map<std::string, SgVariableDeclaration *> &slPlaceholders);
 private:
@@ -48,6 +49,11 @@ private:
 	std::map<std::string, SgVariableDeclaration *> slPlaceholders;
 	std::set<varID> varsToReplace;
 	std::set<SgInitializer *> ignoredInitializers;
+
+	void transformVarDecls();
+	void tranformVarRefs();
+	void transformAssignments();
+
 	void runAssignmentTransformation(SgAssignOp *op);
 	void runVarRefsTransformation(SgVarRefExp *var);
 	void runStringLiteralsTransformation(SgStringVal *strVal);
@@ -93,7 +99,7 @@ private:
 	std::map<std::string, SgVariableDeclaration *> sharedPlaceholders;
 	void removeStringLiteralsInDecls(std::vector<SgInitializedName *> globalVars);
 	void removeStringLiteral(SgStringVal *strVal);
-	void replaceGlobalVars(std::set<SgInitializedName *> initNames);
+	void replaceGlobalVars(std::set<varID> vars);
 	bool isConstantValueGlobalVar(SgInitializedName *initName);
 	void transformUnmodifiedStringVars(SgFunctionDeclaration *func, SgInitializedName *initName);
 	void insertPlaceholderDecls();

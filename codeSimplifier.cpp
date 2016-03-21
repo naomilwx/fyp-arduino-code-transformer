@@ -142,6 +142,17 @@ void SimplifyFunctionDeclaration::runVarRefsTransformation(SgVarRefExp *var) {
 
 }
 
+void SimplifyFunctionDeclaration::replaceVarRefs(std::map<std::string, SgVariableDeclaration *>& placeholderMap, std::set<varID> vars) {
+	this->varsToReplace = vars;
+	this->slPlaceholders = placeholderMap;
+	tranformVarRefs();
+	for(auto &item: slPlaceholders) {
+			if(placeholderMap.find(item.first) == placeholderMap.end()){
+				placeholderMap[item.first] = item.second;
+			}
+		}
+}
+
 void SimplifyFunctionDeclaration::runStringLiteralsTransformation(SgStringVal *strVal){
 	SgNode *parent = strVal->get_parent();
 	if(isSgInitializer(parent)) {
@@ -166,7 +177,6 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 
 	printf("checking var decl: %s\n", initName->unparseToString().c_str());
 	SgInitializer* initializer = initName->get_initializer();
-	bool dropVarDecl = false;
 
 	SgType *type = initName->get_type();
 	//Convert char arrays cannot be initialised with char* pointers
@@ -175,15 +185,9 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 		ignoredInitializers.insert(initializer);
 		return;
 	}
-
 	SgExprStatement * funcCallStmt = NULL;
-
 	if(isSgAssignInitializer(initializer)) {
 		SgExpression *rhs = isSgAssignInitializer(initializer)->get_operand();
-//		if(isSgStringVal(rhs)){
-//			dropVarDecl = true;
-//			printf("marked 1\n");
-//		}
 		if(isSgFunctionCallExp(rhs)) {
 			SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
 			funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
@@ -192,7 +196,6 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 					func->get_definition()->get_body());
 		}
 	}
-
 	//Drop additional char * pointers if the values they point to can be statically determined
 	/*TODO: this is problematic when one of the function's param is a reassigned parameter eg:
 	  void f(const char *&x) {
@@ -205,23 +208,15 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
 		//TODO: this is problematic if there is an address on operation on the variable later on
 		if(aliasAnalysis->isStaticallyDeterminatePointer(func, initName)){
-			dropVarDecl = true;
-			printf("marked 2\n");
-		} else {
-			printf("unmarked 2\n");
-			dropVarDecl = false;
+			//Steps to drop the associated variable declaration
+			varsToReplace.insert(varID(initName));
+			if(funcCallStmt != NULL) {
+				SageInterface::replaceStatement(varDecl, funcCallStmt, true);
+			} else {
+				SageInterface::removeStatement(varDecl,false);
+			}
+			printf("removing var decl for: %s\n", initName->get_name().str());
 		}
-	}
-
-	//Steps to drop the associated variable declaration
-	if(dropVarDecl) {
-		varsToReplace.insert(varID(initName));
-		if(funcCallStmt != NULL) {
-			SageInterface::replaceStatement(varDecl, funcCallStmt, true);
-		} else {
-			SageInterface::removeStatement(varDecl,false);
-		}
-		printf("removing var decl for: %s\n", initName->get_name().str());
 	}
 
 }
@@ -273,19 +268,31 @@ void SimplifyOriginalCode::runTransformation() {
 
 void SimplifyOriginalCode::transformGlobalVars() {
 	std::vector<SgInitializedName *> globalVars = getGlobalVars(project);
-//	std::set<varID> varsToReplace;
-//	for(auto &var: globalVars) {
-//		SgType *type = var->get_type();
-//		if(isSgArrayType(type) || !SageInterface::isPointerType(type)) {
-//			return;
-//		}
-//		if(SageInterface::isPointerToNonConstType(type) == false && isSgTypeChar(type->findBaseType())) {
-//			if(isConstantValueGlobalVar(var)) {
-//				varsToReplace.insert(varID(var));
-//			}
-//		}
-//	}
-	removeStringLiteralsInDecls(globalVars);
+	std::set<varID> varsToReplace;
+	std::vector<SgInitializedName *>remainingGlobals;
+
+	for(auto &var: globalVars) {
+		printf("checking global var %s\n", var->get_name().str());
+		SgType *type = var->get_type();
+
+		if(!isSgArrayType(type) && SageInterface::isPointerType(type) && isConstantValueGlobalVar(var)) {
+			SgInitializer* initializer = var->get_initializer();
+			if(isSgAssignInitializer(initializer)) {
+				SgExpression *rhs = isSgAssignInitializer(initializer)->get_operand();
+				if(isSgStringVal(rhs)){
+					printf("removing global var %s\n", var->get_name().str());
+					SgVariableDeclaration * varDecl = isSgVariableDeclaration(var->get_declaration());
+					SageInterface::removeStatement(varDecl, true);
+					varsToReplace.insert(varID(var));
+						continue;
+					}
+			}
+		}
+		remainingGlobals.push_back(var);
+	}
+	removeStringLiteralsInDecls(remainingGlobals);
+	replaceGlobalVars(varsToReplace);
+	printf("done transform global vars\n");
 }
 
 void SimplifyOriginalCode::insertPlaceholderDecls() {
@@ -296,12 +303,12 @@ void SimplifyOriginalCode::insertPlaceholderDecls() {
 	}
 }
 
-void SimplifyOriginalCode::replaceGlobalVars(std::set<SgInitializedName *> initNames) {
+void SimplifyOriginalCode::replaceGlobalVars(std::set<varID> vars) {
 	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
-	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(global, V_SgVarRefExp);
-	for(auto &varRef: varRefs) {
-		SgVarRefExp *ref = isSgVarRefExp(varRef);
-		//TODO:
+	for(auto &func: getDefinedFunctions(project)) {
+		printf("running replace global vars\n");
+		SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project, global);
+		funcHelper.replaceVarRefs(sharedPlaceholders, vars);
 	}
 }
 
