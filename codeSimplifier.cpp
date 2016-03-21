@@ -273,18 +273,19 @@ void SimplifyOriginalCode::runTransformation() {
 
 void SimplifyOriginalCode::transformGlobalVars() {
 	std::vector<SgInitializedName *> globalVars = getGlobalVars(project);
-	std::set<SgInitializedName *> varsToReplace;
-	for(auto &var: globalVars) {
-		SgType *type = var->get_type();
-		if(isSgArrayType(type) || !SageInterface::isPointerType(type)) {
-			return;
-		}
-		if(SageInterface::isPointerToNonConstType(type) == false && isSgTypeChar(type->findBaseType())) {
-			if(isConstantValueGlobalVar(var)) {
-				varsToReplace.insert(var);
-			}
-		}
-	}
+//	std::set<varID> varsToReplace;
+//	for(auto &var: globalVars) {
+//		SgType *type = var->get_type();
+//		if(isSgArrayType(type) || !SageInterface::isPointerType(type)) {
+//			return;
+//		}
+//		if(SageInterface::isPointerToNonConstType(type) == false && isSgTypeChar(type->findBaseType())) {
+//			if(isConstantValueGlobalVar(var)) {
+//				varsToReplace.insert(varID(var));
+//			}
+//		}
+//	}
+	removeStringLiteralsInDecls(globalVars);
 }
 
 void SimplifyOriginalCode::insertPlaceholderDecls() {
@@ -358,13 +359,19 @@ void SimplifyOriginalCode::transformUnmodifiedStringVars(SgFunctionDeclaration *
 	}
 }
 
-void  SimplifyOriginalCode::removeStringLiterals() {
-	Rose_STL_Container<SgNode *> stringLiterals = NodeQuery::querySubTree(project, V_SgStringVal);
-	for(auto &strLiteral: stringLiterals) {
-		removeStringLiteral(isSgStringVal(strLiteral));
+void  SimplifyOriginalCode::removeStringLiteralsInDecls(std::vector<SgInitializedName *> globalVars) {
+	for(auto &initName: globalVars){
+		Rose_STL_Container<SgNode *> stringLiterals = NodeQuery::querySubTree(initName, V_SgStringVal);
+		for(auto &strLiteral: stringLiterals) {
+			removeStringLiteral(isSgStringVal(strLiteral));
+		}
 	}
 }
 
 void  SimplifyOriginalCode::removeStringLiteral(SgStringVal *strVal) {
-	//TODO:
+	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	std::string label = sla->getStringLiteralLabel(strVal->get_value());
+	SgVariableDeclaration *placeholder = buildStringPlaceholder(sharedPlaceholders, strVal->get_value(), label, global);
+	SgVarRefExp *ref = SageBuilder::buildVarRefExp(placeholder);
+	SageInterface::replaceExpression(strVal, ref);
 }

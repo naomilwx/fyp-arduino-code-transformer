@@ -91,7 +91,7 @@ public:
 
 private:
 	std::map<std::string, SgVariableDeclaration *> sharedPlaceholders;
-	void removeStringLiterals();
+	void removeStringLiteralsInDecls(std::vector<SgInitializedName *> globalVars);
 	void removeStringLiteral(SgStringVal *strVal);
 	void replaceGlobalVars(std::set<SgInitializedName *> initNames);
 	bool isConstantValueGlobalVar(SgInitializedName *initName);
