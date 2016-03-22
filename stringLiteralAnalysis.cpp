@@ -87,13 +87,9 @@ StringLiteralInfo StringLiteralAnalysis::getStringLiteralInfo(const std::string&
 	return StringLiteralInfo();
 }
 
-bool StringLiteralAnalysis::isGlobalStringLiteral(const std::string& str) {
-	return globalStrLiterals.find(str) != globalStrLiterals.end();
-}
-
-StatementLiteralMap* StringLiteralAnalysis::getStatementLiteralMap() {
-	return &slMap;
-}
+//StatementLiteralMap* StringLiteralAnalysis::getStatementLiteralMap() {
+//	return &slMap;
+//}
 
 LiteralMap* StringLiteralAnalysis::getLiteralMap() {
 	return &strLiterals;
@@ -116,12 +112,6 @@ std::string StringLiteralAnalysis::getAnalysisPrintout(){
 		out << "  " << "details:";
 		out << item.second.getSummaryPrintout();
 	}
-	out << "global string literals: [";
-	for(auto it = globalStrLiterals.begin(); it!=globalStrLiterals.end(); it++){
-		out << (*it);
-		out << ";;";
-	}
-	out << "] \n";
 	return out.str();
 }
 
@@ -150,11 +140,7 @@ void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 		numFuncOcc = sInfo.getFuncOccuranceNum();
 	}
 
-	if(numFuncOcc >1 || numFuncOcc == 0) {
-		analyser->globalStrLiterals.insert(item);
-	}
-
-	analyser->slMap[p].insert(item);
+//	analyser->slMap[p].insert(item);
 }
 
 void StringLiteralAnalysisVisitor::preOrderVisit(SgNode *node){

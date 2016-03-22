@@ -5,6 +5,17 @@
 #include "analysisCommon.h"
 #include "ctUtils.h"
 
+void transformUnmodifiedStringVars(StringLiteralAnalysis *lanalysis, SgProject *project) {
+	analysisDebugLevel = 1;
+	PointerAliasAnalysisDebugLevel = 1;
+	PointerAliasAnalysis pal(NULL, project, lanalysis->getLiteralMap());
+	pal.runAnalysis();
+
+	SimplifyOriginalCode soc(&pal, lanalysis, project);
+	soc.transformUnmodifiedStringVars();
+	printf("done first transform \n");
+}
+
 
 int main( int argc, char * argv[] ) {
   SgProject* project = frontend(argc,argv);
@@ -20,14 +31,15 @@ int main( int argc, char * argv[] ) {
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
 
+  transformUnmodifiedStringVars(&lanalysis, project);
 
-  PointerAliasAnalysisDebugLevel = 0;
+  analysisDebugLevel = 1;
+  PointerAliasAnalysisDebugLevel = 1;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
-  printf("done\n");
 
   SimplifyOriginalCode soc(&pal, &lanalysis, project);
-  soc.runTransformation();
+  soc.runGlobalTransformation();
 
-
+  backend(project);
 }

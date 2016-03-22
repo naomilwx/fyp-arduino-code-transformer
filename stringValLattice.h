@@ -65,7 +65,7 @@ public:
 		BOTTOM,
 		INITIALIZED,
 		REASSIGNED,
-		REASSIGNED_UNKNOWN,
+		STATICALLY_UNKNOWN,
 		MODIFIED
 	};
 protected:
@@ -85,6 +85,7 @@ public:
         void initialize();
         Lattice* copy()const ;
         void copy(Lattice* that);
+        void copy(Lattice*that, bool overwriteState);
         bool operator==(Lattice*);
 
         bool setState(StateVal state);

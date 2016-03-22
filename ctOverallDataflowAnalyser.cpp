@@ -68,8 +68,9 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 				FunctionState::setArgParamMap(call, argParamMap);
 
 				remappedL->remapVars(argParamMap, callee);
-				Dbg::dbg << "      remappedL=["<<calleeL<<"] "<<remappedL->str("        ")<<endl;
-
+				if(analysisDebugLevel>=1) {
+					Dbg::dbg << "      remappedL=["<<calleeL<<"] "<<remappedL->str("        ")<<endl;
+				}
 				// update the callee's Lattice with the new information at the call site
 				modified = calleeL->meetUpdate(remappedL) || modified;
 			} else {

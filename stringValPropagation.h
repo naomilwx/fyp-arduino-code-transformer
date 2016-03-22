@@ -19,7 +19,7 @@ extern int PointerAliasAnalysisDebugLevel;
 class PointerAliasAnalysis;
 
 /*
-Transfer:   We define visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer
+Transfer:  Visit functions for SgFunctinCallExp, SgAssignOp, SgAssignInitializer, SgConstructorInitializer are defined
 i.e., the CFG nodes that could potentially update any pointers.
 processLHS() and processRHS() functions are used to find the AliasRelations at a CFG node, using the LHS and RHS of 
 the given expression. 
@@ -34,14 +34,12 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		PointerAliasAnalysis* analysis;
 	public:
 
-		//Visit function to apply "transfer" on the specified SgNode in CFG
 		void visit(SgFunctionCallExp *sgn);
 		void visit(SgAssignOp *sgn);
 		void visit(SgAssignInitializer *sgn);
 		void visit(SgConstructorInitializer *sgn);
 		void visit(SgAggregateInitializer *sgn);        
 		void visit(SgFunctionDefinition *def);
-		//		void visit(SgFunctionParameterList *params);
 		bool finish();
 
 		PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis);
@@ -55,7 +53,13 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		void processRHS(SgNode *node, struct aliasDerefCount &arNode);
 
 	private:
+		void updateAliasForFunctionCall(PointerAliasLattice *resLat, const aliasDerefCount& leftARNode, SgFunctionCallExp *fcall);
 		std::vector<aliasDerefCount> getReturnAliasForFunctionCall(SgFunctionCallExp *fcall);
+
+
+		void updateStateForAssignOp(PointerAliasLattice *lhsLat, SgExpression *lhs);
+		void transferFunctionCallReturnForAssignOp(SgExpression *lhs, SgFunctionCallExp *rhs, PointerAliasLattice *resLat);
+		void transferFunctionCallReturn(PointerAliasLattice *resLat,  const aliasDerefCount& leftARNode,  SgFunctionCallExp *rhs);
 
 		//Updates the 'aliasedVariables' set by establishing an relation('edge' in compact representation graph) between 'aliasRelations' pair. 'isMust' denotes may or must alias
 		bool updateAliases(set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRelations,int isMust);
@@ -104,7 +108,12 @@ public:
 
 		bool isUnmodifiedStringOrCharArray(SgFunctionDeclaration *func, SgNode *exp);
 		bool isMultiAssignmentPointer(SgFunctionDeclaration *func, SgNode *exp);
+		bool isStaticallyDeterminatePointer(SgFunctionDeclaration *func, SgNode *exp);
+		bool isNotReassignedOrModified(SgFunctionDeclaration *func, SgNode *exp);
+
 		std::set<varID> getAliasesForVariableAtNode(SgNode *node, varID var);
+		PointerAliasLattice *getReturnValueAliasLattice(SgFunctionDeclaration *func);
+		PointerAliasLattice *getReturnValueAliasLattice(const Function& func);
 	private:
 		PointerAliasLattice *getReturnStateAliasLattice(SgFunctionDeclaration *func, SgNode *exp);
 		ctVarsExprsProductLattice *getReturnStateLattice(SgFunctionDeclaration *func);

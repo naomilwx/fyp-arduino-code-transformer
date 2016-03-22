@@ -94,10 +94,10 @@ FunctionSet getDefinedFunctions(SgProject *project) {
 	return definedFunctions[project];
 }
 
-SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project) {
+SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project, bool ignoreCache) {
 	static std::map<SgProject *, SgIncidenceDirectedGraph*> callGraphs;
 	//if(callGraph != NULL) {
-	if(callGraphs.find(project) != callGraphs.end()){	
+	if(ignoreCache == false && callGraphs.find(project) != callGraphs.end()){
 		return callGraphs[project];
 	}
 
@@ -196,7 +196,7 @@ bool isArduinoStringType(SgType *type) {
 }
 
 int getPointerLevel(SgType *type) {
-	type = type->stripType(SgType::STRIP_MODIFIER_TYPE);
+	type = type->stripType(SgType::STRIP_MODIFIER_TYPE | SgType::STRIP_REFERENCE_TYPE);
 	if(type == NULL){
 		return 0;
 	}
