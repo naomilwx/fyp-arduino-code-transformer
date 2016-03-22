@@ -40,6 +40,7 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		void visit(SgConstructorInitializer *sgn);
 		void visit(SgAggregateInitializer *sgn);        
 		void visit(SgFunctionDefinition *def);
+		void visit(SgExpression *expr);
 		bool finish();
 
 		PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis);

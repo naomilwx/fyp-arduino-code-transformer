@@ -146,12 +146,44 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 				paramNode.derefLevel = -1;
 				paramNode.var = isSgVariableSymbol(alias.components.at(0)->get_symbol_from_symbol_table());
 				refs.push_back(paramNode);
+			} else {
+				processRHS(alias.toSgExpression(), paramNode);
+				refs.push_back(paramNode);
 			}
 		}
 	}
 	return refs;
 }
 
+
+void PointerAliasAnalysisTransfer::visit(SgExpression *retExp) {
+	//Visit the return expression instead of the return statement directly because of how MergeAllReturnStates works
+	if(isSgReturnStmt(retExp->get_parent()) == NULL){
+		return;
+	}
+	std::vector<aliasDerefCount> aliases;
+	if(isSgStringVal(retExp)) {
+		aliasDerefCount alias;
+		processRHS(retExp, alias);
+		aliases.push_back(alias);
+	} else if(isSgFunctionCallExp(retExp)) {
+		aliases = getReturnAliasForFunctionCall(isSgFunctionCallExp(retExp));
+	} else {
+		return;
+	}
+	PointerAliasLattice *resLat = getLattice(retExp);
+	std::set<varID> result;
+	bool unknown = false;
+	for(auto &ref: aliases) {
+		unknown = computeAliases(getLattice(ref.vID), ref.vID, ref.derefLevel + 1, result) || unknown;
+	}
+	resLat->setAliasedVariables(result);
+	if(unknown) {
+		resLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
+	} else {
+		resLat->setState(PointerAliasLattice::INITIALIZED);
+	}
+}
 
 
 //Transfer function for Function Call Expressions. 
@@ -390,7 +422,7 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 			alRel!=aliasRelations.end();alRel++ )
 	{
 		computeAliases(getLattice((alRel->first).vID), (alRel->first).vID, (alRel->first).derefLevel, leftResult);
-		computeAliases(getLattice((alRel->second).vID), (alRel->second).vID, (alRel->second).derefLevel+1 , rightResult); 
+		bool aliasUncertain = computeAliases(getLattice((alRel->second).vID), (alRel->second).vID, (alRel->second).derefLevel+1 , rightResult);
 		//		Dbg::dbg<<"LEFT ALIAS SIZE:" <<leftResult.size() <<"RIGHT ALIAS SIZE :"<<rightResult.size();
 
 		if(isMust){
@@ -407,14 +439,14 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 
 		for(set<varID>::iterator leftVar = leftResult.begin(); leftVar != leftResult.end(); leftVar++ ) {
 			toLat = getLattice(*leftVar);
-			//	    if(rightResult.size() == 0) {
-			//		toLat->setAliasedVariables((alRel->second).vID);
-			//           }
 			//printf("lhs %s %d\n", (*leftVar).str().c_str(), rightResult.size());
 			for(set<varID>::iterator rightVar = rightResult.begin(); rightVar != rightResult.end(); rightVar++ ) {
 				toLat->setAliasedVariables(*rightVar); 
 				modified = true; 
 				//		printf("set alias %s\n", (*leftVar).name.c_str());
+			}
+			if(aliasUncertain) {
+				toLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
 			}
 		}  
 	}  

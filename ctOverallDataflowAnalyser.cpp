@@ -87,7 +87,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 		}
 
 			if(modified) {
-				funcsToRerun.insert(funcS->getFunc());
+				funcsToRerun.push_back(funcS->getFunc());
 			}
 		}
 		return modified;
@@ -152,6 +152,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 //				printf("%p %s\n", setupFunc, setupFunc->get_name().str());
 				visit(Function(setupFunc));
 			}
+			//TODO: pass globals info from setup to loop
 			if(loopFunc) {
 //				printf("%p %s\n", loopFunc, loopFunc->get_name().str());
 				visit(Function(loopFunc));
@@ -159,7 +160,13 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 			if(mainFunc) {
 				visit(Function(mainFunc));
 			}
-			std::set<Function> funcsSet(funcsToRerun);
+			for(auto &func: funcs) {
+				//For completeness, run analysis on uncalled functions too.
+				if(analysedFuncs.find(Function(func)) == analysedFuncs.end()) {
+					visit(Function(func));
+				}
+			}
+			std::vector<Function> funcsSet(funcsToRerun);
 			funcsToRerun.clear();
 			for(auto&func: funcsSet) {
 				visit(Function(func));
