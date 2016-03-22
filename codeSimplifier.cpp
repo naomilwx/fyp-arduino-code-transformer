@@ -147,10 +147,10 @@ void SimplifyFunctionDeclaration::replaceVarRefs(std::map<std::string, SgVariabl
 	this->slPlaceholders = placeholderMap;
 	tranformVarRefs();
 	for(auto &item: slPlaceholders) {
-			if(placeholderMap.find(item.first) == placeholderMap.end()){
-				placeholderMap[item.first] = item.second;
-			}
+		if(placeholderMap.find(item.first) == placeholderMap.end()){
+			placeholderMap[item.first] = item.second;
 		}
+	}
 }
 
 void SimplifyFunctionDeclaration::runStringLiteralsTransformation(SgStringVal *strVal){
@@ -185,17 +185,7 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 		ignoredInitializers.insert(initializer);
 		return;
 	}
-	SgExprStatement * funcCallStmt = NULL;
-	if(isSgAssignInitializer(initializer)) {
-		SgExpression *rhs = isSgAssignInitializer(initializer)->get_operand();
-		if(isSgFunctionCallExp(rhs)) {
-			SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
-			funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
-					call->get_type(),
-					call->get_args(),
-					func->get_definition()->get_body());
-		}
-	}
+	
 	//Drop additional char * pointers if the values they point to can be statically determined
 	/*TODO: this is problematic when one of the function's param is a reassigned parameter eg:
 	  void f(const char *&x) {
@@ -208,8 +198,23 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
 		//TODO: this is problematic if there is an address on operation on the variable later on
 		if(aliasAnalysis->isStaticallyDeterminatePointer(func, initName)){
+			//TODO: fix this...
 			//Steps to drop the associated variable declaration
+			SgExprStatement * funcCallStmt = NULL;
+
 			varsToReplace.insert(varID(initName));
+			if(isSgAssignInitializer(initializer)) {
+				SgExpression *rhs = isSgAssignInitializer(initializer)->get_operand();
+				if(isSgFunctionCallExp(rhs)) {
+					SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
+					funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
+							call->get_type(),
+							call->get_args(),
+							func->get_definition()->get_body());
+				}
+			}
+
+
 			if(funcCallStmt != NULL) {
 				SageInterface::replaceStatement(varDecl, funcCallStmt, true);
 			} else {
@@ -284,8 +289,8 @@ void SimplifyOriginalCode::transformGlobalVars() {
 					SgVariableDeclaration * varDecl = isSgVariableDeclaration(var->get_declaration());
 					SageInterface::removeStatement(varDecl, true);
 					varsToReplace.insert(varID(var));
-						continue;
-					}
+					continue;
+				}
 			}
 		}
 		remainingGlobals.push_back(var);
@@ -304,6 +309,9 @@ void SimplifyOriginalCode::insertPlaceholderDecls() {
 }
 
 void SimplifyOriginalCode::replaceGlobalVars(std::set<varID> vars) {
+	if(vars.size() == 0){
+		return;
+	}
 	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
 	for(auto &func: getDefinedFunctions(project)) {
 		printf("running replace global vars\n");
@@ -334,6 +342,7 @@ void SimplifyOriginalCode::runGlobalTransformation(){
 void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope) {
 	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project, varDeclScope);
 	funcHelper.runTransformation(sharedPlaceholders);
+	printf("function simp result:\n %s\n", func->unparseToString().c_str());
 }
 
 void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func) {
@@ -356,7 +365,7 @@ void SimplifyOriginalCode::transformUnmodifiedStringVars(SgFunctionDeclaration *
 	SgType *type = initName->get_type();
 	//Convert char arrays which have never been modified to const char * pointers to string literals
 	SgType *eleType = SageInterface::getElementType(type);
-//	if(isArduinoStringType(type) || (isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType))) { //TODO: handle Arduino strings properly
+	//	if(isArduinoStringType(type) || (isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType))) { //TODO: handle Arduino strings properly
 	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
 		printf("checking %s\n", initName->unparseToString().c_str());
 		if(aliasAnalysis->isUnmodifiedStringOrCharArray(func, initName)) {

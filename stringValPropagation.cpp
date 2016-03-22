@@ -869,6 +869,7 @@ bool PointerAliasAnalysis::isUnmodifiedStringOrCharArray(SgFunctionDeclaration *
 bool PointerAliasAnalysis::isStaticallyDeterminatePointer(SgFunctionDeclaration *func, SgNode *exp){
 	PointerAliasLattice *lat = getReturnStateAliasLattice(func, exp);
 		if(lat) {
+			printf("lat: %s\n", lat->str(" ").c_str());
 			return lat->getState() < PointerAliasLattice::STATICALLY_UNKNOWN;
 		}
 		return true;

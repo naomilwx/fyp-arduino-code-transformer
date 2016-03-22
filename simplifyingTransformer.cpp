@@ -41,4 +41,5 @@ int main( int argc, char * argv[] ) {
   SimplifyOriginalCode soc(&pal, &lanalysis, project);
   soc.runGlobalTransformation();
 
+  backend(project);
 }
