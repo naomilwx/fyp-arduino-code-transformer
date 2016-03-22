@@ -32,7 +32,6 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNode& n, NodeState& state,
 		const std::vector<Lattice*>& dfInfo, bool fw, bool remapArgs){
 
-
 	bool modified = false;
 	SgFunctionCallExp* call = isSgFunctionCallExp(n.getNode());
 	Function callee(call);
@@ -43,6 +42,9 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 			<<func.get_name().getString()<<"()=>"<<callee.get_name().getString()<<"()\n";
 
 	if(callee.get_definition()){
+		if(analysedFuncs.find(callee) == analysedFuncs.end()) {
+			visit(callee);
+		}
 		FunctionState* funcS = FunctionState::getDefinedFuncState(callee);
 		// The lattices before the function (forward: before=above, after=below; backward: before=below, after=above)
 		const vector<Lattice*>* funcLatticesBefore;
@@ -94,6 +96,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 	void ctOverallDataflowAnalyser::visit(const Function& func) {
 		if(func.get_definition())
 		{
+			analysedFuncs.insert(func);
 			FunctionState* fState = FunctionState::getDefinedFuncState(func);
 			assert(fState!=NULL);
 			IntraProceduralDataflow *intraDataflow = dynamic_cast<IntraProceduralDataflow *>(intraAnalysis);
@@ -124,24 +127,23 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 		//	std::vector<SgInitializedName *>globalVars = getGlobalVars(project);
 		printf("begin analysis\n");
 		FunctionSet funcs = getDefinedFunctions(project);
-//		SgIncidenceDirectedGraph *graph = buildProjectCallGraph(project);
 		SgFunctionDeclaration *setupFunc = NULL;
 		SgFunctionDeclaration *loopFunc = NULL;
+		SgFunctionDeclaration *mainFunc = NULL;
 		for(auto &func: funcs){
 //			FunctionState* fState = FunctionState::getFuncState(Function(func));
 			if(func->get_name().getString() == "setup") {
 				setupFunc = func;
 //				printf("%p %s\n", setupFunc, setupFunc->get_name().str());
-			}
-			if(func->get_name().getString() == "loop") {
+			} else if(func->get_name().getString() == "loop") {
 				loopFunc = func;
 //				printf("%p %s\n", loopFunc, loopFunc->get_name().str());
+			} else if(func->get_name().getString() == "main") {
+				mainFunc = func;
+			//				printf("%p %s\n", loopFunc, loopFunc->get_name().str());
 			}
-			printf("running\n");
+//			visit(Function(func));
 
-			visit(Function(func));
-
-			printf("done running\n");
 		}
 
 		do {
@@ -153,6 +155,9 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 			if(loopFunc) {
 //				printf("%p %s\n", loopFunc, loopFunc->get_name().str());
 				visit(Function(loopFunc));
+			}
+			if(mainFunc) {
+				visit(Function(mainFunc));
 			}
 			std::set<Function> funcsSet(funcsToRerun);
 			funcsToRerun.clear();

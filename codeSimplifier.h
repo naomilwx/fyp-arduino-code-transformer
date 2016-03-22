@@ -60,7 +60,7 @@ private:
 	std::set<SgInitializer *> ignoredInitializers;
 
 	void transformVarDecls();
-	void tranformVarRefs();
+	void transformVarRefs();
 	void transformAssignments();
 
 	void runAssignmentTransformation(SgAssignOp *op);

@@ -440,16 +440,21 @@ x: {p}
 To compute aliases for a pointer say 'x' with a deref count =2, we recursively travserse through the pervariableLattices sets to compute its aliases.
 Ex :  computeAliases('x',2,result) -->computeAliases('p', 1, result)  --> computeAliases('a',0,result) --> result = {a}   
  */
-void PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result)
+bool PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result)
 {
 	if(derefLevel==0) {
 		result.insert(var);
+		return false;
 	} else if(lat){
+		bool unknown = (lat->getState() == PointerAliasLattice::STATICALLY_UNKNOWN);
+		//the aliases of the current variable is statically unknown. Therefore the resulting computed variable is statically unknown.
 		set<varID> outS = lat->getAliasedVariables();
 		for(set<varID>::iterator outVar = outS.begin(); outVar != outS.end(); outVar++) {
-			computeAliases(getLattice(*outVar),*outVar,derefLevel-1,result);
+			unknown = (computeAliases(getLattice(*outVar),*outVar,derefLevel-1,result) || unknown);
 		}
+		return unknown;
 	}
+	return true;
 }
 
 void PointerAliasAnalysisTransfer::processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode){

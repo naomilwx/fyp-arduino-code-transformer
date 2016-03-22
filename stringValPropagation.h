@@ -65,7 +65,7 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		bool updateAliases(set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRelations,int isMust);
 
 		//Recursive function to traverse the per-variable lattices to compute Aliases for 'var' at deref count of 'derefLevel'
-		void computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
+		bool computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
 
 		void processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode);
 

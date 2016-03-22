@@ -14,7 +14,7 @@ void SimplifyFunctionDeclaration::runTransformation() {
 	transformVarDecls();
 	transformAssignments();
 
-	tranformVarRefs();
+	transformVarRefs();
 	removeStringLiterals();
 	insertStringPlaceholderDecls();
 }
@@ -24,7 +24,7 @@ void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVari
 	transformVarDecls();
 	transformAssignments();
 
-	tranformVarRefs();
+	transformVarRefs();
 	removeStringLiterals();
 
 	for(auto &item: slPlaceholders) {
@@ -50,7 +50,7 @@ void SimplifyFunctionDeclaration::transformVarDecls(){
 	}
 }
 
-void SimplifyFunctionDeclaration::tranformVarRefs(){
+void SimplifyFunctionDeclaration::transformVarRefs(){
 	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(func, V_SgVarRefExp);
 	for(auto &varRef: varRefs) {
 		runVarRefsTransformation(isSgVarRefExp(varRef));
@@ -145,7 +145,7 @@ void SimplifyFunctionDeclaration::runVarRefsTransformation(SgVarRefExp *var) {
 void SimplifyFunctionDeclaration::replaceVarRefs(std::map<std::string, SgVariableDeclaration *>& placeholderMap, std::set<varID> vars) {
 	this->varsToReplace = vars;
 	this->slPlaceholders = placeholderMap;
-	tranformVarRefs();
+	transformVarRefs();
 	for(auto &item: slPlaceholders) {
 		if(placeholderMap.find(item.first) == placeholderMap.end()){
 			placeholderMap[item.first] = item.second;
@@ -198,7 +198,6 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
 		//TODO: this is problematic if there is an address on operation on the variable later on
 		if(aliasAnalysis->isStaticallyDeterminatePointer(func, initName)){
-			//TODO: fix this...
 			//Steps to drop the associated variable declaration
 			SgExprStatement * funcCallStmt = NULL;
 
