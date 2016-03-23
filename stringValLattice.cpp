@@ -22,6 +22,7 @@ void PointerAliasLattice::copy(Lattice*that_arg, bool overwriteState) {
 	PointerAliasLattice *that = dynamic_cast<PointerAliasLattice*>(that_arg);
 	this->aliasedVariables = that->aliasedVariables;
 	this->aliasRelations = that->aliasRelations;
+	this->aliasDeterminate = that->aliasDeterminate;
 	if(overwriteState || that->state > this->state){
 	    this->state = that->state;
 	}
@@ -38,8 +39,8 @@ bool PointerAliasLattice::operator==(Lattice* that_arg)
 string PointerAliasLattice::str(string indent)
 {
         ostringstream oss;
-	oss << "State:" << state <<" ";
-        oss<< "Aliases:{ ";
+	oss << "State:" << state <<" known:" << aliasDeterminate;
+        oss<< " Aliases:{ ";
         for(set<varID>::iterator al = aliasedVariables.begin(); al!=aliasedVariables.end(); al++){             
              oss << *al;
              if(al != aliasedVariables.end())
@@ -134,6 +135,11 @@ bool PointerAliasLattice::meetUpdate(Lattice* that_arg)
     }
 
     //Update state
+    if((that->state != BOTTOM && that->aliasDeterminate == false) || aliasedVariables.size() != 1) {
+       	aliasDeterminate = false;
+    } else if(this->state == StateVal::BOTTOM) {
+    	aliasDeterminate = that->aliasDeterminate;
+    }
     if(state > StateVal::BOTTOM && state < StateVal::STATICALLY_UNKNOWN && aliasedVariables.size() > 1) {
        	state = StateVal::STATICALLY_UNKNOWN;
        	modified = true;
@@ -143,6 +149,7 @@ bool PointerAliasLattice::meetUpdate(Lattice* that_arg)
     	state = that->state;
     	modified = true;
     }
+
 return modified;
 }
 

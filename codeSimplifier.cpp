@@ -5,6 +5,7 @@
  *      Author: root
  */
 #include "codeSimplifier.h"
+//#include "defUseChains.h"
 
 using namespace FunctionAnalysisHelper;
 
@@ -50,10 +51,45 @@ void SimplifyFunctionDeclaration::transformVarDecls(){
 	}
 }
 
+bool SimplifyFunctionDeclaration::isReplacableVarRef(SgVarRefExp* varRef) {
+	std::string varName = varRef->get_symbol()->get_name().getString();
+	std::string placeholderPref = STRING_LITERAL_PLACEHOLDER_PREFIX + STRING_LITERAL_PREFIX;
+	if(varName.substr(0, placeholderPref.length()) == placeholderPref) {
+		return false;
+	}
+	return (varRef->isUsedAsLValue() == false) && (aliasAnalysis->variableAtNodeHasKnownAlias(varRef, varID(varRef)));
+}
 void SimplifyFunctionDeclaration::transformVarRefs(){
 	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(func, V_SgVarRefExp);
 	for(auto &varRef: varRefs) {
-		runVarRefsTransformation(isSgVarRefExp(varRef));
+		SgVarRefExp *var = isSgVarRefExp(varRef);
+		printf("checking vars: %s\n", var->unparseToString().c_str());
+		if(varID::isValidVarExp(var) == false) {
+			continue;
+		}
+		if(isReplacableVarRef(var)) {
+			//TODO: check for isUsedAsLValue = false and known alias instead...
+			printf("replacing vars: %s\n", varRef->unparseToString().c_str());
+			replaceWithAlias(var);
+			printf("done replacing vars \n");
+
+		}
+	}
+}
+
+
+void SimplifyFunctionDeclaration::transformVarRefs(std::set<varID> varsToReplace){
+	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(func, V_SgVarRefExp);
+	for(auto &varRef: varRefs) {
+		SgVarRefExp *var = isSgVarRefExp(varRef);
+		printf("checking vars: %s\n", var->unparseToString().c_str());
+		if(varID::isValidVarExp(var) && varsToReplace.find(varID(var)) != varsToReplace.end()) {
+			//TODO: check for isUsedAsLValue = false and known alias instead...
+			printf("replacing vars: %s\n", var->unparseToString().c_str());
+			replaceWithAlias(var);
+			printf("done replacing vars \n");
+
+		}
 	}
 }
 
@@ -110,14 +146,16 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 		diff = getPointerLevel(varType) - getPointerLevel(aType);
 		printf("level diff %d\n", diff);
 	}
+
 	while(diff > 0) {
-		SgExpression* parent = isSgExpression(oldExp->get_parent());
-		printf("parent: %s %s\n", parent->class_name().c_str(), parent->unparseToString().c_str());
-		if(parent) {
-			oldExp = parent;
-		} else {
-			break;
-		}
+//		SgExpression* parent = isSgExpression(oldExp->get_parent());
+//		printf("parent: %s %s\n", parent->class_name().c_str(), parent->unparseToString().c_str());
+//		if(parent) {
+//			oldExp = parent;
+//		} else {
+//			break;
+//		}
+		aliasExp = SageBuilder::buildAddressOfOp(aliasExp); //TODO: check correctness of this
 		diff -= 1;
 	}
 	SageInterface::replaceExpression(oldExp, aliasExp);
@@ -130,23 +168,23 @@ bool SimplifyFunctionDeclaration::isVarExprToReplace(SgExpression *expr) {
 	return false;
 }
 
-void SimplifyFunctionDeclaration::runVarRefsTransformation(SgVarRefExp *var) {
-	printf("checking vars: %s\n", var->unparseToString().c_str());
-//			if(var->isUsedAsLValue()) {
-//				printf("l val: %s\n", var->unparseToString().c_str());
-//			} else {
-//				printf("r val: %s\n", var->unparseToString().c_str());
-//			}
-	if(isVarExprToReplace(var)) {
-		//TODO: check for isUsedAsLValue = false and known alias instead...
-		printf("replacing vars: %s\n", var->unparseToString().c_str());
-		//TODO: need to consider alias type
-		replaceWithAlias(var);
-		printf("done replacing vars \n");
-
-	}
-
-}
+//void SimplifyFunctionDeclaration::runVarRefsTransformation(SgVarRefExp *var) {
+//	printf("checking vars: %s\n", var->unparseToString().c_str());
+////			if(var->isUsedAsLValue()) {
+////				printf("l val: %s\n", var->unparseToString().c_str());
+////			} else {
+////				printf("r val: %s\n", var->unparseToString().c_str());
+////			}
+//	if(isVarExprToReplace(var)) {
+//		//TODO: check for isUsedAsLValue = false and known alias instead...
+//		printf("replacing vars: %s\n", var->unparseToString().c_str());
+//		//TODO: need to consider alias type
+//		replaceWithAlias(var);
+//		printf("done replacing vars \n");
+//
+//	}
+//
+//}
 
 void SimplifyFunctionDeclaration::replaceVarRefs(std::map<std::string, SgVariableDeclaration *>& placeholderMap, std::set<varID> vars) {
 	this->varsToReplace = vars;
@@ -202,33 +240,57 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	  orig_x will get wrongly subsituted for x. need to write a procedure to search for assignments to reference params...
 	 */
 	if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
-		//TODO: this is problematic if there is an address on operation on the variable later on
-		if(aliasAnalysis->isStaticallyDeterminatePointer(func, initName)){
-			//Steps to drop the associated variable declaration
-			SgExprStatement * funcCallStmt = NULL;
-
-			varsToReplace.insert(varID(initName));
-			if(isSgAssignInitializer(initializer)) {
-				SgExpression *rhs = isSgAssignInitializer(initializer)->get_operand();
-				if(isSgFunctionCallExp(rhs)) {
-					SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
-					funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
-							call->get_type(),
-							call->get_args(),
-							func->get_definition()->get_body());
-				}
-			}
-
-
-			if(funcCallStmt != NULL) {
-				SageInterface::replaceStatement(varDecl, funcCallStmt, true);
-			} else {
-				SageInterface::removeStatement(varDecl,false);
-			}
-			printf("removing var decl for: %s\n", initName->get_name().str());
-		}
 	}
 
+}
+
+void SimplifyFunctionDeclaration::removeVarDecl(SgInitializedName *initName) {
+	SgVariableDeclaration * varDecl = isSgVariableDeclaration(initName->get_declaration());
+	if(varDecl == NULL) {
+		return;
+	}
+
+	printf("removing var decl: %s\n", initName->unparseToString().c_str());
+	SgInitializer* initializer = initName->get_initializer();
+
+	SgExprStatement * funcCallStmt = NULL;
+
+	if(isSgAssignInitializer(initializer)) {
+		SgExpression *rhs = isSgAssignInitializer(initializer)->get_operand();
+			if(isSgFunctionCallExp(rhs)) {
+				SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
+					funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
+								call->get_type(),
+								call->get_args(),
+								func->get_definition()->get_body());
+			}
+	}
+
+
+	if(funcCallStmt != NULL) {
+		SageInterface::replaceStatement(varDecl, funcCallStmt, true);
+	} else {
+		SageInterface::removeStatement(varDecl,false);
+	}
+	printf("removed var decl for: %s\n", initName->get_name().str());
+}
+
+void SimplifyFunctionDeclaration::removeVarAssignment(SgAssignOp *op) {
+	SgExpression *lhs = NULL;
+	SgExpression *rhs = NULL;
+
+		SageInterface::isAssignmentStatement(op,&lhs, &rhs);
+			SgStatement *oldStmt = isSgStatement(op->get_parent());
+			if(isSgFunctionCallExp(rhs)){
+				SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
+				SgExprStatement * funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
+						call->get_type(),
+						call->get_args(),
+						func->get_definition()->get_body());
+				SageInterface::replaceStatement(oldStmt, funcCallStmt);
+			} else {
+				SageInterface::removeStatement(oldStmt,false);
+			}
 }
 
 void SimplifyFunctionDeclaration::insertStringPlaceholderDecls() {

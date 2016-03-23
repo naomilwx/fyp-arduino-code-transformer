@@ -61,10 +61,15 @@ private:
 
 	void transformVarDecls();
 	void transformVarRefs();
+	void transformVarRefs(std::set<varID> varsToReplace);
 	void transformAssignments();
 
+	void removeVarDecl(SgInitializedName *name);
+	void removeVarAssignment(SgAssignOp *op);
+
+	bool isReplacableVarRef(SgVarRefExp *varRef);
 	void runAssignmentTransformation(SgAssignOp *op);
-	void runVarRefsTransformation(SgVarRefExp *var);
+//	void runVarRefsTransformation(SgVarRefExp *var);
 	void runStringLiteralsTransformation(SgStringVal *strVal);
 	void runVarDeclTransfromation(SgInitializedName *initName);
 

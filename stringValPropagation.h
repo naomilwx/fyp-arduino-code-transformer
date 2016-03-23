@@ -111,6 +111,8 @@ public:
 		bool isStaticallyDeterminatePointer(SgFunctionDeclaration *func, SgNode *exp);
 		bool isNotReassignedOrModified(SgFunctionDeclaration *func, SgNode *exp);
 
+		bool variableAtNodeHasKnownAlias(SgNode *node, varID var);
+
 		std::set<varID> getAliasesForVariableAtNode(SgNode *node, varID var);
 		PointerAliasLattice *getReturnValueAliasLattice(SgFunctionDeclaration *func);
 		PointerAliasLattice *getReturnValueAliasLattice(const Function& func);

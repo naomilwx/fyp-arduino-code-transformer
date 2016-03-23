@@ -83,9 +83,7 @@ void PointerAliasAnalysisTransfer::updateStateForAssignOp(PointerAliasLattice *l
 		} else if(isSgPntrArrRefExp(lhs)){
 			lhsLat->setState(PointerAliasLattice::MODIFIED);
 		} else {
-			if(lhsLat->getAliasedVariables().size() != 1) {
-				lhsLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
-			} else if(lhsLat->getState() != PointerAliasLattice::STATICALLY_UNKNOWN) {
+			if(lhsLat->getState() != PointerAliasLattice::STATICALLY_UNKNOWN) {
 				lhsLat->setState(PointerAliasLattice::REASSIGNED);
 			}
 		}
@@ -315,11 +313,7 @@ void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn) {
 	//Update state
 	PointerAliasLattice* lhsLat =  getLattice(leftARNode.vID);
 	if(lhsLat && lhsLat->getState() != PointerAliasLattice::STATICALLY_UNKNOWN){
-		if(lhsLat->getAliasedVariables().size() != 1) {
-			lhsLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
-		}else {
-			lhsLat->setState(PointerAliasLattice::INITIALIZED);
-		}
+		lhsLat->setState(PointerAliasLattice::INITIALIZED);
 	}
 }
 
@@ -423,8 +417,11 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 				modified = true; 
 				//		printf("set alias %s\n", (*leftVar).name.c_str());
 			}
-			if(aliasUncertain) {
+			if(aliasUncertain || toLat->getAliasedVariables().size() != 1) {
 				toLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
+				toLat->setAliasDeterminate(false);
+			} else {
+				toLat->setAliasDeterminate(true);
 			}
 		}  
 	}  
@@ -440,10 +437,12 @@ void PointerAliasAnalysisTransfer::setAliasesForExpression(SgExpression *expr, s
 		unknown = computeAliases(getLattice(ref.vID), ref.vID, ref.derefLevel + 1, result) || unknown;
 	}
 	resLat->setAliasedVariables(result);
-	if(unknown) {
+	if(unknown || resLat->getAliasedVariables().size() != 1) {
 		resLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
+		resLat->setAliasDeterminate(false);
 	} else {
 		resLat->setState(PointerAliasLattice::INITIALIZED);
+		resLat->setAliasDeterminate(true);
 	}
 }
 
@@ -818,6 +817,12 @@ std::set<varID> PointerAliasAnalysis::getAliasesForVariableAtNode(SgNode *node, 
 	return lat->getAliasedVariables();
 }
 
+bool PointerAliasAnalysis::variableAtNodeHasKnownAlias(SgNode *node, varID var) {
+	NodeState *ns = getNodeStateForNode(node, filter);
+	PointerAliasLattice *lat = getAliasLattice(ns, var);
+	return lat->aliasIsDeterminate();
+}
+
 
 void PointerAliasAnalysis::setGlobalAliasRelationForLat(PointerAliasLattice *lat, aliasDerefCount& lhs, SgNode *rhsExp){
 	aliasDerefCount rhs;
@@ -827,6 +832,9 @@ void PointerAliasAnalysis::setGlobalAliasRelationForLat(PointerAliasLattice *lat
 		set<varID> result;
 		computeGlobalAliases(lat, rhs.vID, rhs.derefLevel + 1, result);
 		lat->setAliasedVariables(result);
+		if(lat->getAliasedVariables().size() == 1) {
+			lat->setAliasDeterminate(true);
+		}
 	}
 }
 
