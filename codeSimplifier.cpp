@@ -101,7 +101,7 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	while(varsToReplace.find(alias) != varsToReplace.end()) {
 		alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, alias).begin());
 	}
-	SgExpression *aliasExp = lookupAlias(alias); //TODO: handle alias to function param
+	SgExpression *aliasExp = lookupAlias(alias);
 	SgType *aType = aliasExp->get_type();
 	SgType *varType = var->get_type();
 	SgExpression *oldExp = var;
@@ -132,7 +132,13 @@ bool SimplifyFunctionDeclaration::isVarExprToReplace(SgExpression *expr) {
 
 void SimplifyFunctionDeclaration::runVarRefsTransformation(SgVarRefExp *var) {
 	printf("checking vars: %s\n", var->unparseToString().c_str());
+//			if(var->isUsedAsLValue()) {
+//				printf("l val: %s\n", var->unparseToString().c_str());
+//			} else {
+//				printf("r val: %s\n", var->unparseToString().c_str());
+//			}
 	if(isVarExprToReplace(var)) {
+		//TODO: check for isUsedAsLValue = false and known alias instead...
 		printf("replacing vars: %s\n", var->unparseToString().c_str());
 		//TODO: need to consider alias type
 		replaceWithAlias(var);
