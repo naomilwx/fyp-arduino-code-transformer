@@ -62,16 +62,15 @@ private:
 	void transformVarDecls();
 	void transformVarRefs();
 	void transformVarRefs(std::set<varID> varsToReplace);
-	void transformAssignments();
 
 	void removeVarDecl(SgInitializedName *name);
 	void removeVarAssignment(SgAssignOp *op);
 
 	bool isReplacableVarRef(SgVarRefExp *varRef);
-	void runAssignmentTransformation(SgAssignOp *op);
 //	void runVarRefsTransformation(SgVarRefExp *var);
 	void runStringLiteralsTransformation(SgStringVal *strVal);
-	void runVarDeclTransfromation(SgInitializedName *initName);
+
+	void markCharArrayInitializers(SgInitializedName *initName);
 
 	void insertStringPlaceholderDecls();
 
@@ -110,6 +109,7 @@ public:
 	void transformUnmodifiedStringVars();
 
 private:
+
 	std::map<std::string, SgVariableDeclaration *> sharedPlaceholders;
 	void removeStringLiteralsInDecls(std::vector<SgInitializedName *> globalVars);
 	void removeStringLiteral(SgStringVal *strVal);

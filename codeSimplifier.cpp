@@ -13,7 +13,6 @@ std::string STRING_LITERAL_PLACEHOLDER_PREFIX = "f";
 
 void SimplifyFunctionDeclaration::runTransformation() {
 	transformVarDecls();
-	transformAssignments();
 
 	transformVarRefs();
 	removeStringLiterals();
@@ -23,7 +22,6 @@ void SimplifyFunctionDeclaration::runTransformation() {
 void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVariableDeclaration *> &placeholders){
 	this->slPlaceholders = placeholders;
 	transformVarDecls();
-	transformAssignments();
 
 	transformVarRefs();
 	removeStringLiterals();
@@ -35,19 +33,11 @@ void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVari
 	}
 }
 
-void SimplifyFunctionDeclaration::transformAssignments() {
-	//remove assignment statements for variable declarations that have been eliminated
-	Rose_STL_Container<SgNode *> assignOps = NodeQuery::querySubTree(func, V_SgAssignOp);
-	for(auto& assignOp: assignOps) {
-		runAssignmentTransformation(isSgAssignOp(assignOp));
-	}
-}
-
 void SimplifyFunctionDeclaration::transformVarDecls(){
 	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
 	for(auto& initName: initNames) {
 		SgInitializedName* iname = isSgInitializedName(initName);
-		runVarDeclTransfromation(iname);
+		markCharArrayInitializers(iname);
 	}
 }
 
@@ -97,26 +87,6 @@ void SimplifyFunctionDeclaration::removeStringLiterals() {
 	Rose_STL_Container<SgNode *> stringLiterals = NodeQuery::querySubTree(func, V_SgStringVal);
 	for(auto &strLiteral: stringLiterals) {
 		runStringLiteralsTransformation(isSgStringVal(strLiteral));
-	}
-}
-
-void SimplifyFunctionDeclaration::runAssignmentTransformation(SgAssignOp *op) {
-	SgExpression *lhs = NULL;
-	SgExpression *rhs = NULL;
-
-	SageInterface::isAssignmentStatement(op,&lhs, &rhs);
-	if(isVarExprToReplace(lhs)) {
-		SgStatement *oldStmt = isSgStatement(op->get_parent());
-		if(isSgFunctionCallExp(rhs)){
-			SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
-			SgExprStatement * funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
-					call->get_type(),
-					call->get_args(),
-					func->get_definition()->get_body());
-			SageInterface::replaceStatement(oldStmt, funcCallStmt);
-		} else {
-			SageInterface::removeStatement(oldStmt,false);
-		}
 	}
 }
 
@@ -213,12 +183,11 @@ void SimplifyFunctionDeclaration::runStringLiteralsTransformation(SgStringVal *s
 }
 
 
-void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *initName) {
+void SimplifyFunctionDeclaration::markCharArrayInitializers(SgInitializedName *initName) {
 	SgVariableDeclaration * varDecl = isSgVariableDeclaration(initName->get_declaration());
 	if(varDecl == NULL) {
 		return;
 	}
-
 	printf("checking var decl: %s\n", initName->unparseToString().c_str());
 	SgInitializer* initializer = initName->get_initializer();
 
@@ -228,18 +197,6 @@ void SimplifyFunctionDeclaration::runVarDeclTransfromation(SgInitializedName *in
 	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
 		ignoredInitializers.insert(initializer);
 		return;
-	}
-	
-	//Drop additional char * pointers if the values they point to can be statically determined
-	/*TODO: this is problematic when one of the function's param is a reassigned parameter eg:
-	  void f(const char *&x) {
-	  const char *orig_x = x;
-	  x = "new str";
-	  ...
-	  }
-	  orig_x will get wrongly subsituted for x. need to write a procedure to search for assignments to reference params...
-	 */
-	if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
 	}
 
 }
