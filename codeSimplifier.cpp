@@ -104,9 +104,9 @@ SgExpression * SimplifyFunctionDeclaration::lookupAlias(varID alias) {
 
 void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	varID alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, varID(var)).begin());
-	while(varsToReplace.find(alias) != varsToReplace.end()) {
-		alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, alias).begin());
-	}
+//	while(varsToReplace.find(alias) != varsToReplace.end()) {
+//		alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, alias).begin());
+//	}
 	SgExpression *aliasExp = lookupAlias(alias);
 	SgType *aType = aliasExp->get_type();
 	SgType *varType = var->get_type();
@@ -131,35 +131,11 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	SageInterface::replaceExpression(oldExp, aliasExp);
 }
 
-bool SimplifyFunctionDeclaration::isVarExprToReplace(SgExpression *expr) {
-	if(varID::isValidVarExp(expr) && varsToReplace.find(varID(expr)) != varsToReplace.end()){
-		return true;
-	}
-	return false;
-}
-
-//void SimplifyFunctionDeclaration::runVarRefsTransformation(SgVarRefExp *var) {
-//	printf("checking vars: %s\n", var->unparseToString().c_str());
-////			if(var->isUsedAsLValue()) {
-////				printf("l val: %s\n", var->unparseToString().c_str());
-////			} else {
-////				printf("r val: %s\n", var->unparseToString().c_str());
-////			}
-//	if(isVarExprToReplace(var)) {
-//		//TODO: check for isUsedAsLValue = false and known alias instead...
-//		printf("replacing vars: %s\n", var->unparseToString().c_str());
-//		//TODO: need to consider alias type
-//		replaceWithAlias(var);
-//		printf("done replacing vars \n");
-//
-//	}
-//
-//}
 
 void SimplifyFunctionDeclaration::replaceVarRefs(std::map<std::string, SgVariableDeclaration *>& placeholderMap, std::set<varID> vars) {
-	this->varsToReplace = vars;
+//	this->varsToReplace = vars;
 	this->slPlaceholders = placeholderMap;
-	transformVarRefs();
+	transformVarRefs(vars);
 	for(auto &item: slPlaceholders) {
 		if(placeholderMap.find(item.first) == placeholderMap.end()){
 			placeholderMap[item.first] = item.second;

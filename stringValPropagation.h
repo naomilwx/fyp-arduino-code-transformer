@@ -101,7 +101,7 @@ public:
 		boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& 
 				n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
-
+		bool runAnalysis(const Function &func, NodeState *fstate, bool analyzeDueToCallers, std::set<Function> calleesUpdated);
 		void runAnalysis();
 		void runGlobalVarAnalysis();
 		void transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state);

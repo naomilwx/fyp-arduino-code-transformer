@@ -989,6 +989,19 @@ ctVarsExprsProductLattice * PointerAliasAnalysis::getReturnStateLattice(SgFuncti
 	return NULL;
 }
 
+bool PointerAliasAnalysis::runAnalysis(const Function &func, NodeState *fstate, bool analyzeDueToCallers, std::set<Function> calleesUpdated) {
+	bool res = IntraFWDataflow::runAnalysis(func, fstate, analyzeDueToCallers, calleesUpdated);
+	std::vector<SgInitializedName *> vars = getGlobalVars(project);
+	ctVarsExprsProductLattice *retState = getReturnStateLattice(func.get_declaration());
+	for(auto& var:vars) {
+		PointerAliasLattice *lat = dynamic_cast<PointerAliasLattice *>(retState->getVarLattice(varID(var)));
+		if(lat) {
+			dynamic_cast<PointerAliasLattice *>(globalVarsLattice[varID(var)])->meetUpdate(lat);
+		}
+	}
+	return res;
+}
+
 //void PointerAliasAnalysisTransfer::transferFunctionCallReturnForAssignOp(SgExpression *lhs, SgFunctionCallExp *rhs, PointerAliasLattice *resLat) {
 //	aliasDerefCount leftARNode;
 //	processLHS(lhs,leftARNode);

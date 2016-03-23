@@ -56,7 +56,7 @@ public:
 private:
 	//map of string literal to the placeholder for the string
 	std::map<std::string, SgVariableDeclaration *> slPlaceholders;
-	std::set<varID> varsToReplace;
+//	std::set<varID> varsToReplace;
 	std::set<SgInitializer *> ignoredInitializers;
 
 	void transformVarDecls();
@@ -82,7 +82,6 @@ private:
 	SgVariableDeclaration* buildStringPlaceholder(const std::string& str, const std::string& placeholder);
 
 
-	bool isVarExprToReplace(SgExpression *expr);
 };
 
 class SimplifyOriginalCode {
