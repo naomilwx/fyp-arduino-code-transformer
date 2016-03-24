@@ -195,3 +195,31 @@ void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap){
 	}
 
 }
+
+void convertVarDeclToProgmemDecl(SgProject *project, SgVariableDeclaration *varDecl) {
+	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	std::string dec = "const char ";
+	SgInitializedName *initName = varDecl->get_variables()[0];
+	std::string literal = isSgAssignInitializer(initName->get_initializer())->get_operand()->unparseToString();
+	dec += initName->get_name().getString() + "[] PROGMEM =\"" + literal + "\";";
+	SgDeclarationStatementPtrList & stmtList = global->get_declarations ();
+		if (stmtList.size()>0) {
+			for (SgDeclarationStatementPtrList::iterator j = stmtList.begin ();
+					j != stmtList.end (); j++){
+				//must have this judgement, otherwise wrong file will be modified!
+				//It could also be the transformation generated statements with #include attached
+				if ( ((*j)->get_file_info ())->isSameFile(global->get_file_info ())||
+						((*j)->get_file_info ())->isTransformation()) {
+
+					PreprocessingInfo* result = new PreprocessingInfo(PreprocessingInfo::CpreprocessorIncludeDeclaration, dec, "Transformation generated",0, 0, 0, PreprocessingInfo::before);
+					(*j)->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
+					break;
+				}
+
+			}
+		}else{
+			PreprocessingInfo* result = new PreprocessingInfo(PreprocessingInfo::CpreprocessorIncludeDeclaration, dec, "Transformation generated",0, 0, 0, PreprocessingInfo::after);
+			global->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
+		}
+	SageInterface::removeStatement(varDecl, true);
+}
