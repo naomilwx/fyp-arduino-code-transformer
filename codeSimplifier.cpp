@@ -47,24 +47,36 @@ void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
 		SgExpression *lhs = op->get_lhs_operand();
 		if(isSgUnaryOp(lhs)) { lhs = isSgUnaryOp(lhs)->get_operand();}
 		if(!isSgVarRefExp(lhs)) { continue;} //Ignore Pointer/Address of/ Array index refs
+		if(isGlobalVarRef(project, isSgVarRefExp(lhs))) { continue; }
 		std::set<SgNode*> refs = defUseInfo[assign];
-		std::set<SgVarRefExp*> diffs;
-		for(auto ref: refs) {
+//		std::set<SgVarRefExp*> diffs;
+		bool redundant = true;
+		for(auto& ref: refs) {
 			SgVarRefExp *varRef = isSgVarRefExp(ref);
 			if(varRef == NULL) { continue; }
 			printf("usage: %s %d\n", ref->unparseToString().c_str(), ref->get_file_info()->get_line());
 			if(removedVarRefs.find(varRef) == removedVarRefs.end()) {
-				diffs.insert(varRef);
+//				diffs.insert(varRef);
+				redundant = false;
+				break;
 			}
 		}
 
-		if(diffs.size() == 0) {
+		if(redundant) {
 			printf("removing... %s\n", assign->unparseToString().c_str());
 			removeVarAssignment(op);
 		}
 	}
 
-
+	printf("pruning var decls \n");
+	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
+	for(auto &initName: initNames) {
+		printf("%s\n", initName->unparseToString().c_str());
+		std::set<SgNode *> refs = defUseInfo[initName];
+		for(auto& ref: refs) {
+			printf("usage: %s %d\n", ref->unparseToString().c_str(), ref->get_file_info()->get_line());
+		}
+	}
 }
 
 void SimplifyFunctionDeclaration::markArrayInitializers(){
@@ -250,6 +262,10 @@ void SimplifyFunctionDeclaration::removeVarAssignment(SgAssignOp *op) {
 				SageInterface::replaceStatement(oldStmt, funcCallStmt);
 			} else {
 				SageInterface::removeStatement(oldStmt,false);
+			}
+			Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(oldStmt, V_SgVarRefExp);
+			for(auto& var: varRefs) {
+				removedVarRefs.insert(isSgVarRefExp(var));
 			}
 }
 

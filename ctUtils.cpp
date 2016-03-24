@@ -187,6 +187,17 @@ std::vector<SgInitializedName *>getGlobalVars(SgProject *project) {
 	return globalVars;
 }
 
+bool isGlobalVarRef(SgProject *project, SgVarRefExp *var) {
+	std::vector<SgInitializedName *>globals = getGlobalVars(project);
+	SgInitializedName *initName = var->get_symbol()->get_declaration();
+	for(auto &global: globals) {
+		if(initName == global) {
+			return true;
+		}
+	}
+	return false;
+}
+
 bool isArduinoStringType(SgType *type) {
 	SgNamedType *named = isSgNamedType(type);
 	if(named != NULL && named->get_name() == "String") {
