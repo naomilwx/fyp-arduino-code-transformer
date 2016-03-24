@@ -6,16 +6,6 @@
 //#include "liveDeadVarAnalysis.h"
 #include "ctUtils.h"
 
-void transformUnmodifiedStringVars(StringLiteralAnalysis *lanalysis, SgProject *project) {
-	PointerAliasAnalysisDebugLevel = 0;
-	PointerAliasAnalysis pal(NULL, project, lanalysis->getLiteralMap());
-	pal.runAnalysis();
-
-	SimplifyOriginalCode soc(&pal, lanalysis, project);
-	soc.transformUnmodifiedStringVars();
-	printf("done first transform \n");
-}
-
 
 int main( int argc, char * argv[] ) {
   SgProject* project = frontend(argc,argv);
@@ -25,7 +15,7 @@ int main( int argc, char * argv[] ) {
   Dbg::init("propagation test", "./proptest", "index.html");
 
 //  liveDeadAnalysisDebugLevel = 1;
-  analysisDebugLevel = 1;
+  analysisDebugLevel = 0;
 
   LiveDeadVarsAnalysis ldva(project);
 //       ldva.filter = gfilter; // the defaultFitler can provide the same semantics now
@@ -37,7 +27,7 @@ int main( int argc, char * argv[] ) {
 
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
-
+  analysisDebugLevel = 1;
   PointerAliasAnalysisDebugLevel = 1;
   PointerAliasAnalysis pal(&ldva, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
