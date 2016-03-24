@@ -96,6 +96,7 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 
 	if(retAliasLat) {
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
+		int num = 0;
 		for(auto &alias: retAliasLat->getAliasedVariables()){
 			std::string name = alias.str();
 			//			printf("return val %s\n", name.c_str());
@@ -112,8 +113,13 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 				refs.push_back(paramNode);
 			} else {
 				processRHS(alias.toSgExpression(), paramNode);
+				if(paramNode.var == NULL) {
+					SgInitializedName *initName = (callee.get_declaration()->get_args())[num];
+					paramNode.var = dynamic_cast<SgVariableSymbol *>(initName->get_symbol_from_symbol_table());
+				}
 				refs.push_back(paramNode);
 			}
+			num++;
 		}
 	}
 	return refs;
@@ -720,7 +726,13 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 			}
 			break;
 		default:
-			sym = NULL;
+		{
+			if(isSgExpression(node)) {
+				var = SgExpr2Var(isSgExpression(node));
+			} else {
+				sym = NULL;
+			}
+		}
 	}
 
 	arNode.derefLevel = derefLevel;
