@@ -29,6 +29,7 @@ void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVari
 
 	transformVarRefs();
 	pruneUnusedVarDefinitions();
+	pruneUnusedVarDeclarations();
 	removeStringLiterals();
 
 	for(auto &item: slPlaceholders) {
@@ -36,6 +37,27 @@ void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVari
 			placeholders[item.first] = item.second;
 		}
 	}
+}
+
+void SimplifyFunctionDeclaration::pruneUnusedVarDeclarations() {
+	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
+	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(func, V_SgVarRefExp);
+	for(auto& init: initNames) {
+		SgInitializedName* initName = isSgInitializedName(init);
+		if(initName->get_initializer() != NULL) { continue; }
+		bool foundRef = false;
+		for(auto& ref:varRefs) {
+			if(isSgVarRefExp(ref)->get_symbol()->get_declaration() == initName) {
+				foundRef = true;
+				continue;
+			}
+		}
+		if(foundRef == false) {
+			removeVarDecl(initName);
+			printf("removing stray... %s\n", initName->unparseToString().c_str());
+		}
+	}
+
 }
 
 void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
@@ -72,18 +94,15 @@ void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
 		SgInitializedName *initName = isSgInitializedName(item);
 		printf("%s\n", initName->unparseToString().c_str());
 		std::set<SgNode *> refs = defUseInfo[initName];
-		if(refs.size() == 0) {
-			removeVarDecl(initName);
-		}
 		bool redundant = true;
 		for(auto& ref: refs) {
 			SgVarRefExp *varRef = isSgVarRefExp(ref);
 			if(varRef == NULL) { continue; }
+			printf("usage: [%s] %s %d\n", ref->unparseToString().c_str(), ref->class_name().c_str(), ref->get_file_info()->get_line());
 			if(removedVarRefs.find(varRef) == removedVarRefs.end()) {
 				redundant = false;
 				break;
 			}
-			printf("usage: [%s] %s %d\n", ref->unparseToString().c_str(), ref->class_name().c_str(), ref->get_file_info()->get_line());
 		}
 		if(redundant) {
 			printf("removing... %s\n", initName->unparseToString().c_str());
@@ -163,9 +182,6 @@ SgExpression * SimplifyFunctionDeclaration::lookupAlias(varID alias) {
 
 void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	varID alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, varID(var)).begin());
-//	while(varsToReplace.find(alias) != varsToReplace.end()) {
-//		alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, alias).begin());
-//	}
 	SgExpression *aliasExp = lookupAlias(alias);
 	SgType *aType = aliasExp->get_type();
 	SgType *varType = var->get_type();

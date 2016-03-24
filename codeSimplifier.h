@@ -56,12 +56,15 @@ public:
 	 * slPlaceholders: Global scope place holder variables to be used to replace the string literals
 	 * */
 	void runTransformation(std::map<std::string, SgVariableDeclaration *> &slPlaceholders, std::map<SgNode*, std::set<SgNode*> > &defUseInfo);
-	void pruneUnusedVarDefinitions();
+
 private:
 	//map of string literal to the placeholder for the string
 	std::map<std::string, SgVariableDeclaration *> slPlaceholders;
 	std::set<SgInitializer *> ignoredInitializers;
 	std::set<SgVarRefExp*> removedVarRefs;
+
+	void pruneUnusedVarDefinitions();
+	void pruneUnusedVarDeclarations(); //Remove variable declarations that are now left unused
 
 	void transformVarRefs();
 	void transformVarRefs(std::set<varID> varsToReplace);
