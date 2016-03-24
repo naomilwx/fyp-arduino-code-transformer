@@ -41,16 +41,7 @@ int main( int argc, char * argv[] ) {
   PointerAliasAnalysisDebugLevel = 1;
   PointerAliasAnalysis pal(&ldva, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
-//  printAnalysis(&pal, false);
   printf("done\n");
 
-//    AstTests::runAllTests(project);
-   
-
-//  analysisDebugLevel = 1;
-//  PointerAliasAnalysisDebugLevel = 1;
-//  PointerAliasAnalysis newpal(NULL, project, lanalysis.getLiteralMap());
-//  newpal.runAnalysis();
-//  backend(project);
 
 }

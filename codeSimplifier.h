@@ -12,6 +12,7 @@
 
 #include "rose.h"
 #include "stringValPropagation.h"
+
 //TODO: write procedure to flatten out function calls
 class SimplifyFunctionDeclaration {
 protected:
@@ -20,6 +21,8 @@ protected:
 	SgFunctionDeclaration *func;
 	SgProject *project;
 	SgScopeStatement *varDeclsScope;
+
+	std::map<SgNode*, std::set<SgNode*> > defUseInfo;
 public:
 	SimplifyFunctionDeclaration(PointerAliasAnalysis *a, StringLiteralAnalysis *s, SgFunctionDeclaration *f, SgProject *p){
 		this->aliasAnalysis = a;
@@ -52,21 +55,31 @@ public:
 	/**
 	 * slPlaceholders: Global scope place holder variables to be used to replace the string literals
 	 * */
-	void runTransformation(std::map<std::string, SgVariableDeclaration *> &slPlaceholders);
+	void runTransformation(std::map<std::string, SgVariableDeclaration *> &slPlaceholders, std::map<SgNode*, std::set<SgNode*> > &defUseInfo);
+
 private:
 	//map of string literal to the placeholder for the string
 	std::map<std::string, SgVariableDeclaration *> slPlaceholders;
-	std::set<varID> varsToReplace;
 	std::set<SgInitializer *> ignoredInitializers;
+	std::set<SgVarRefExp*> removedVarRefs;
 
-	void transformVarDecls();
-	void tranformVarRefs();
-	void transformAssignments();
+	void pruneUnusedVarDefinitions();
+	void pruneUnusedVarDeclarations(); //Remove variable declarations that are now left unused
 
-	void runAssignmentTransformation(SgAssignOp *op);
-	void runVarRefsTransformation(SgVarRefExp *var);
+	void transformVarRefs();
+	void transformVarRefs(std::set<varID> varsToReplace);
+
+	void removeVarDecl(SgInitializedName *name);
+	void removeVarAssignment(SgAssignOp *op);
+	void removeInitializer(SgInitializedName *name);
+	void markContainedVarRefsAsRemoved(SgNode *node);
+
+	bool isReplacableVarRef(SgVarRefExp *varRef);
+//	void runVarRefsTransformation(SgVarRefExp *var);
 	void runStringLiteralsTransformation(SgStringVal *strVal);
-	void runVarDeclTransfromation(SgInitializedName *initName);
+
+	void markArrayInitializers();
+	void markCharArrayInitializers(SgInitializedName *initName);
 
 	void insertStringPlaceholderDecls();
 
@@ -78,7 +91,6 @@ private:
 	SgVariableDeclaration* buildStringPlaceholder(const std::string& str, const std::string& placeholder);
 
 
-	bool isVarExprToReplace(SgExpression *expr);
 };
 
 class SimplifyOriginalCode {
@@ -87,20 +99,16 @@ protected:
 	StringLiteralAnalysis *sla;
 	SgProject *project;
 public:
-	SimplifyOriginalCode(PointerAliasAnalysis *a, StringLiteralAnalysis* s, SgProject *p){
-		this->aliasAnalysis = a;
-		this->sla = s;
-		this->project = p;
-	};
+	SimplifyOriginalCode(PointerAliasAnalysis *a, StringLiteralAnalysis* s, SgProject *p);
 
 	static SgVariableDeclaration* buildStringPlaceholder(std::map<std::string, SgVariableDeclaration *>& slPlaceholders, const std::string& str, const std::string& placeholder, SgScopeStatement *scope);
 
-	void runGlobalTransformation();
-	void runTransformation();
+	void runGlobalTransformation(std::map<SgNode*, std::set<SgNode*> > & defUse);
+//	void runTransformation();
 
 	void transformGlobalVars();
 	void simplifyFunction(SgFunctionDeclaration *func);
-	void simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope);
+	void simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope, std::map<SgNode*, std::set<SgNode*> > &defUseInfo);
 
 	void transformUnmodifiedStringVars();
 

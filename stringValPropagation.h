@@ -40,6 +40,7 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		void visit(SgConstructorInitializer *sgn);
 		void visit(SgAggregateInitializer *sgn);        
 		void visit(SgFunctionDefinition *def);
+		void visit(SgExpression *expr);
 		bool finish();
 
 		PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis);
@@ -53,19 +54,18 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 		void processRHS(SgNode *node, struct aliasDerefCount &arNode);
 
 	private:
-		void updateAliasForFunctionCall(PointerAliasLattice *resLat, const aliasDerefCount& leftARNode, SgFunctionCallExp *fcall);
 		std::vector<aliasDerefCount> getReturnAliasForFunctionCall(SgFunctionCallExp *fcall);
 
 
 		void updateStateForAssignOp(PointerAliasLattice *lhsLat, SgExpression *lhs);
-		void transferFunctionCallReturnForAssignOp(SgExpression *lhs, SgFunctionCallExp *rhs, PointerAliasLattice *resLat);
-		void transferFunctionCallReturn(PointerAliasLattice *resLat,  const aliasDerefCount& leftARNode,  SgFunctionCallExp *rhs);
 
 		//Updates the 'aliasedVariables' set by establishing an relation('edge' in compact representation graph) between 'aliasRelations' pair. 'isMust' denotes may or must alias
 		bool updateAliases(set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRelations,int isMust);
 
+		void setAliasesForExpression(SgExpression *expr, std::vector<aliasDerefCount> aliases);
+
 		//Recursive function to traverse the per-variable lattices to compute Aliases for 'var' at deref count of 'derefLevel'
-		void computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
+		bool computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result);
 
 		void processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode);
 
@@ -101,7 +101,7 @@ public:
 		boost::shared_ptr<IntraDFTransferVisitor> getTransferVisitor(const Function& func, const DataflowNode& 
 				n, NodeState& state, const std::vector<Lattice*>& dfInfo);
 
-
+		bool runAnalysis(const Function &func, NodeState *fstate, bool analyzeDueToCallers, std::set<Function> calleesUpdated);
 		void runAnalysis();
 		void runGlobalVarAnalysis();
 		void transferFunctionCall(const Function &func, const DataflowNode &n, NodeState *state);
@@ -110,6 +110,8 @@ public:
 		bool isMultiAssignmentPointer(SgFunctionDeclaration *func, SgNode *exp);
 		bool isStaticallyDeterminatePointer(SgFunctionDeclaration *func, SgNode *exp);
 		bool isNotReassignedOrModified(SgFunctionDeclaration *func, SgNode *exp);
+
+		bool variableAtNodeHasKnownAlias(SgNode *node, varID var);
 
 		std::set<varID> getAliasesForVariableAtNode(SgNode *node, varID var);
 		PointerAliasLattice *getReturnValueAliasLattice(SgFunctionDeclaration *func);

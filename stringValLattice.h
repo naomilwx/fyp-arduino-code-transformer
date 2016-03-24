@@ -75,9 +75,10 @@ protected:
         //Set of all alias relations per CFG Node. These relations denote the graph edges in the compact represntation graph for pointers
         set< std::pair<aliasDerefCount, aliasDerefCount> > aliasRelations;
 	StateVal state;
+	bool aliasDeterminate;
 public:
-        PointerAliasLattice():state(BOTTOM){};
-        PointerAliasLattice(const PointerAliasLattice& lat): state(lat.state), aliasedVariables(lat.aliasedVariables), aliasRelations(lat.aliasRelations){
+        PointerAliasLattice():state(BOTTOM), aliasDeterminate(false){};
+        PointerAliasLattice(const PointerAliasLattice& lat): state(lat.state), aliasDeterminate(lat.aliasDeterminate), aliasedVariables(lat.aliasedVariables), aliasRelations(lat.aliasRelations){
         }
         ~PointerAliasLattice() {
 //        	printf("deleting %s\n", this->str(" ").c_str());
@@ -91,6 +92,13 @@ public:
         bool setState(StateVal state);
         StateVal getState() {
         	return state;
+        }
+
+        void setAliasDeterminate(bool det) {
+        	this->aliasDeterminate = det;
+        }
+        bool aliasIsDeterminate() {
+        	return aliasDeterminate;
         }
 
         bool meetUpdate(Lattice* that);

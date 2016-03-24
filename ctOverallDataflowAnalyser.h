@@ -19,7 +19,9 @@
 class ctOverallDataflowAnalyser: public virtual InterProceduralDataflow {
 	protected:
 		SgProject *project;
-		std::set<Function> funcsToRerun;
+		std::vector<Function> funcsToRerun;
+		std::set<Function> analysedFuncs;
+		SgIncidenceDirectedGraph *callGraph;
 	public:
 		ctOverallDataflowAnalyser(SgProject *project, IntraUniDirectionalDataflow *analyser);
 		void runAnalysis();

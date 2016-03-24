@@ -24,6 +24,7 @@ SgExpression *getFunctionRef(SgFunctionCallExp *call);
 
 bool isFromLibrary(SgInitializedName* initName);
 std::vector<SgInitializedName *>getGlobalVars(SgProject *project);
+bool isGlobalVarRef(SgProject *project, SgVarRefExp *var);
 
 //bool isConstantType(SgType *nType);
 bool isArduinoStringType(SgType *type);

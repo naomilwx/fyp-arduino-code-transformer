@@ -36,17 +36,18 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 	aliasDerefCount leftARNode, rightARNode;
 
 	SageInterface::isAssignmentStatement(sgn,&lhs, &rhs);
-	if(isSgFunctionCallExp(rhs)) {
-		transferFunctionCallReturnForAssignOp(lhs, isSgFunctionCallExp(rhs), resLat);
-		return;
-	}
 
 	//	Dbg::dbg << "AssignOP Stement"<<lhs->variantT()<<"and"<<rhs->variantT()<<"\n";
 	processLHS(lhs,leftARNode);
 
 	bool changed = false;
-
-	processRHS(rhs,rightARNode);
+	if(isSgFunctionCallExp(rhs)) {
+		rightARNode.vID = SgExpr2Var(rhs);
+		rightARNode.var = leftARNode.var; //TODO: this is a hack, since var is not used but cannot be null
+		rightARNode.derefLevel = 0;
+	} else {
+		processRHS(rhs,rightARNode);
+	}
 	//Establish the per CFG-node alias relations
 	if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
 		changed = resLat->setAliasRelation(make_pair(leftARNode,rightARNode)) || changed;
@@ -82,46 +83,11 @@ void PointerAliasAnalysisTransfer::updateStateForAssignOp(PointerAliasLattice *l
 		} else if(isSgPntrArrRefExp(lhs)){
 			lhsLat->setState(PointerAliasLattice::MODIFIED);
 		} else {
-			if(lhsLat->getAliasedVariables().size() != 1) {
-				lhsLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
-			} else if(lhsLat->getState() != PointerAliasLattice::STATICALLY_UNKNOWN) {
+			if(lhsLat->getState() != PointerAliasLattice::STATICALLY_UNKNOWN) {
 				lhsLat->setState(PointerAliasLattice::REASSIGNED);
 			}
 		}
 	}
-}
-
-void PointerAliasAnalysisTransfer::updateAliasForFunctionCall(PointerAliasLattice *resLat ,const aliasDerefCount& leftARNode, SgFunctionCallExp *rhs){
-	std::vector<aliasDerefCount> rhsRefs = getReturnAliasForFunctionCall(rhs);
-	for(auto &ref: rhsRefs) {
-		resLat->setAliasRelation(make_pair(leftARNode, ref));
-	}
-	updateAliases(resLat->getAliasRelations(),1);
-}
-
-void PointerAliasAnalysisTransfer::transferFunctionCallReturnForAssignOp(SgExpression *lhs, SgFunctionCallExp *rhs, PointerAliasLattice *resLat) {
-	aliasDerefCount leftARNode;
-	processLHS(lhs,leftARNode);
-	updateAliasForFunctionCall(resLat, leftARNode, rhs);
-
-	//Update state
-	Function callee(rhs);
-	PointerAliasLattice *retAliasLat = analysis->getReturnValueAliasLattice(callee);
-	auto retAliasState = retAliasLat->getState();
-
-	PointerAliasLattice *lhsLat;
-	set <varID>  result;
-	computeAliases(getLattice(leftARNode.vID), leftARNode.vID, leftARNode.derefLevel, result);
-	for(auto &var: result) {
-		lhsLat = getLattice(var);
-		auto currState = lhsLat->getState();
-		if(retAliasState == PointerAliasLattice::STATICALLY_UNKNOWN && currState < PointerAliasLattice::STATICALLY_UNKNOWN) {
-			lhsLat->setState(retAliasState);
-		} else {
-			updateStateForAssignOp(lhsLat, lhs);
-		}
-	}
-
 }
 
 std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunctionCall(SgFunctionCallExp *fcall){
@@ -146,6 +112,9 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 				paramNode.derefLevel = -1;
 				paramNode.var = isSgVariableSymbol(alias.components.at(0)->get_symbol_from_symbol_table());
 				refs.push_back(paramNode);
+			} else {
+				processRHS(alias.toSgExpression(), paramNode);
+				refs.push_back(paramNode);
 			}
 		}
 	}
@@ -153,14 +122,48 @@ std::vector<aliasDerefCount> PointerAliasAnalysisTransfer::getReturnAliasForFunc
 }
 
 
+void PointerAliasAnalysisTransfer::visit(SgExpression *retExp) {
+	//Visit the return expression instead of the return statement directly because of how MergeAllReturnStates works
+	if(isSgReturnStmt(retExp->get_parent()) == NULL){
+		return;
+	}
+
+	if(isSgStringVal(retExp)) {
+		aliasDerefCount alias;
+		vector<aliasDerefCount> aliases;
+		processRHS(retExp, alias);
+		aliases.push_back(alias);
+		setAliasesForExpression(retExp, aliases);
+	}
+}
+
 
 //Transfer function for Function Call Expressions. 
 //Gets the lattice of the function call expression and updates lattice with alias information
 void PointerAliasAnalysisTransfer::visit(SgFunctionCallExp *sgn) {
 	//TODO: handle arguments modified by function
 	propagateFunctionCallEffect(sgn);
+
+	Function callee(sgn);
 	PointerAliasLattice *resLat = getLattice(sgn);
-	updateAliases(resLat->getAliasRelations(),1);
+	if(callee.get_definition()){
+		PointerAliasLattice *retAliasLat = analysis->getReturnValueAliasLattice(callee);
+		if(!retAliasLat) {
+			return;
+		}
+		std::vector<aliasDerefCount> aliases = getReturnAliasForFunctionCall(isSgFunctionCallExp(sgn));
+		setAliasesForExpression(sgn, aliases);
+
+		auto retAliasState = retAliasLat->getState();
+		if(retAliasState == PointerAliasLattice::STATICALLY_UNKNOWN && resLat->getState() < PointerAliasLattice::STATICALLY_UNKNOWN) {
+			resLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
+		}
+
+	}else {
+		updateAliases(resLat->getAliasRelations(),1);
+	}
+
+
 }
 
 void PointerAliasAnalysisTransfer::approximateFunctionCallEffect(SgFunctionCallExp *fcall){
@@ -258,19 +261,19 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
 	}
 }
 
-void PointerAliasAnalysisTransfer::transferFunctionCallReturn(PointerAliasLattice *resLat,  const aliasDerefCount& leftARNode, SgFunctionCallExp *rhs){
-	updateAliasForFunctionCall(resLat, leftARNode, rhs);
-
-	//Update state
-	PointerAliasLattice* lhsLat =  getLattice(leftARNode.vID);
-	Function callee(rhs);
-	PointerAliasLattice *retAliasLat = analysis->getReturnValueAliasLattice(callee);
-	auto retAliasState = retAliasLat->getState();
-
-	if(retAliasState == PointerAliasLattice::STATICALLY_UNKNOWN && lhsLat->getState() < PointerAliasLattice::STATICALLY_UNKNOWN) {
-		lhsLat->setState(retAliasState);
-	}
-}
+//void PointerAliasAnalysisTransfer::transferFunctionCallReturn(PointerAliasLattice *resLat,  const aliasDerefCount& leftARNode, SgFunctionCallExp *rhs){
+//	updateAliasForFunctionCall(resLat, leftARNode, rhs);
+//
+//	//Update state
+//	PointerAliasLattice* lhsLat =  getLattice(leftARNode.vID);
+//	Function callee(rhs);
+//	PointerAliasLattice *retAliasLat = analysis->getReturnValueAliasLattice(callee);
+//	auto retAliasState = retAliasLat->getState();
+//
+//	if(retAliasState == PointerAliasLattice::STATICALLY_UNKNOWN && lhsLat->getState() < PointerAliasLattice::STATICALLY_UNKNOWN) {
+//		lhsLat->setState(retAliasState);
+//	}
+//}
 
 
 //Transfer function for AssignInitializer operations. 
@@ -286,7 +289,10 @@ void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn) {
 
 	processLHS(lhs,leftARNode);
 	if(isSgFunctionCallExp(rhs)){
-		transferFunctionCallReturn(resLat,  leftARNode, isSgFunctionCallExp(rhs));
+		rightARNode.vID = SgExpr2Var(rhs);
+		rightARNode.var = leftARNode.var; //TODO: this is a hack, since var is not used but cannot be null
+		rightARNode.derefLevel = 0;
+
 	} else {
 		processRHS(rhs,rightARNode);
 
@@ -294,24 +300,20 @@ void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn) {
 			//handle reference variables
 			rightARNode.derefLevel = -1;
 		}
-
-		//Establish the per CFG-node alias relations
-		if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
-			resLat->setAliasRelation(make_pair(leftARNode,rightARNode));
-
-		//Update the Aliases(Compact Representation Graph)
-		updateAliases(resLat->getAliasRelations(),1);
 	}
+
+	//Establish the per CFG-node alias relations
+			if((leftARNode.var !=NULL) && (rightARNode.var !=NULL))
+				resLat->setAliasRelation(make_pair(leftARNode,rightARNode));
+
+			//Update the Aliases(Compact Representation Graph)
+			updateAliases(resLat->getAliasRelations(),1);
 
 
 	//Update state
 	PointerAliasLattice* lhsLat =  getLattice(leftARNode.vID);
 	if(lhsLat && lhsLat->getState() != PointerAliasLattice::STATICALLY_UNKNOWN){
-		if(lhsLat->getAliasedVariables().size() != 1) {
-			lhsLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
-		}else {
-			lhsLat->setState(PointerAliasLattice::INITIALIZED);
-		}
+		lhsLat->setState(PointerAliasLattice::INITIALIZED);
 	}
 }
 
@@ -333,14 +335,16 @@ void PointerAliasAnalysisTransfer::visit(SgAggregateInitializer *sgn) {
 		//printf("getting rhs\n");
 		SgExprListExp *lst = sgn->get_initializers();
 		for(auto &exp: lst->get_expressions()) {
+			aliasDerefCount rightArNode;
 			if(isSgFunctionCallExp(exp)){
-				transferFunctionCallReturn(resLat,  leftArNode, isSgFunctionCallExp(exp));
+				rightArNode.vID = SgExpr2Var(exp);
+				rightArNode.var = leftArNode.var; //TODO: this is a hack, since var is not used but cannot be null
+				rightArNode.derefLevel = 0;
 			}else {
-				aliasDerefCount rightArNode;
 				processRHS(exp, rightArNode);
-				if(rightArNode.var != NULL){
-					resLat->setAliasRelation(make_pair(leftArNode, rightArNode));
-				}
+			}
+			if(rightArNode.var != NULL){
+				resLat->setAliasRelation(make_pair(leftArNode, rightArNode));
 			}
 		}
 	}
@@ -390,7 +394,7 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 			alRel!=aliasRelations.end();alRel++ )
 	{
 		computeAliases(getLattice((alRel->first).vID), (alRel->first).vID, (alRel->first).derefLevel, leftResult);
-		computeAliases(getLattice((alRel->second).vID), (alRel->second).vID, (alRel->second).derefLevel+1 , rightResult); 
+		bool aliasUncertain = computeAliases(getLattice((alRel->second).vID), (alRel->second).vID, (alRel->second).derefLevel+1 , rightResult);
 		//		Dbg::dbg<<"LEFT ALIAS SIZE:" <<leftResult.size() <<"RIGHT ALIAS SIZE :"<<rightResult.size();
 
 		if(isMust){
@@ -407,14 +411,17 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 
 		for(set<varID>::iterator leftVar = leftResult.begin(); leftVar != leftResult.end(); leftVar++ ) {
 			toLat = getLattice(*leftVar);
-			//	    if(rightResult.size() == 0) {
-			//		toLat->setAliasedVariables((alRel->second).vID);
-			//           }
 			//printf("lhs %s %d\n", (*leftVar).str().c_str(), rightResult.size());
 			for(set<varID>::iterator rightVar = rightResult.begin(); rightVar != rightResult.end(); rightVar++ ) {
 				toLat->setAliasedVariables(*rightVar); 
 				modified = true; 
 				//		printf("set alias %s\n", (*leftVar).name.c_str());
+			}
+			if(aliasUncertain || toLat->getAliasedVariables().size() != 1) {
+				toLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
+				toLat->setAliasDeterminate(false);
+			} else {
+				toLat->setAliasDeterminate(true);
 			}
 		}  
 	}  
@@ -422,6 +429,22 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 	return modified; 
 }
 
+void PointerAliasAnalysisTransfer::setAliasesForExpression(SgExpression *expr, std::vector<aliasDerefCount> aliases) {
+	PointerAliasLattice *resLat = getLattice(expr);
+	std::set<varID> result;
+	bool unknown = false;
+	for(auto &ref: aliases) {
+		unknown = computeAliases(getLattice(ref.vID), ref.vID, ref.derefLevel + 1, result) || unknown;
+	}
+	resLat->setAliasedVariables(result);
+	if(unknown || resLat->getAliasedVariables().size() != 1) {
+		resLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
+		resLat->setAliasDeterminate(false);
+	} else {
+		resLat->setState(PointerAliasLattice::INITIALIZED);
+		resLat->setAliasDeterminate(true);
+	}
+}
 
 //Compute Aliases by recursively walking through the compact representation of per-variable lattices
 /*
@@ -440,16 +463,21 @@ x: {p}
 To compute aliases for a pointer say 'x' with a deref count =2, we recursively travserse through the pervariableLattices sets to compute its aliases.
 Ex :  computeAliases('x',2,result) -->computeAliases('p', 1, result)  --> computeAliases('a',0,result) --> result = {a}   
  */
-void PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result)
+bool PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result)
 {
 	if(derefLevel==0) {
 		result.insert(var);
+		return false;
 	} else if(lat){
+		bool unknown = (lat->getState() == PointerAliasLattice::STATICALLY_UNKNOWN);
+		//the aliases of the current variable is statically unknown. Therefore the resulting computed variable is statically unknown.
 		set<varID> outS = lat->getAliasedVariables();
 		for(set<varID>::iterator outVar = outS.begin(); outVar != outS.end(); outVar++) {
-			computeAliases(getLattice(*outVar),*outVar,derefLevel-1,result);
+			unknown = (computeAliases(getLattice(*outVar),*outVar,derefLevel-1,result) || unknown);
 		}
+		return unknown;
 	}
+	return true;
 }
 
 void PointerAliasAnalysisTransfer::processParam(int index, SgScopeStatement *scope, SgInitializedName *param, struct aliasDerefCount &arNode){
@@ -789,6 +817,12 @@ std::set<varID> PointerAliasAnalysis::getAliasesForVariableAtNode(SgNode *node, 
 	return lat->getAliasedVariables();
 }
 
+bool PointerAliasAnalysis::variableAtNodeHasKnownAlias(SgNode *node, varID var) {
+	NodeState *ns = getNodeStateForNode(node, filter);
+	PointerAliasLattice *lat = getAliasLattice(ns, var);
+	return lat->aliasIsDeterminate();
+}
+
 
 void PointerAliasAnalysis::setGlobalAliasRelationForLat(PointerAliasLattice *lat, aliasDerefCount& lhs, SgNode *rhsExp){
 	aliasDerefCount rhs;
@@ -798,6 +832,9 @@ void PointerAliasAnalysis::setGlobalAliasRelationForLat(PointerAliasLattice *lat
 		set<varID> result;
 		computeGlobalAliases(lat, rhs.vID, rhs.derefLevel + 1, result);
 		lat->setAliasedVariables(result);
+		if(lat->getAliasedVariables().size() == 1) {
+			lat->setAliasDeterminate(true);
+		}
 	}
 }
 
@@ -951,3 +988,48 @@ ctVarsExprsProductLattice * PointerAliasAnalysis::getReturnStateLattice(SgFuncti
 	}
 	return NULL;
 }
+
+bool PointerAliasAnalysis::runAnalysis(const Function &func, NodeState *fstate, bool analyzeDueToCallers, std::set<Function> calleesUpdated) {
+	bool res = IntraFWDataflow::runAnalysis(func, fstate, analyzeDueToCallers, calleesUpdated);
+	std::vector<SgInitializedName *> vars = getGlobalVars(project);
+	ctVarsExprsProductLattice *retState = getReturnStateLattice(func.get_declaration());
+	for(auto& var:vars) {
+		PointerAliasLattice *lat = dynamic_cast<PointerAliasLattice *>(retState->getVarLattice(varID(var)));
+		if(lat) {
+			dynamic_cast<PointerAliasLattice *>(globalVarsLattice[varID(var)])->meetUpdate(lat);
+		}
+	}
+	return res;
+}
+
+//void PointerAliasAnalysisTransfer::transferFunctionCallReturnForAssignOp(SgExpression *lhs, SgFunctionCallExp *rhs, PointerAliasLattice *resLat) {
+//	aliasDerefCount leftARNode;
+//	processLHS(lhs,leftARNode);
+//	updateAliasForFunctionCall(resLat, leftARNode, rhs);
+//
+//	//Update state
+//	Function callee(rhs);
+//	PointerAliasLattice *retAliasLat = analysis->getReturnValueAliasLattice(callee);
+//	auto retAliasState = retAliasLat->getState();
+//
+//	PointerAliasLattice *lhsLat;
+//	set <varID>  result;
+//	computeAliases(getLattice(leftARNode.vID), leftARNode.vID, leftARNode.derefLevel, result);
+//	for(auto &var: result) {
+//		lhsLat = getLattice(var);
+//		auto currState = lhsLat->getState();
+//		if(retAliasState == PointerAliasLattice::STATICALLY_UNKNOWN && currState < PointerAliasLattice::STATICALLY_UNKNOWN) {
+//			lhsLat->setState(retAliasState);
+//		} else {
+//			updateStateForAssignOp(lhsLat, lhs);
+//		}
+//	}
+//
+//}
+//void PointerAliasAnalysisTransfer::updateAliasForFunctionCall(PointerAliasLattice *resLat ,const aliasDerefCount& leftARNode, SgFunctionCallExp *rhs){
+//	std::vector<aliasDerefCount> rhsRefs = getReturnAliasForFunctionCall(rhs);
+//	for(auto &ref: rhsRefs) {
+//		resLat->setAliasRelation(make_pair(leftARNode, ref));
+//	}
+//	updateAliases(resLat->getAliasRelations(),1);
+//}

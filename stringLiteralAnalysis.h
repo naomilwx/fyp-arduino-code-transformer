@@ -32,7 +32,7 @@ class StringLiteralInfo {
 	StringLiteralInfo(int tagNum, SgGlobal *global) {
 		tag = STRING_LITERAL_PREFIX + to_string(tagNum);
 		SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
-		placeholder = SageBuilder::buildVariableDeclaration(tag, type, NULL, global);
+		placeholder = SageBuilder::buildVariableDeclaration_nfi(tag, type, NULL, global);
 	}
 
 	std::string getTag() const;
@@ -51,14 +51,11 @@ class StringLiteralInfo {
 };
 
 typedef std::map<std::string, StringLiteralInfo> LiteralMap;
-typedef std::map<SgStatement *, StringSet> StatementLiteralMap;
 
 class StringLiteralAnalysis {
 protected:
 	int strCount;
-//	StringSet globalStrLiterals; //String literals used in more than one function
 	LiteralMap strLiterals; //Map of string literals to the statements where they are used, the functions where they occur and the tag assigned to them
-//	StatementLiteralMap slMap; //Map of statements to the string literals used in the statements. (currently not use)_
 	SgProject *project;
 
 
@@ -77,7 +74,6 @@ public:
 	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);
 	LiteralMap *getLiteralMap();
 	std::string getAnalysisPrintout();
-//	StatementLiteralMap* getStatementLiteralMap();//Not used
 
 	friend class StringLiteralAnalysisVisitor;
 };
