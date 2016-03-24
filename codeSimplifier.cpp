@@ -4,26 +4,31 @@
  *  Created on: Mar 18, 2016
  *      Author: root
  */
+#include <algorithm>
+
 #include "codeSimplifier.h"
 //#include "defUseChains.h"
+#include "defsAndUsesUnfilteredCfg.h"
 
 using namespace FunctionAnalysisHelper;
 
 std::string STRING_LITERAL_PLACEHOLDER_PREFIX = "f";
 
 void SimplifyFunctionDeclaration::runTransformation() {
-	transformVarDecls();
+	markArrayInitializers();
 
 	transformVarRefs();
 	removeStringLiterals();
 	insertStringPlaceholderDecls();
 }
 
-void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVariableDeclaration *> &placeholders){
+void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVariableDeclaration *> &placeholders, std::map<SgNode*, std::set<SgVarRefExp*> > &defUseInfo){
 	this->slPlaceholders = placeholders;
-	transformVarDecls();
+	this->defUseInfo = defUseInfo;
+	markArrayInitializers();
 
 	transformVarRefs();
+	pruneUnusedVarDefinitions();
 	removeStringLiterals();
 
 	for(auto &item: slPlaceholders) {
@@ -33,7 +38,25 @@ void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVari
 	}
 }
 
-void SimplifyFunctionDeclaration::transformVarDecls(){
+void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
+//	Rose_STL_Container<SgNode *> assignOps = NodeQuery::querySubTree(func, V_SgAssignOp);
+//	for(auto& assign: assignOps) {
+//		printf("%s\n", assign->unparseToString().c_str());
+//		std::set<SgVarRefExp*> refs = defUseInfo[assign];
+//		std::set<SgVarRefExp*> diffs;
+//		for(auto ref: refs) {
+//			if(removedVarRefs.find(ref) == removedVarRefs.end()) {
+//				diffs.insert(ref);
+//			}
+//		}
+//		printf("diff size for assignment %d\n", diffs.size());
+//		if(diffs.size() == 0) {
+//			printf("%s\n", assign->unparseToString().c_str());
+//		}
+//	}
+}
+
+void SimplifyFunctionDeclaration::markArrayInitializers(){
 	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
 	for(auto& initName: initNames) {
 		SgInitializedName* iname = isSgInitializedName(initName);
@@ -118,22 +141,15 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	}
 
 	while(diff > 0) {
-//		SgExpression* parent = isSgExpression(oldExp->get_parent());
-//		printf("parent: %s %s\n", parent->class_name().c_str(), parent->unparseToString().c_str());
-//		if(parent) {
-//			oldExp = parent;
-//		} else {
-//			break;
-//		}
 		aliasExp = SageBuilder::buildAddressOfOp(aliasExp); //TODO: check correctness of this
 		diff -= 1;
 	}
-	SageInterface::replaceExpression(oldExp, aliasExp);
+	removedVarRefs.insert(var);
+	SageInterface::replaceExpression(oldExp, aliasExp, true);
 }
 
 
 void SimplifyFunctionDeclaration::replaceVarRefs(std::map<std::string, SgVariableDeclaration *>& placeholderMap, std::set<varID> vars) {
-//	this->varsToReplace = vars;
 	this->slPlaceholders = placeholderMap;
 	transformVarRefs(vars);
 	for(auto &item: slPlaceholders) {
@@ -257,18 +273,19 @@ SgVariableDeclaration* SimplifyFunctionDeclaration::buildStringPlaceholder(const
  * SimplifyOriginalCode
  * */
 
+SimplifyOriginalCode::SimplifyOriginalCode(PointerAliasAnalysis *a, StringLiteralAnalysis* s, SgProject *p){
+		this->aliasAnalysis = a;
+		this->sla = s;
+		this->project = p;
+
+};
+
 SgVariableDeclaration* SimplifyOriginalCode::buildStringPlaceholder(std::map<std::string, SgVariableDeclaration *>& placeholderMap, const std::string& str, const std::string& placeholder, SgScopeStatement *scope) {
 	SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
 	SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
 	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration(STRING_LITERAL_PLACEHOLDER_PREFIX + placeholder, type, initializer, scope);
 	placeholderMap[str] = varDec;
 	return varDec;
-}
-
-void SimplifyOriginalCode::runTransformation() {
-	for(auto &func: getDefinedFunctions(project)) {
-		simplifyFunction(func);
-	}
 }
 
 void SimplifyOriginalCode::transformGlobalVars() {
@@ -330,24 +347,18 @@ bool SimplifyOriginalCode::isConstantValueGlobalVar(SgInitializedName* initName)
 	return isConstant;
 }
 
-void SimplifyOriginalCode::runGlobalTransformation(){
+void SimplifyOriginalCode::runGlobalTransformation(std::map<SgNode*, std::set<SgVarRefExp*> > &defUse){
 	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
 	transformGlobalVars();
 	for(auto &func: getDefinedFunctions(project)) {
-		simplifyFunction(func, global);
+		simplifyFunction(func, global, defUse);
 	}
 	insertPlaceholderDecls();
 }
 
-void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope) {
+void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope, std::map<SgNode*, std::set<SgVarRefExp*> > &defUseInfo) {
 	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project, varDeclScope);
-	funcHelper.runTransformation(sharedPlaceholders);
-	printf("function simp result:\n %s\n", func->unparseToString().c_str());
-}
-
-void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func) {
-	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project);
-	funcHelper.runTransformation();
+	funcHelper.runTransformation(sharedPlaceholders, defUseInfo);
 	printf("function simp result:\n %s\n", func->unparseToString().c_str());
 }
 
@@ -391,4 +402,17 @@ void  SimplifyOriginalCode::removeStringLiteral(SgStringVal *strVal) {
 	SgVariableDeclaration *placeholder = buildStringPlaceholder(sharedPlaceholders, strVal->get_value(), label, global);
 	SgVarRefExp *ref = SageBuilder::buildVarRefExp(placeholder);
 	SageInterface::replaceExpression(strVal, ref);
+}
+
+//Deprecated stuff
+//void SimplifyOriginalCode::runTransformation() {
+//	for(auto &func: getDefinedFunctions(project)) {
+//		simplifyFunction(func);
+//	}
+//}
+
+void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func) {
+	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project);
+	funcHelper.runTransformation();
+	printf("function simp result:\n %s\n", func->unparseToString().c_str());
 }
