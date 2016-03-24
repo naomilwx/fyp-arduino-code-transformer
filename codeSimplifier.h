@@ -68,6 +68,8 @@ private:
 
 	void removeVarDecl(SgInitializedName *name);
 	void removeVarAssignment(SgAssignOp *op);
+	void removeInitializer(SgInitializedName *name);
+	void markContainedVarRefsAsRemoved(SgNode *node);
 
 	bool isReplacableVarRef(SgVarRefExp *varRef);
 //	void runVarRefsTransformation(SgVarRefExp *var);

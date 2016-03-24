@@ -49,15 +49,13 @@ void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
 		if(!isSgVarRefExp(lhs)) { continue;} //Ignore Pointer/Address of/ Array index refs
 		if(isGlobalVarRef(project, isSgVarRefExp(lhs))) { continue; }
 		std::set<SgNode*> refs = defUseInfo[assign];
-//		std::set<SgVarRefExp*> diffs;
 		bool redundant = true;
 		for(auto& ref: refs) {
 			SgVarRefExp *varRef = isSgVarRefExp(ref);
 			if(varRef == NULL) { continue; }
 			printf("usage: %s %d\n", ref->unparseToString().c_str(), ref->get_file_info()->get_line());
 			if(removedVarRefs.find(varRef) == removedVarRefs.end()) {
-//				diffs.insert(varRef);
-				redundant = false;
+				redundant = false; //found unremoved usage
 				break;
 			}
 		}
@@ -70,11 +68,26 @@ void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
 
 	printf("pruning var decls \n");
 	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
-	for(auto &initName: initNames) {
+	for(auto &item: initNames) {
+		SgInitializedName *initName = isSgInitializedName(item);
 		printf("%s\n", initName->unparseToString().c_str());
 		std::set<SgNode *> refs = defUseInfo[initName];
+		if(refs.size() == 0) {
+			removeVarDecl(initName);
+		}
+		bool redundant = true;
 		for(auto& ref: refs) {
-			printf("usage: %s %d\n", ref->unparseToString().c_str(), ref->get_file_info()->get_line());
+			SgVarRefExp *varRef = isSgVarRefExp(ref);
+			if(varRef == NULL) { continue; }
+			if(removedVarRefs.find(varRef) == removedVarRefs.end()) {
+				redundant = false;
+				break;
+			}
+			printf("usage: [%s] %s %d\n", ref->unparseToString().c_str(), ref->class_name().c_str(), ref->get_file_info()->get_line());
+		}
+		if(redundant) {
+			printf("removing... %s\n", initName->unparseToString().c_str());
+			removeInitializer(initName);
 		}
 	}
 }
@@ -245,6 +258,37 @@ void SimplifyFunctionDeclaration::removeVarDecl(SgInitializedName *initName) {
 		SageInterface::removeStatement(varDecl,false);
 	}
 	printf("removed var decl for: %s\n", initName->get_name().str());
+	markContainedVarRefsAsRemoved(varDecl);
+}
+
+void SimplifyFunctionDeclaration::removeInitializer(SgInitializedName *initName) {
+	SgVariableDeclaration * varDecl = isSgVariableDeclaration(initName->get_declaration());
+	if(varDecl == NULL) {
+		return;
+	}
+	SgInitializer* initializer = initName->get_initializer();
+
+		SgExprStatement * funcCallStmt = NULL;
+
+		if(isSgAssignInitializer(initializer)) {
+			SgExpression *rhs = isSgAssignInitializer(initializer)->get_operand();
+				if(isSgFunctionCallExp(rhs)) {
+					SgFunctionCallExp *call = isSgFunctionCallExp(rhs);
+						funcCallStmt = SageBuilder::buildFunctionCallStmt(call->getAssociatedFunctionSymbol()->get_name(),
+									call->get_type(),
+									call->get_args(),
+									func->get_definition()->get_body());
+				}
+		}
+
+//	SgVariableDeclartion *newDecl = SageBuilder::buildVariableDefinition_nfi(varDecl, initName, NULL);
+//	SageInterface::replaceStatement(varDecl, newDecl, true);
+	varDecl->reset_initializer(NULL);
+	if(funcCallStmt != NULL) {
+		SageInterface::insertStatementAfter(varDecl, funcCallStmt);
+	}
+	printf("removed var initializer for: %s\n", initName->get_name().str());
+//	markContainedVarRefsAsRemoved(initializer);
 }
 
 void SimplifyFunctionDeclaration::removeVarAssignment(SgAssignOp *op) {
@@ -263,10 +307,14 @@ void SimplifyFunctionDeclaration::removeVarAssignment(SgAssignOp *op) {
 			} else {
 				SageInterface::removeStatement(oldStmt,false);
 			}
-			Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(oldStmt, V_SgVarRefExp);
-			for(auto& var: varRefs) {
-				removedVarRefs.insert(isSgVarRefExp(var));
-			}
+			markContainedVarRefsAsRemoved(oldStmt);
+}
+
+void SimplifyFunctionDeclaration::markContainedVarRefsAsRemoved(SgNode *node) {
+	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(node, V_SgVarRefExp);
+	for(auto& var: varRefs) {
+		removedVarRefs.insert(isSgVarRefExp(var));
+	}
 }
 
 void SimplifyFunctionDeclaration::insertStringPlaceholderDecls() {
