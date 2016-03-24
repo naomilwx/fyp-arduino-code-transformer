@@ -39,22 +39,32 @@ void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVari
 }
 
 void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
+	printf("pruning\n");
 	Rose_STL_Container<SgNode *> assignOps = NodeQuery::querySubTree(func, V_SgAssignOp);
 	for(auto& assign: assignOps) {
 		printf("%s\n", assign->unparseToString().c_str());
+		SgAssignOp *op = isSgAssignOp(assign);
+		SgExpression *lhs = op->get_lhs_operand();
+		if(isSgUnaryOp(lhs)) { lhs = isSgUnaryOp(lhs)->get_operand();}
+		if(!isSgVarRefExp(lhs)) { continue;} //Ignore Pointer/Address of/ Array index refs
 		std::set<SgNode*> refs = defUseInfo[assign];
-//		std::set<SgVarRefExp*> diffs;
+		std::set<SgVarRefExp*> diffs;
 		for(auto ref: refs) {
+			SgVarRefExp *varRef = isSgVarRefExp(ref);
+			if(varRef == NULL) { continue; }
 			printf("usage: %s %d\n", ref->unparseToString().c_str(), ref->get_file_info()->get_line());
-//			if(removedVarRefs.find(ref) == removedVarRefs.end()) {
-//				diffs.insert(ref);
-//			}
+			if(removedVarRefs.find(varRef) == removedVarRefs.end()) {
+				diffs.insert(varRef);
+			}
 		}
-//		printf("diff size for assignment %d\n", diffs.size());
-//		if(diffs.size() == 0) {
-//			printf("%s\n", assign->unparseToString().c_str());
-//		}
+
+		if(diffs.size() == 0) {
+			printf("removing... %s\n", assign->unparseToString().c_str());
+			removeVarAssignment(op);
+		}
 	}
+
+
 }
 
 void SimplifyFunctionDeclaration::markArrayInitializers(){
