@@ -22,7 +22,7 @@ void SimplifyFunctionDeclaration::runTransformation() {
 	insertStringPlaceholderDecls();
 }
 
-void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVariableDeclaration *> &placeholders, std::map<SgNode*, std::set<SgVarRefExp*> > &defUseInfo){
+void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVariableDeclaration *> &placeholders, std::map<SgNode*, std::set<SgNode*> > &defUseInfo){
 	this->slPlaceholders = placeholders;
 	this->defUseInfo = defUseInfo;
 	markArrayInitializers();
@@ -39,21 +39,22 @@ void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVari
 }
 
 void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
-//	Rose_STL_Container<SgNode *> assignOps = NodeQuery::querySubTree(func, V_SgAssignOp);
-//	for(auto& assign: assignOps) {
-//		printf("%s\n", assign->unparseToString().c_str());
-//		std::set<SgVarRefExp*> refs = defUseInfo[assign];
+	Rose_STL_Container<SgNode *> assignOps = NodeQuery::querySubTree(func, V_SgAssignOp);
+	for(auto& assign: assignOps) {
+		printf("%s\n", assign->unparseToString().c_str());
+		std::set<SgNode*> refs = defUseInfo[assign];
 //		std::set<SgVarRefExp*> diffs;
-//		for(auto ref: refs) {
+		for(auto ref: refs) {
+			printf("usage: %s %d\n", ref->unparseToString().c_str(), ref->get_file_info()->get_line());
 //			if(removedVarRefs.find(ref) == removedVarRefs.end()) {
 //				diffs.insert(ref);
 //			}
-//		}
+		}
 //		printf("diff size for assignment %d\n", diffs.size());
 //		if(diffs.size() == 0) {
 //			printf("%s\n", assign->unparseToString().c_str());
 //		}
-//	}
+	}
 }
 
 void SimplifyFunctionDeclaration::markArrayInitializers(){
@@ -347,7 +348,7 @@ bool SimplifyOriginalCode::isConstantValueGlobalVar(SgInitializedName* initName)
 	return isConstant;
 }
 
-void SimplifyOriginalCode::runGlobalTransformation(std::map<SgNode*, std::set<SgVarRefExp*> > &defUse){
+void SimplifyOriginalCode::runGlobalTransformation(std::map<SgNode*, std::set<SgNode*> > &defUse){
 	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
 	transformGlobalVars();
 	for(auto &func: getDefinedFunctions(project)) {
@@ -356,7 +357,7 @@ void SimplifyOriginalCode::runGlobalTransformation(std::map<SgNode*, std::set<Sg
 	insertPlaceholderDecls();
 }
 
-void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope, std::map<SgNode*, std::set<SgVarRefExp*> > &defUseInfo) {
+void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope, std::map<SgNode*, std::set<SgNode*> > &defUseInfo) {
 	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project, varDeclScope);
 	funcHelper.runTransformation(sharedPlaceholders, defUseInfo);
 	printf("function simp result:\n %s\n", func->unparseToString().c_str());

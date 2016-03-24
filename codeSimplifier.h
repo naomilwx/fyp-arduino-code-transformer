@@ -22,7 +22,7 @@ protected:
 	SgProject *project;
 	SgScopeStatement *varDeclsScope;
 
-	std::map<SgNode*, std::set<SgVarRefExp*> > defUseInfo;
+	std::map<SgNode*, std::set<SgNode*> > defUseInfo;
 public:
 	SimplifyFunctionDeclaration(PointerAliasAnalysis *a, StringLiteralAnalysis *s, SgFunctionDeclaration *f, SgProject *p){
 		this->aliasAnalysis = a;
@@ -55,7 +55,7 @@ public:
 	/**
 	 * slPlaceholders: Global scope place holder variables to be used to replace the string literals
 	 * */
-	void runTransformation(std::map<std::string, SgVariableDeclaration *> &slPlaceholders, std::map<SgNode*, std::set<SgVarRefExp*> > &defUseInfo);
+	void runTransformation(std::map<std::string, SgVariableDeclaration *> &slPlaceholders, std::map<SgNode*, std::set<SgNode*> > &defUseInfo);
 	void pruneUnusedVarDefinitions();
 private:
 	//map of string literal to the placeholder for the string
@@ -98,12 +98,12 @@ public:
 
 	static SgVariableDeclaration* buildStringPlaceholder(std::map<std::string, SgVariableDeclaration *>& slPlaceholders, const std::string& str, const std::string& placeholder, SgScopeStatement *scope);
 
-	void runGlobalTransformation(std::map<SgNode*, std::set<SgVarRefExp*> > & defUse);
+	void runGlobalTransformation(std::map<SgNode*, std::set<SgNode*> > & defUse);
 //	void runTransformation();
 
 	void transformGlobalVars();
 	void simplifyFunction(SgFunctionDeclaration *func);
-	void simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope, std::map<SgNode*, std::set<SgVarRefExp*> > &defUseInfo);
+	void simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope, std::map<SgNode*, std::set<SgNode*> > &defUseInfo);
 
 	void transformUnmodifiedStringVars();
 

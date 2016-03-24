@@ -7,9 +7,15 @@
 
 #include "ssaUnfilteredCfg.h"
 #include "defsAndUsesUnfilteredCfg.h"
-#include "DefUseAnalysis.h"
+#include "VariableRenaming.h"
+
+//#include "DefUseAnalysis.h"
+#include <boost/foreach.hpp>
+#define foreach BOOST_FOREACH
 
 using namespace ssa_unfiltered_cfg;
+typedef std::map<SgNode*, std::set<SgNode*> > DefUseChains;
+
 
 void transformUnmodifiedStringVars(StringLiteralAnalysis *lanalysis, SgProject *project) {
 	analysisDebugLevel = 1;
@@ -21,6 +27,24 @@ void transformUnmodifiedStringVars(StringLiteralAnalysis *lanalysis, SgProject *
 	soc.transformUnmodifiedStringVars();
 	printf("done first transform \n");
 }
+
+
+void generateDefUseChainsFromVariableRenaming(SgProject* project, DefUseChains& defUseChains){
+    VariableRenaming varRenaming(project);
+    varRenaming.run();
+
+    const VariableRenaming::DefUseTable& useTable = varRenaming.getUseTable();
+    foreach (const VariableRenaming::DefUseTable::value_type& usesOnNode, useTable){
+        foreach (const VariableRenaming::TableEntry::value_type& entry, usesOnNode.second)
+        {
+            foreach (SgNode* node, entry.second)
+            {
+                defUseChains[node].insert(usesOnNode.first);
+            }
+        }
+    }
+}
+
 
 
 int main( int argc, char * argv[] ) {
@@ -35,10 +59,12 @@ int main( int argc, char * argv[] ) {
   //Setup def use analysis for use later. This must be done before any changes to the current ast is made
   ssa_private::UniqueNameTraversal uniqueTrav(SageInterface::querySubTree<SgInitializedName > (project, V_SgInitializedName));
   uniqueTrav.traverse(project);
-  SSA_UnfilteredCfg ssa(project);
-  ssa.run();
+//  SSA_UnfilteredCfg ssa(project);
+//  ssa.run();
+
   DefsAndUsesTraversal::CFGNodeToVarsMap defs;
-  std::map<SgNode*, std::set<SgVarRefExp*> > defUse;
+  DefUseChains defUse;
+  generateDefUseChainsFromVariableRenaming(project, defUse);
 //  DefsAndUsesTraversal::CollectDefsAndUses(project, defs, defUse);
 
   //Setup analysis to gather string literal info
