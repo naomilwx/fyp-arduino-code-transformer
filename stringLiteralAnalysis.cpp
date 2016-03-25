@@ -25,6 +25,12 @@ int StringLiteralInfo::getFuncOccuranceNum() const {
 	return funcOccurances.size();
 }
 
+
+varID StringLiteralInfo::getVarIDForPlaceholder() const {
+	SgInitializedName *name = placeholder->get_variables().at(0);
+	return varID(name);
+}
+
 std::string StringLiteralInfo::getSummaryPrintout() const{
 	std::ostringstream out;
 	out << "tag: " << getTag() << "\n";
@@ -59,6 +65,10 @@ SgVariableDeclaration * StringLiteralAnalysis::getPlaceholderForStringLiteral(co
 	return strLiterals[literal].placeholder;
 }
 
+varID StringLiteralAnalysis::getPlaceholderVarIDForStringLiteral(const std::string& literal) {
+	return strLiterals[literal].getVarIDForPlaceholder();
+}
+
 
 int StringLiteralAnalysis::getNumberOfStringLiterals(){
 	return strCount;
@@ -70,6 +80,14 @@ std::set<std::string> StringLiteralAnalysis::getStringLiterals() {
 		strSet.insert(item.first);
 	}
 	return strSet;
+}
+
+std::set<varID> StringLiteralAnalysis::getPlaceholderVarIDs() {
+	std::set<varID> result;
+	for(auto const& item: strLiterals) {
+		result.insert(item.second.getVarIDForPlaceholder());
+	}
+	return result;
 }
 
 std::string StringLiteralAnalysis::getStringLiteralForLabel(const std::string& label) {

@@ -12,6 +12,7 @@
 #include "stringValPropagation.h"
 #include "stringLiteralAnalysis.h"
 
+//Assumes code has been transformed by codeSimplifier
 class BasicProgmemTransformer {
 protected:
 	SgProject *project;
@@ -24,12 +25,17 @@ public:
 		this->aliasAnalysis = aa;
 		this->sla = sla;
 	}
+	void runTransformation();
 
 private:
+	int getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
+
+
 	std::set<varID> getVarsBoundToNonPlaceholderPointers();
 	std::set<varID> getVarsInUnsafeFunctionCalls();
 	std::set<varID> getVarsReturnedByFunctions();
-	std::set<SgVariableDeclaration *> getProgmemableVarDecls();
+	std::set<varID> getProgmemablePlaceholders();
+	std::vector<SgVariableDeclaration *> getProgmemableVarDecls();
 };
 
 

@@ -6,6 +6,14 @@
  */
 
 
+void BasicProgmemTransformer::runTransformation() {
+
+}
+
+int BasicProgmemTransformer::getBuffersizeNeededForFunction(SgFunctionDeclaration *func) {
+
+}
+
 std::set<varID> BasicProgmemTransformer::getVarsBoundToNonPlaceholderPointers() {
 	std::set<varID> results;
 	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(project, V_SgVarRefExp);
@@ -39,7 +47,40 @@ std::set<varID> BasicProgmemTransformer::getVarsReturnedByFunctions() {
 	return results;
 }
 
-std::set<SgVariableDeclaration *> getProgmemableVarDecls() {
-	//TODO: return the actual global string literal declaration. not their placeholders
+std::set<varID> BasicProgmemTransformer::getProgmemablePlaceholders() {
+	std::set<varID> placeholderIDs = sla->getPlaceholderVarIDs();
+	std::set<varID> results;
+	std::set<varID> varsInFuncRet = getVarsReturnedByFunctions();
+	std::set<varID> varsInUnsafe = getVarsInUnsafeFunctionCalls();
+	std::set<varID> varsBound = getVarsBoundToNonPlaceholderPointers();
+	for(auto& var: placeholderIDs) {
+		if(varsInFuncRet.find(var) == varsInFuncRet.end() && varsInUnsafe.find(var) == varsInUnsafe.end) {
+			if(varsBound.find(var) == varsBound.end) {
+				results.insert(var);
+			}
+		}
+	}
+	return results;
+}
 
+std::vector<SgVariableDeclaration *> BasicProgmemTransformer::getProgmemableVarDecls() {
+	//TODO: return the actual global string literal declaration. not their placeholders
+	std::vector<SgInitializedName *> globals = getGlobalVars(project);
+	std::set<varID> safePlaceholders = getProgmemablePlaceholders();
+	std::vector<SgVariableDeclaration *>results;
+	for(auto& global:globals) {
+		SgAssignInitializer* init = isSgAssignInitializer(global->get_initializer());
+		if(init == NULL) {continue;}
+		SgExpression *assigned = init->get_operand();
+		if(isStringVal(assigned)) {
+			varID placeholder = sla->getPlaceholderVarIDForStringLiteral(isStringVal(assigned)->get_value());
+			if(safePlaceholders.find(placeholder) != safePlaceholders.end()) {
+				SgVariableDeclaration *decl = global->get_declaration();
+				if(decl) {
+					results.push_back(decl);
+				}
+			}
+		}
+	}
+	return results;
 }
