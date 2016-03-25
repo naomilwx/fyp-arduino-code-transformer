@@ -99,5 +99,4 @@ public:
 };
 
 void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap);
-void convertVarDeclToProgmemDecl(SgProject *project, SgVariableDeclaration *varDecl);
 #endif

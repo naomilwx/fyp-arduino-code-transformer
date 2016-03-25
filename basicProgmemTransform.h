@@ -28,19 +28,29 @@ public:
 	}
 	void runTransformation();
 
+protected:
+	void insertPreprocessingInfo(const std::string &data);
+
 private:
 	std::set<SgVariableDeclaration *> varDeclsToShift;
 
-	int getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
+	long getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
 	void setupCharBufferForFunction(SgFunctionDeclaration *func);
 	void transformFunction(SgFunctionDeclaration *func);
+	void castProgmemParams(SgFunctionCallExp* funcCall, SgVarRefExp *var);
+	void loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var);
+
 	void shiftVarDeclsToProgmem();
+	void convertVarDeclToProgmemDecl(SgVariableDeclaration *varDecl);
 
 	std::set<varID> getVarsBoundToNonPlaceholderPointers();
 	std::set<varID> getVarsInUnsafeFunctionCalls();
 	std::set<varID> getVarsReturnedByFunctions();
 	std::set<varID> getProgmemablePlaceholders();
 	void setupProgmemableVarDecls();
+
+	SgExpression *getRHSOfVarDecl(SgInitializedName *initName);
+	bool isVarDeclToRemove(SgInitializedName *name);
 };
 
 

@@ -36,5 +36,5 @@ int main( int argc, char * argv[] ) {
   BasicProgmemTransform transformer(project, &pal, &lanalysis);
   transformer.runTransformation();
 
-//  backend(project);
+  backend(project);
 }

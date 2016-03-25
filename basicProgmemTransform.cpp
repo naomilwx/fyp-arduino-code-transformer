@@ -11,34 +11,111 @@
 #include "convertibleFunctions.h"
 #include "basicProgmemTransform.h"
 
+using namespace ConvertibleFunctions;
+
 void BasicProgmemTransform::runTransformation() {
 	setupProgmemableVarDecls();
-
+	for(auto &func: getDefinedFunctions(project)) {
+		transformFunction(func);
+	}
+	shiftVarDeclsToProgmem();
 }
 
-int BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration *func) {
-	int maxSize = 0;
+long BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration *func) {
+	long maxSize = 0;
 	Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
-	//TODO:
 	for(auto &funcCall: funcCalls) {
 		SgFunctionCallExp *fcall = isSgFunctionCallExp(funcCall);
 		Function callee(fcall);
 		printf("function called: %s\n", callee.get_name().str());
+		if(isArduinoProgmemSafeFunction(callee)) {
+			continue;
+		}
+		param_pos_list ignoredPositions = getPositionsToIgnore(callee.get_name().getString());
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
+		int size = 0;
+		for(int pos = 0; pos < params.size(); pos++) {
+			if(ignoredPositions.find(pos) != ignoredPositions.end()) {
+				continue;
+			}
+			SgVarRefExp* var = isSgVarRefExp(params[pos]);
+			if(var) {
+				SgInitializedName *initName = var->get_symbol()->get_declaration();
+				if(isVarDeclToRemove(initName)) {
+					SgExpression *rhs = getRHSOfVarDecl(initName);
+					if(rhs && isSgStringVal(rhs)) {
+						size += isSgStringVal(rhs)->get_value().size() + 1;
+					}
+				}
+			}
+		}
+		if(size > maxSize) {
+			maxSize = size;
+		}
 	}
+	printf("size %lu\n", maxSize);
 	return maxSize;
 }
 
 void BasicProgmemTransform::shiftVarDeclsToProgmem() {
-
+	std::string flashHelper = "#define FS(x)(__FlashStringHelper*)(x)";
+	insertPreprocessingInfo(flashHelper);
+	for(auto& varDecl : varDeclsToShift) {
+		convertVarDeclToProgmemDecl(varDecl);
+	}
+}
+void BasicProgmemTransform::insertPreprocessingInfo(const std::string &data) {
+	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	SgStatement *firstDecl = SageInterface::getFirstStatement(global);
+	PreprocessingInfo* result = new PreprocessingInfo(PreprocessingInfo::CpreprocessorIncludeDeclaration, data, "Transformation generated",0, 0, 0, PreprocessingInfo::before);
+	firstDecl->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
+}
+void BasicProgmemTransform::convertVarDeclToProgmemDecl(SgVariableDeclaration *varDecl) {
+	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	std::string dec = "const char ";
+	SgInitializedName *initName = varDecl->get_variables()[0];
+	std::string literal = isSgAssignInitializer(initName->get_initializer())->get_operand()->unparseToString();
+	dec += initName->get_name().getString() + "[] PROGMEM =\"" + literal + "\";";
+	insertPreprocessingInfo(dec);
+	SageInterface::removeStatement(varDecl, true);
 }
 
 void BasicProgmemTransform::setupCharBufferForFunction(SgFunctionDeclaration *func) {
+	long sizeNeeded = getBuffersizeNeededForFunction(func);
+	//TODO: figure out how to initialize char array
+}
+
+void BasicProgmemTransform::castProgmemParams(SgFunctionCallExp* funcCall, SgVarRefExp *var) {
+	//TODO: figure out how to wrap with macro
 
 }
 
-void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
+void BasicProgmemTransform::loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var) {
+	//TODO:
+}
 
+void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
+	setupCharBufferForFunction(func);
+	Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
+	for(auto &funcCall: funcCalls) {
+		SgFunctionCallExp *fcall = isSgFunctionCallExp(funcCall);
+		Function callee(fcall);
+		bool arduinoP = isArduinoProgmemSafeFunction(callee);
+		SgExpressionPtrList params = fcall->get_args()->get_expressions();
+		//TODO: figure out how to wrap with macro
+		for(auto &expr: params) {
+			SgVarRefExp* var = isSgVarRefExp(expr);
+			if(var == NULL) { continue ;}
+			SgInitializedName *initName = var->get_symbol()->get_declaration();
+			if(isVarDeclToRemove(initName)) {
+				if(arduinoP) {
+					castProgmemParams(fcall, var);
+				} else {
+					loadProgmemStringsIntoBuffer(fcall, var);
+				}
+			}
+		}
+	}
 }
 
 std::set<varID> BasicProgmemTransform::getVarsBoundToNonPlaceholderPointers() {
@@ -49,11 +126,8 @@ std::set<varID> BasicProgmemTransform::getVarsBoundToNonPlaceholderPointers() {
 		if(isFromLibrary(var->get_symbol()->get_declaration())){
 			continue;
 		}
-
-		printf("checking %s\n", ref->unparseToString().c_str());
 		varID varRef = SgExpr2Var(var);
 		if(aliasAnalysis->variableAtNodeHasKnownAlias(var, varRef) == false || var->isUsedAsLValue()) {
-			printf("ref %s\n", ref->unparseToString().c_str());
 			std::set<varID> aliases = aliasAnalysis->getAliasesForVariableAtNode(var, varRef);
 			if(aliases.size() == 0) {
 				aliases.insert(varRef);
@@ -69,7 +143,6 @@ std::set<varID> BasicProgmemTransform::getVarsInUnsafeFunctionCalls() {
 	for(SgFunctionDeclaration *func: getDefinedFunctions(project)){
 		Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
 		for(auto &fcall: funcCalls) {
-//			printf("func call %s\n", fcall->unparseToString().c_str());
 			std::set<varID> vars = aliasAnalysis->getAliasesAtProgmemUnsafePositions(isSgFunctionCallExp(fcall));
 			results.insert(vars.begin(), vars.end());
 		}
@@ -89,13 +162,13 @@ std::set<varID> BasicProgmemTransform::getVarsReturnedByFunctions() {
 std::set<varID> BasicProgmemTransform::getProgmemablePlaceholders() {
 	std::set<varID> placeholderIDs = sla->getPlaceholderVarIDs();
 	std::set<varID> results;
-//	printf("before getting info...\n");
+	//	printf("before getting info...\n");
 	std::set<varID> varsInFuncRet = getVarsReturnedByFunctions();
-//	printf("done first..\n");
+	//	printf("done first..\n");
 	std::set<varID> varsInUnsafe = getVarsInUnsafeFunctionCalls();
-//	printf("done second..\n");
+	//	printf("done second..\n");
 	std::set<varID> varsBound = getVarsBoundToNonPlaceholderPointers();
-//	printf("done third..\n");
+	//	printf("done third..\n");
 	for(auto& var: placeholderIDs) {
 		if(varsInFuncRet.find(var) == varsInFuncRet.end() && varsInUnsafe.find(var) == varsInUnsafe.end()) {
 			if(varsBound.find(var) == varsBound.end()) {
@@ -111,10 +184,9 @@ void BasicProgmemTransform::setupProgmemableVarDecls() {
 	std::set<varID> safePlaceholders = getProgmemablePlaceholders();
 	printf("getting globals...\n");
 	for(auto& global:globals) {
-		SgAssignInitializer* init = isSgAssignInitializer(global->get_initializer());
-		if(init == NULL) {continue;}
-		printf("checking.. %s\n", init->unparseToString().c_str());
-		SgExpression *assigned = init->get_operand();
+		printf("checking.. %s\n", global->unparseToString().c_str());
+		SgExpression *assigned = getRHSOfVarDecl(global);
+		if(assigned == NULL) { continue; }
 		if(isSgStringVal(assigned)) {
 			varID placeholder = sla->getPlaceholderVarIDForStringLiteral(isSgStringVal(assigned)->get_value());
 			if(safePlaceholders.find(placeholder) != safePlaceholders.end()) {
@@ -127,4 +199,23 @@ void BasicProgmemTransform::setupProgmemableVarDecls() {
 		}
 	}
 	return;
+}
+
+SgExpression* BasicProgmemTransform::getRHSOfVarDecl(SgInitializedName *initName) {
+	SgAssignInitializer* init = isSgAssignInitializer(initName->get_initializer());
+	if(init == NULL) {
+		return NULL;
+	}
+	return init->get_operand();
+}
+
+bool BasicProgmemTransform::isVarDeclToRemove(SgInitializedName *initName) {
+	SgVariableDeclaration *varDec = isSgVariableDeclaration(initName->get_declaration());
+	if(varDec == NULL) {
+		return false;
+	}
+	if(varDeclsToShift.find(varDec) != varDeclsToShift.end()) {
+		return true;
+	}
+	return false;
 }

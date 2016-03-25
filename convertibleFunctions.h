@@ -7,7 +7,7 @@
 
 //using namespace boost::assign;
 namespace ConvertibleFunctions {
- typedef std::vector<int> param_pos_list;
+ typedef std::set<int> param_pos_list;
  typedef std::pair< std::string, param_pos_list > func_details;
  typedef std::map<std::string, func_details> pfunc_map;
 
@@ -40,7 +40,15 @@ namespace ConvertibleFunctions {
 							 ("strcmp", STRCMPP)
 							 ("strstr", STRSTRP)
 							 ("strlen", STRLENP);
-							 
+
+const param_pos_list getPositionsToIgnore(const std::string& funcName) {
+	 if(PFUNCTION_MAP.find(funcName) != PFUNCTION_MAP.end()) {
+		 func_details details =  (*(PFUNCTION_MAP.find(funcName))).second;
+		 return details.second;
+	 }
+	 param_pos_list res;
+	 return res;
+ }
 }
 
 #endif

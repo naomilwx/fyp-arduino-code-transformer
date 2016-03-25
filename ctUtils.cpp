@@ -208,6 +208,22 @@ bool isArduinoStringType(SgType *type) {
 	return false;
 }
 
+bool isArduinoProgmemSafeFunction(Function func) {
+	if(isSgMemberFunctionDeclaration(func.get_declaration())) {
+		SgClassDefinition *parDef = isSgClassDefinition(func.get_declaration()->get_parent());
+		if(parDef){
+			std::string cName = parDef->get_declaration()->get_name().getString();
+			std::string sourceFile = parDef->get_file_info()->get_filenameString();
+			if(sourceFile.find("Arduino/") != std::string::npos) {
+				if(cName == "String" || cName == "Print") {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 int getPointerLevel(SgType *type) {
 	type = type->stripType(SgType::STRIP_MODIFIER_TYPE | SgType::STRIP_REFERENCE_TYPE);
 	if(type == NULL){
