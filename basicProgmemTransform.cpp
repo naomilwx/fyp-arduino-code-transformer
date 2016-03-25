@@ -140,8 +140,9 @@ void BasicProgmemTransform::loadReplacewithProgmemFunction(SgFunctionCallExp *fu
 void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 	setupCharBufferForFunction(func);
 	Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
-	int startPos = 0;
+
 	for(auto &funcCall: funcCalls) {
+		int startPos = 0;
 		SgFunctionCallExp *fcall = isSgFunctionCallExp(funcCall);
 		Function callee(fcall);
 		std::string orig = callee.get_name().getString();
