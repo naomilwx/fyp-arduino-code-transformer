@@ -42,12 +42,15 @@ void SimplifyFunctionDeclaration::runTransformation(std::map<std::string, SgVari
 void SimplifyFunctionDeclaration::pruneUnusedVarDeclarations() {
 	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
 	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(func, V_SgVarRefExp);
+	std::reverse(initNames.begin(), initNames.end());
 	for(auto& init: initNames) {
 		SgInitializedName* initName = isSgInitializedName(init);
-		if(initName->get_initializer() != NULL) { continue; }
+//		if(initName->get_initializer() != NULL) { continue; }
+		printf("checking var... %s\n", initName->unparseToString().c_str());
 		bool foundRef = false;
 		for(auto& ref:varRefs) {
-			if(isSgVarRefExp(ref)->get_symbol()->get_declaration() == initName) {
+			SgVarRefExp *var = isSgVarRefExp(ref);
+			if((removedVarRefs.find(var) == removedVarRefs.end()) && (var->get_symbol()->get_declaration() == initName)) {
 				foundRef = true;
 				continue;
 			}
