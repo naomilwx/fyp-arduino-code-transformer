@@ -38,7 +38,7 @@ private:
 	void setupCharBufferForFunction(SgFunctionDeclaration *func);
 	void transformFunction(SgFunctionDeclaration *func);
 	void castProgmemParams(SgFunctionCallExp* funcCall, SgVarRefExp *var);
-	void loadProgmemStringsIntoBuffer(SgFunctionDeclaration *caller, SgFunctionCallExp *funcCall, SgVarRefExp *var, int& pos);
+	void loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var, int& pos);
 
 	void shiftVarDeclsToProgmem();
 	void convertVarDeclToProgmemDecl(SgVariableDeclaration *varDecl);
