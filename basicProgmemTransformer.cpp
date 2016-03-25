@@ -5,12 +5,23 @@
  *      Author: root
  */
 
+#include "basicProgmemTransformer.h"
 
 void BasicProgmemTransformer::runTransformation() {
 
 }
 
 int BasicProgmemTransformer::getBuffersizeNeededForFunction(SgFunctionDeclaration *func) {
+	Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
+	//TODO:
+	return 0;
+}
+
+void BasicProgmemTransformer::shiftVarDeclsToProgmem() {
+
+}
+
+void BasicProgmemTransformer::transformFunction(SgFunctionDeclaration *func) {
 
 }
 
@@ -54,8 +65,8 @@ std::set<varID> BasicProgmemTransformer::getProgmemablePlaceholders() {
 	std::set<varID> varsInUnsafe = getVarsInUnsafeFunctionCalls();
 	std::set<varID> varsBound = getVarsBoundToNonPlaceholderPointers();
 	for(auto& var: placeholderIDs) {
-		if(varsInFuncRet.find(var) == varsInFuncRet.end() && varsInUnsafe.find(var) == varsInUnsafe.end) {
-			if(varsBound.find(var) == varsBound.end) {
+		if(varsInFuncRet.find(var) == varsInFuncRet.end() && varsInUnsafe.find(var) == varsInUnsafe.end()) {
+			if(varsBound.find(var) == varsBound.end()) {
 				results.insert(var);
 			}
 		}
@@ -72,10 +83,10 @@ std::vector<SgVariableDeclaration *> BasicProgmemTransformer::getProgmemableVarD
 		SgAssignInitializer* init = isSgAssignInitializer(global->get_initializer());
 		if(init == NULL) {continue;}
 		SgExpression *assigned = init->get_operand();
-		if(isStringVal(assigned)) {
-			varID placeholder = sla->getPlaceholderVarIDForStringLiteral(isStringVal(assigned)->get_value());
+		if(isSgStringVal(assigned)) {
+			varID placeholder = sla->getPlaceholderVarIDForStringLiteral(isSgStringVal(assigned)->get_value());
 			if(safePlaceholders.find(placeholder) != safePlaceholders.end()) {
-				SgVariableDeclaration *decl = global->get_declaration();
+				SgVariableDeclaration *decl = isSgVariableDeclaration(global->get_declaration());
 				if(decl) {
 					results.push_back(decl);
 				}

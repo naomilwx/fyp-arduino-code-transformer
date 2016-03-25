@@ -19,6 +19,12 @@ analyser: testStringLiteralAnalysis.o stringLiteralAnalysis.o
 itransform: simplifyingTransformer.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o codeSimplifier.o
 	$(GPP) simplifyingTransformer.o ctUtils.o ctOverallDataflowAnalyser.o stringValPropagation.o stringValLattice.o stringLiteralAnalysis.o codeSimplifier.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o itransform
 
+ptransform: simpleProgmemTransformer.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o basicProgmemTransformer.o
+	$(GPP) simpleProgmemTransformer.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o basicProgmemTransformer.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o ptransform
+
+simpleProgmemTransformer.o: simpleProgmemTransformer.cpp
+	$(GPP) -c simpleProgmemTransformer.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
+
 simplifyingTransformer.o: simplifyingTransformer.cpp
 	$(GPP) -c simplifyingTransformer.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 
@@ -60,5 +66,8 @@ checkprop: testprop
 
 intertransform: itransform
 	./itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
+	
+progmemtransform: ptransform
+	./ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
 clean:
-	rm *o analyser testprop itransform
+	rm *o analyser testprop itransform ptransform

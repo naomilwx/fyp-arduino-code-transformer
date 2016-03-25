@@ -11,6 +11,7 @@
 #include "rose.h"
 #include "stringValPropagation.h"
 #include "stringLiteralAnalysis.h"
+//#include "convertibleFunctions.h"
 
 //Assumes code has been transformed by codeSimplifier
 class BasicProgmemTransformer {
@@ -29,7 +30,8 @@ public:
 
 private:
 	int getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
-
+	void transformFunction(SgFunctionDeclaration *func);
+	void shiftVarDeclsToProgmem();
 
 	std::set<varID> getVarsBoundToNonPlaceholderPointers();
 	std::set<varID> getVarsInUnsafeFunctionCalls();
