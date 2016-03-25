@@ -34,11 +34,11 @@ protected:
 private:
 	std::set<SgVariableDeclaration *> varDeclsToShift;
 
-	long getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
+	int getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
 	void setupCharBufferForFunction(SgFunctionDeclaration *func);
 	void transformFunction(SgFunctionDeclaration *func);
 	void castProgmemParams(SgFunctionCallExp* funcCall, SgVarRefExp *var);
-	void loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var);
+	void loadProgmemStringsIntoBuffer(SgFunctionDeclaration *caller, SgFunctionCallExp *funcCall, SgVarRefExp *var, int& pos);
 
 	void shiftVarDeclsToProgmem();
 	void convertVarDeclToProgmemDecl(SgVariableDeclaration *varDecl);
@@ -51,6 +51,7 @@ private:
 
 	SgExpression *getRHSOfVarDecl(SgInitializedName *initName);
 	bool isVarDeclToRemove(SgInitializedName *name);
+	int getSizeNeededToLoadFromProgmem(SgVarRefExp *name);
 };
 
 

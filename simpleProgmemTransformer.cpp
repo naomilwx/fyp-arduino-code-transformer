@@ -35,6 +35,6 @@ int main( int argc, char * argv[] ) {
   printf("done analysis\n");
   BasicProgmemTransform transformer(project, &pal, &lanalysis);
   transformer.runTransformation();
-
+  printf("done transformation\n");
   backend(project);
 }

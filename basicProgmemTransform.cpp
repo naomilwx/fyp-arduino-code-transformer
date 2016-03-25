@@ -13,6 +13,7 @@
 
 using namespace ConvertibleFunctions;
 
+std::string FUNC_BUFFER_NAME = "f_arrbuf";
 void BasicProgmemTransform::runTransformation() {
 	setupProgmemableVarDecls();
 	for(auto &func: getDefinedFunctions(project)) {
@@ -21,8 +22,8 @@ void BasicProgmemTransform::runTransformation() {
 	shiftVarDeclsToProgmem();
 }
 
-long BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration *func) {
-	long maxSize = 0;
+int BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration *func) {
+	int maxSize = 0;
 	Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
 	for(auto &funcCall: funcCalls) {
 		SgFunctionCallExp *fcall = isSgFunctionCallExp(funcCall);
@@ -57,6 +58,15 @@ long BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration
 	return maxSize;
 }
 
+int BasicProgmemTransform::getSizeNeededToLoadFromProgmem(SgVarRefExp *var) {
+	SgInitializedName *initName = var->get_symbol()->get_declaration();
+	SgExpression *rhs = getRHSOfVarDecl(initName);
+	if(rhs && isSgStringVal(rhs)) {
+		return isSgStringVal(rhs)->get_value().size() + 1;
+	}
+	return 0;
+}
+
 void BasicProgmemTransform::shiftVarDeclsToProgmem() {
 	std::string flashHelper = "#define FS(x)(__FlashStringHelper*)(x)";
 	insertPreprocessingInfo(flashHelper);
@@ -81,17 +91,36 @@ void BasicProgmemTransform::convertVarDeclToProgmemDecl(SgVariableDeclaration *v
 }
 
 void BasicProgmemTransform::setupCharBufferForFunction(SgFunctionDeclaration *func) {
-	long sizeNeeded = getBuffersizeNeededForFunction(func);
+	int sizeNeeded = getBuffersizeNeededForFunction(func);
 	//TODO: figure out how to initialize char array
+	SgArrayType* arrType = SageBuilder::buildArrayType(SageBuilder::buildCharType(), SageBuilder::buildIntVal(sizeNeeded));
+	SgScopeStatement *scope = func->get_definition()->get_body();
+	SgVariableDeclaration *decl = SageBuilder::buildVariableDeclaration(FUNC_BUFFER_NAME, arrType, NULL, scope);
+	SageInterface::prependStatement(decl, scope);
 }
 
 void BasicProgmemTransform::castProgmemParams(SgFunctionCallExp* funcCall, SgVarRefExp *var) {
-	//TODO: figure out how to wrap with macro
-
+	SageInterface::addTextForUnparser(var, "FS(", AstUnparseAttribute::e_before);
+	SageInterface::addTextForUnparser(var, ")", AstUnparseAttribute::e_after);
 }
 
-void BasicProgmemTransform::loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var) {
-	//TODO:
+void BasicProgmemTransform::loadProgmemStringsIntoBuffer(SgFunctionDeclaration *caller, SgFunctionCallExp *funcCall, SgVarRefExp *var, int& pos) {
+	//strcpy_P(&buff[pos], ...);
+	int length = getSizeNeededToLoadFromProgmem(var);
+	if(length == 0) { return; }
+	std::stringstream instr;
+	instr << "strcpy_P(&" << FUNC_BUFFER_NAME << "[";
+	instr << pos << "], " << var->get_symbol()->get_name().getString() << ");\n";
+	SageInterface::addTextForUnparser(funcCall, instr.str(), AstUnparseAttribute::e_before);
+	SgVarRefExp *buff = SageBuilder::buildVarRefExp(FUNC_BUFFER_NAME, caller->get_definition()->get_body());
+	SgPntrArrRefExp *buffExp = new SgPntrArrRefExp(buff, SageBuilder::buildIntVal(pos), SageBuilder::buildArrayType(SageBuilder::buildCharType()));
+	SgAddressOfOp *buffAddr = SageBuilder::buildAddressOfOp(buffExp);
+
+	SageInterface::replaceExpression(var, buffAddr);
+
+	printf("res %s\n", funcCall->unparseToString().c_str());
+	pos += length;
+
 }
 
 void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
@@ -102,6 +131,7 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 		Function callee(fcall);
 		bool arduinoP = isArduinoProgmemSafeFunction(callee);
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
+		int startPos = 0;
 		//TODO: figure out how to wrap with macro
 		for(auto &expr: params) {
 			SgVarRefExp* var = isSgVarRefExp(expr);
@@ -111,7 +141,7 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 				if(arduinoP) {
 					castProgmemParams(fcall, var);
 				} else {
-					loadProgmemStringsIntoBuffer(fcall, var);
+					loadProgmemStringsIntoBuffer(func, fcall, var, startPos);
 				}
 			}
 		}
