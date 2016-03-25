@@ -11,6 +11,7 @@
 #include "rose.h"
 #include "stringValPropagation.h"
 #include "stringLiteralAnalysis.h"
+#include "ctUtils.h"
 
 //Assumes code has been transformed by codeSimplifier
 class BasicProgmemTransform {
@@ -28,7 +29,10 @@ public:
 	void runTransformation();
 
 private:
+	std::set<SgVariableDeclaration *> varDeclsToShift;
+
 	int getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
+	void setupCharBufferForFunction(SgFunctionDeclaration *func);
 	void transformFunction(SgFunctionDeclaration *func);
 	void shiftVarDeclsToProgmem();
 
@@ -36,7 +40,7 @@ private:
 	std::set<varID> getVarsInUnsafeFunctionCalls();
 	std::set<varID> getVarsReturnedByFunctions();
 	std::set<varID> getProgmemablePlaceholders();
-	std::vector<SgVariableDeclaration *> getProgmemableVarDecls();
+	void setupProgmemableVarDecls();
 };
 
 

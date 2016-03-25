@@ -32,9 +32,9 @@ int main( int argc, char * argv[] ) {
   PointerAliasAnalysisDebugLevel = 1;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
-
+  printf("done analysis\n");
   BasicProgmemTransform transformer(project, &pal, &lanalysis);
   transformer.runTransformation();
 
-  backend(project);
+//  backend(project);
 }

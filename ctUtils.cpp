@@ -151,7 +151,9 @@ NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode)){
 NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index){
 	auto states = NodeState::getNodeStates(n);
 	//	NodeState* state = (states.size() < (index + 1))? states[0] : states[index];
-	if( states.size() < (index + 1)) {
+	if(states.size() == 0){
+		return NULL;
+	} else if( states.size() < (index + 1)) {
 		return states[0];
 	} else {
 		return states[index];

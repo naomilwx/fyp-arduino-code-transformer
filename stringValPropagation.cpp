@@ -797,20 +797,43 @@ PointerAliasAnalysis::getTransferVisitor(const Function& func, const DataflowNod
 }
 
 PointerAliasLattice *PointerAliasAnalysis::getAliasLattice(NodeState *s, varID var){
-	ctVarsExprsProductLattice *lat = dynamic_cast<ctVarsExprsProductLattice *>(*(s->getLatticeBelow(this).begin()));
-	return dynamic_cast<PointerAliasLattice *>(lat->getVarLattice(var)); 
+	vector<Lattice*> dfInfoBelow = s->getLatticeBelow(this);
+	if(dfInfoBelow.empty()) {
+		return NULL;
+	}
+	ctVarsExprsProductLattice *lat = dynamic_cast<ctVarsExprsProductLattice *>(*(dfInfoBelow.begin()));
+	if(lat){
+		return dynamic_cast<PointerAliasLattice *>(lat->getVarLattice(var));
+	} else {
+		return NULL;
+	}
 }
 
 std::set<varID> PointerAliasAnalysis::getAliasesForVariableAtNode(SgNode *node, varID var) {
+	std::set<varID> res;
 	NodeState *ns = getNodeStateForNode(node, filter);
+	if(ns == NULL) {
+		return res;
+	}
 	PointerAliasLattice *lat = getAliasLattice(ns, var);
-	return lat->getAliasedVariables();
+	if(lat){
+		return lat->getAliasedVariables();
+	} else {
+		return res;
+	}
 }
 
 bool PointerAliasAnalysis::variableAtNodeHasKnownAlias(SgNode *node, varID var) {
 	NodeState *ns = getNodeStateForNode(node, filter);
+	if(ns == NULL) {
+		return false;
+	}
 	PointerAliasLattice *lat = getAliasLattice(ns, var);
-	return lat->aliasIsDeterminate();
+	if(lat){
+		return lat->aliasIsDeterminate();
+	} else {
+		return false;
+	}
 }
 
 
@@ -944,9 +967,11 @@ std::set<varID> PointerAliasAnalysis::getAliasesAtProgmemUnsafePositions(SgFunct
 }
 
 PointerAliasLattice *PointerAliasAnalysis::getReturnValueAliasLattice(const Function& func){
+	if(func.get_definition() == NULL) {
+		return NULL;
+	}
 	FunctionState* fState = FunctionState::getDefinedFuncState(func);
-	DFStateAtReturns* dfsar = dynamic_cast<DFStateAtReturns*>(fState->state.getFact(this, 0));
-
+ 	DFStateAtReturns* dfsar = dynamic_cast<DFStateAtReturns*>(fState->state.getFact(this, 0));
 	if(dfsar) {
 		std::vector<Lattice*>& retVals = dfsar->getLatsRetVal();
 		Lattice *lat = NULL;
@@ -970,7 +995,12 @@ PointerAliasLattice *PointerAliasAnalysis::getReturnValueAliasLattice(const Func
 
 std::set<varID> PointerAliasAnalysis::getPossibleReturnValues(SgFunctionDeclaration *func) {
 	PointerAliasLattice *retVal = getReturnValueAliasLattice(func);
-	return retVal->getAliasedVariables();
+	if(retVal){
+		return retVal->getAliasedVariables();
+	} else {
+		std::set<varID> res;
+		return res;
+	}
 }
 
 PointerAliasLattice *PointerAliasAnalysis::getReturnValueAliasLattice(SgFunctionDeclaration *func){
