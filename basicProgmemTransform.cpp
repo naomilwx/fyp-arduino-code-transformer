@@ -5,27 +5,27 @@
  *      Author: root
  */
 
-#include "basicProgmemTransformer.h"
+#include "basicProgmemTransform.h"
 
-void BasicProgmemTransformer::runTransformation() {
+void BasicProgmemTransform::runTransformation() {
 
 }
 
-int BasicProgmemTransformer::getBuffersizeNeededForFunction(SgFunctionDeclaration *func) {
+int BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration *func) {
 	Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
 	//TODO:
 	return 0;
 }
 
-void BasicProgmemTransformer::shiftVarDeclsToProgmem() {
+void BasicProgmemTransform::shiftVarDeclsToProgmem() {
 
 }
 
-void BasicProgmemTransformer::transformFunction(SgFunctionDeclaration *func) {
+void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 
 }
 
-std::set<varID> BasicProgmemTransformer::getVarsBoundToNonPlaceholderPointers() {
+std::set<varID> BasicProgmemTransform::getVarsBoundToNonPlaceholderPointers() {
 	std::set<varID> results;
 	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(project, V_SgVarRefExp);
 	for(auto &ref: varRefs) {
@@ -37,7 +37,7 @@ std::set<varID> BasicProgmemTransformer::getVarsBoundToNonPlaceholderPointers() 
 	return results;
 }
 
-std::set<varID> BasicProgmemTransformer::getVarsInUnsafeFunctionCalls() {
+std::set<varID> BasicProgmemTransform::getVarsInUnsafeFunctionCalls() {
 	std::set<varID> results;
 	for(auto &func: getDefinedFunctions(project)){
 		Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
@@ -49,7 +49,7 @@ std::set<varID> BasicProgmemTransformer::getVarsInUnsafeFunctionCalls() {
 	return results;
 }
 
-std::set<varID> BasicProgmemTransformer::getVarsReturnedByFunctions() {
+std::set<varID> BasicProgmemTransform::getVarsReturnedByFunctions() {
 	std::set<varID> results;
 	for(auto&func: getDefinedFunctions(project)) {
 		std::set<varID> vals = aliasAnalysis->getPossibleReturnValues(func);
@@ -58,7 +58,7 @@ std::set<varID> BasicProgmemTransformer::getVarsReturnedByFunctions() {
 	return results;
 }
 
-std::set<varID> BasicProgmemTransformer::getProgmemablePlaceholders() {
+std::set<varID> BasicProgmemTransform::getProgmemablePlaceholders() {
 	std::set<varID> placeholderIDs = sla->getPlaceholderVarIDs();
 	std::set<varID> results;
 	std::set<varID> varsInFuncRet = getVarsReturnedByFunctions();
@@ -74,7 +74,7 @@ std::set<varID> BasicProgmemTransformer::getProgmemablePlaceholders() {
 	return results;
 }
 
-std::vector<SgVariableDeclaration *> BasicProgmemTransformer::getProgmemableVarDecls() {
+std::vector<SgVariableDeclaration *> BasicProgmemTransform::getProgmemableVarDecls() {
 	//TODO: return the actual global string literal declaration. not their placeholders
 	std::vector<SgInitializedName *> globals = getGlobalVars(project);
 	std::set<varID> safePlaceholders = getProgmemablePlaceholders();

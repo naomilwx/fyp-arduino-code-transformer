@@ -19,8 +19,8 @@ analyser: testStringLiteralAnalysis.o stringLiteralAnalysis.o
 itransform: simplifyingTransformer.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o codeSimplifier.o
 	$(GPP) simplifyingTransformer.o ctUtils.o ctOverallDataflowAnalyser.o stringValPropagation.o stringValLattice.o stringLiteralAnalysis.o codeSimplifier.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o itransform
 
-ptransform: simpleProgmemTransformer.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o basicProgmemTransformer.o
-	$(GPP) simpleProgmemTransformer.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o basicProgmemTransformer.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o ptransform
+ptransform: simpleProgmemTransformer.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o basicProgmemTransform.o
+	$(GPP) simpleProgmemTransformer.o ctUtils.o stringValLattice.o ctOverallDataflowAnalyser.o stringValPropagation.o stringLiteralAnalysis.o basicProgmemTransform.o -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system -o ptransform
 
 simpleProgmemTransformer.o: simpleProgmemTransformer.cpp
 	$(GPP) -c simpleProgmemTransformer.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
@@ -34,8 +34,8 @@ testStringValPropagation.o: testStringValPropagation.cpp
 testStringLiteralAnalysis.o: testStringLiteralAnalysis.cpp
 	$(GPP) -c testStringLiteralAnalysis.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 	
-basicProgmemTransformer.o: basicProgmemTransformer.cpp
-	$(GPP) -c basicProgmemTransformer.cpp 	-I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
+basicProgmemTransform.o: basicProgmemTransform.cpp basicProgmemTransform.h
+	$(GPP) -c basicProgmemTransform.cpp 	-I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 
 spaceOptimisedTransformer.o: spaceOptimisedTransformer.cpp spaceOptimisedTransformer.h
 	$(GPP) -c spaceOptimisedTransformer.cpp -I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
