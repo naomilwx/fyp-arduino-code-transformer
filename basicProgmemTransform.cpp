@@ -131,6 +131,12 @@ void BasicProgmemTransform::loadProgmemStringsIntoBuffer(SgFunctionCallExp *func
 
 }
 
+void BasicProgmemTransform::loadReplacewithProgmemFunction(SgFunctionCallExp *funcCall, std::string replacement) {
+	SgName newName(replacement);
+	SgFunctionCallExp *newFuncCall = SageBuilder::buildFunctionCallExp(newName, funcCall->get_type(), funcCall->get_args(), SageInterface::getFirstGlobalScope(project));
+	SageInterface::replaceExpression(funcCall, newFuncCall, true);
+}
+
 void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 	setupCharBufferForFunction(func);
 	Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
@@ -138,20 +144,28 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 	for(auto &funcCall: funcCalls) {
 		SgFunctionCallExp *fcall = isSgFunctionCallExp(funcCall);
 		Function callee(fcall);
+		std::string orig = callee.get_name().getString();
+		std::string replacement = getReplacementName(orig);
 		bool arduinoP = isArduinoProgmemSafeFunction(callee);
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
+		param_pos_list progmemPositions = getPositionsToIgnore(orig);
 		//TODO: figure out how to wrap with macro
+		int index = 0;
 		for(auto &expr: params) {
 			SgVarRefExp* var = isSgVarRefExp(expr);
 			if(var == NULL) { continue ;}
 			SgInitializedName *initName = var->get_symbol()->get_declaration();
 			if(isVarDeclToRemove(initName)) {
-				if(arduinoP) {
+				if(arduinoP || progmemPositions.find(index) != progmemPositions.end()) {
 					castProgmemParams(fcall, var);
 				} else {
 					loadProgmemStringsIntoBuffer(fcall, var, startPos);
 				}
 			}
+			index++;
+		}
+		if(replacement != "") {
+			loadReplacewithProgmemFunction(fcall, replacement);
 		}
 	}
 }

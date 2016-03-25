@@ -39,6 +39,7 @@ private:
 	void transformFunction(SgFunctionDeclaration *func);
 	void castProgmemParams(SgFunctionCallExp* funcCall, SgVarRefExp *var);
 	void loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var, int& pos);
+	void loadReplacewithProgmemFunction(SgFunctionCallExp *funcCall, std::string replacement);
 
 	void shiftVarDeclsToProgmem();
 	void convertVarDeclToProgmemDecl(SgVariableDeclaration *varDecl);

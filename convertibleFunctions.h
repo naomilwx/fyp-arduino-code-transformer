@@ -41,13 +41,21 @@ namespace ConvertibleFunctions {
 							 ("strstr", STRSTRP)
 							 ("strlen", STRLENP);
 
-const param_pos_list getPositionsToIgnore(const std::string& funcName) {
+ const param_pos_list getPositionsToIgnore(const std::string& funcName) {
 	 if(PFUNCTION_MAP.find(funcName) != PFUNCTION_MAP.end()) {
 		 func_details details =  (*(PFUNCTION_MAP.find(funcName))).second;
 		 return details.second;
 	 }
 	 param_pos_list res;
 	 return res;
+ }
+
+ std::string getReplacementName(const std::string& funcName) {
+	 if(PFUNCTION_MAP.find(funcName) != PFUNCTION_MAP.end()) {
+			 func_details details =  (*(PFUNCTION_MAP.find(funcName))).second;
+			 return details.first;
+	 }
+	 return "";
  }
 }
 
