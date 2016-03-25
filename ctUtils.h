@@ -28,6 +28,7 @@ bool isGlobalVarRef(SgProject *project, SgVarRefExp *var);
 
 //bool isConstantType(SgType *nType);
 bool isArduinoStringType(SgType *type);
+bool isArduinoProgmemSafeFunction(Function func);
 
 unsigned int getNodeDataflowIndex(SgNode *n);
 NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));

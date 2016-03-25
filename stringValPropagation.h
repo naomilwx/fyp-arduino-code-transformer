@@ -113,9 +113,15 @@ public:
 
 		bool variableAtNodeHasKnownAlias(SgNode *node, varID var);
 
+		std::set<varID> getAliasesAtProgmemUnsafePositions(SgFunctionCallExp *func);
+		//Returns true if one of the string literal arguments is among the possible return values
+
 		std::set<varID> getAliasesForVariableAtNode(SgNode *node, varID var);
+		std::set<varID> getPossibleReturnValues(SgFunctionDeclaration *func);
+
 		PointerAliasLattice *getReturnValueAliasLattice(SgFunctionDeclaration *func);
 		PointerAliasLattice *getReturnValueAliasLattice(const Function& func);
+
 	private:
 		PointerAliasLattice *getReturnStateAliasLattice(SgFunctionDeclaration *func, SgNode *exp);
 		ctVarsExprsProductLattice *getReturnStateLattice(SgFunctionDeclaration *func);

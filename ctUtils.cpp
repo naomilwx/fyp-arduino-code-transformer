@@ -151,7 +151,9 @@ NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode)){
 NodeState *getNodeStateForDataflowNode(DataflowNode &n, unsigned int index){
 	auto states = NodeState::getNodeStates(n);
 	//	NodeState* state = (states.size() < (index + 1))? states[0] : states[index];
-	if( states.size() < (index + 1)) {
+	if(states.size() == 0){
+		return NULL;
+	} else if( states.size() < (index + 1)) {
 		return states[0];
 	} else {
 		return states[index];
@@ -203,6 +205,24 @@ bool isArduinoStringType(SgType *type) {
 	if(named != NULL && named->get_name() == "String") {
 		return true;
 	}
+	return false;
+}
+
+bool isArduinoProgmemSafeFunction(Function func) {
+	SgNode *parent = func.get_declaration()->get_parent();
+	if(parent) {
+		SgClassDefinition *parDef = isSgClassDefinition(parent);
+		if(parDef){
+			std::string cName = parDef->get_declaration()->get_name().getString();
+			std::string sourceFile = parDef->get_file_info()->get_filenameString();
+			if(sourceFile.find("Print.h") != std::string::npos || sourceFile.find("WString.h") != std::string::npos) {
+				if(cName == "String" || cName == "Print") {
+					return true;
+				}
+			}
+		}
+	}
+
 	return false;
 }
 

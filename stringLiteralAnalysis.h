@@ -4,6 +4,8 @@
 #include <string>
 #include <sstream>
 
+#include "variables.h"
+
 typedef std::set<std::string> StringSet;
 
 template < typename T > std::string to_string( const T& n ) {
@@ -39,9 +41,13 @@ class StringLiteralInfo {
 
 	int getFuncOccuranceNum() const;
 	std::string getSummaryPrintout() const;
+
 	SgVariableDeclaration *getPlaceholder() {
 		return placeholder;
-	}
+	};
+
+	varID getVarIDForPlaceholder() const;
+
 	bool occursInFunc(SgFunctionDeclaration *func) const;
 	protected:
 	bool addFuncOccurance(SgFunctionDeclaration * func, SgStatement* stmt);
@@ -69,7 +75,9 @@ public:
 	std::string getStringLiteralForLabel(const std::string& label);
 	StringSet getStringLiteralsInFunction(SgFunctionDeclaration *func);
 	SgVariableDeclaration *getPlaceholderForStringLiteral(const std::string& literal);
+	varID getPlaceholderVarIDForStringLiteral(const std::string& literal);
 	StringSet getStringLiterals();
+	std::set<varID> getPlaceholderVarIDs();
 	int getNumberOfStringLiterals();
 	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);
 	LiteralMap *getLiteralMap();
