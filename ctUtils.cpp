@@ -209,18 +209,20 @@ bool isArduinoStringType(SgType *type) {
 }
 
 bool isArduinoProgmemSafeFunction(Function func) {
-	if(isSgMemberFunctionDeclaration(func.get_declaration())) {
-		SgClassDefinition *parDef = isSgClassDefinition(func.get_declaration()->get_parent());
+	SgNode *parent = func.get_declaration()->get_parent();
+	if(parent) {
+		SgClassDefinition *parDef = isSgClassDefinition(parent);
 		if(parDef){
 			std::string cName = parDef->get_declaration()->get_name().getString();
 			std::string sourceFile = parDef->get_file_info()->get_filenameString();
-			if(sourceFile.find("Arduino/") != std::string::npos) {
+			if(sourceFile.find("Print.h") != std::string::npos || sourceFile.find("WString.h") != std::string::npos) {
 				if(cName == "String" || cName == "Print") {
 					return true;
 				}
 			}
 		}
 	}
+
 	return false;
 }
 

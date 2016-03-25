@@ -28,7 +28,7 @@ int BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration 
 	for(auto &funcCall: funcCalls) {
 		SgFunctionCallExp *fcall = isSgFunctionCallExp(funcCall);
 		Function callee(fcall);
-		printf("function called: %s\n", callee.get_name().str());
+//		printf("function called: %s\n", callee.get_name().str());
 		if(isArduinoProgmemSafeFunction(callee)) {
 			continue;
 		}
@@ -54,7 +54,6 @@ int BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration 
 			maxSize = size;
 		}
 	}
-	printf("size %lu\n", maxSize);
 	return maxSize;
 }
 
@@ -221,9 +220,9 @@ std::set<varID> BasicProgmemTransform::getProgmemablePlaceholders() {
 void BasicProgmemTransform::setupProgmemableVarDecls() {
 	std::vector<SgInitializedName *> globals = getGlobalVars(project);
 	std::set<varID> safePlaceholders = getProgmemablePlaceholders();
-	printf("getting globals...\n");
+//	printf("getting globals...\n");
 	for(auto& global:globals) {
-		printf("checking.. %s\n", global->unparseToString().c_str());
+//		printf("checking.. %s\n", global->unparseToString().c_str());
 		SgExpression *assigned = getRHSOfVarDecl(global);
 		if(assigned == NULL) { continue; }
 		if(isSgStringVal(assigned)) {
@@ -231,7 +230,7 @@ void BasicProgmemTransform::setupProgmemableVarDecls() {
 			if(safePlaceholders.find(placeholder) != safePlaceholders.end()) {
 				SgVariableDeclaration *decl = isSgVariableDeclaration(global->get_declaration());
 				if(decl) {
-					printf("shifting %s\n", decl->unparseToString().c_str());
+//					printf("shifting %s\n", decl->unparseToString().c_str());
 					varDeclsToShift.insert(decl);
 				}
 			}
