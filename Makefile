@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 ROSE_INSTALL=/home/ROSE/RoseInstallTree
 BOOST_INSTALL=/home/ROSE/BoostInstallTree
 
@@ -73,8 +74,10 @@ progmemtransform: ptransform
 	./ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
 
 combined:
-	./itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file); \
-	./ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE)  rose_$(notdir $(file)); \ ;	
-	
+	set -e; \
+	source ./set.rose ; \
+	./itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE)  $(file); \
+	./ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) rose_$(notdir $(file))
+
 clean:
 	rm *o analyser testprop itransform ptransform
