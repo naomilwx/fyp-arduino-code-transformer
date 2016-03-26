@@ -18,6 +18,7 @@ void BasicProgmemTransform::runTransformation() {
 	setupProgmemableVarDecls();
 	for(auto &func: getDefinedFunctions(project)) {
 		transformFunction(func);
+		transformStringConstructors(func);
 	}
 	shiftVarDeclsToProgmem();
 }
@@ -100,7 +101,7 @@ void BasicProgmemTransform::setupCharBufferForFunction(SgFunctionDeclaration *fu
 	SageInterface::prependStatement(decl, scope);
 }
 
-void BasicProgmemTransform::castProgmemParams(SgFunctionCallExp* funcCall, SgVarRefExp *var) {
+void BasicProgmemTransform::castProgmemParams(SgVarRefExp *var) {
 	SageInterface::addTextForUnparser(var, "FS(", AstUnparseAttribute::e_before);
 	SageInterface::addTextForUnparser(var, ")", AstUnparseAttribute::e_after);
 }
@@ -137,6 +138,27 @@ void BasicProgmemTransform::loadReplacewithProgmemFunction(SgFunctionCallExp *fu
 	SageInterface::replaceExpression(funcCall, newFuncCall, true);
 }
 
+
+void BasicProgmemTransform::transformStringConstructors(SgFunctionDeclaration *func) {
+	Rose_STL_Container<SgNode *> constructors = NodeQuery::querySubTree(func, V_SgConstructorInitializer);
+	for(auto &cons: constructors) {
+		SgConstructorInitializer *consInit = isSgConstructorInitializer(cons);
+		SgClassDeclaration *classDecl = consInit->get_class_decl();
+		if(isArduinoStringType(classDecl->get_type())) {
+			SgExpressionPtrList exprs = consInit->get_args()->get_expressions();
+			for(auto &exp: exprs) {
+				SgVarRefExp* var = isSgVarRefExp(exp);
+				if(var == NULL) { continue ;}
+				SgInitializedName *initName = var->get_symbol()->get_declaration();
+				if(isVarDeclToRemove(initName)) {
+					castProgmemParams(var);
+				}
+			}
+		}
+
+	}
+}
+
 void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 	setupCharBufferForFunction(func);
 	Rose_STL_Container<SgNode *> funcCalls = NodeQuery::querySubTree(func, V_SgFunctionCallExp);
@@ -158,7 +180,7 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 			SgInitializedName *initName = var->get_symbol()->get_declaration();
 			if(isVarDeclToRemove(initName)) {
 				if(arduinoP || progmemPositions.find(index) != progmemPositions.end()) {
-					castProgmemParams(fcall, var);
+					castProgmemParams(var);
 				} else {
 					loadProgmemStringsIntoBuffer(fcall, var, startPos);
 				}

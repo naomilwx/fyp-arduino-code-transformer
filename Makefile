@@ -73,7 +73,7 @@ intertransform: itransform
 progmemtransform: ptransform
 	./ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
 
-combined:
+combined: itransform ptransform
 	set -e; \
 	source ./set.rose ; \
 	./itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE)  $(file); \
