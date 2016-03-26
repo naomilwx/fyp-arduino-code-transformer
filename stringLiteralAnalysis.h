@@ -15,7 +15,7 @@ template < typename T > std::string to_string( const T& n ) {
  }
 
 
-const std::string STRING_LITERAL_PREFIX = "__STRLIT_";
+const std::string STRING_LITERAL_PREFIX = "_STRLT_";
 bool isStringLiteralPlaceholder(const std::string& str);
 
 class StringLiteralInfo {

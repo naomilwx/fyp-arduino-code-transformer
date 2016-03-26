@@ -225,6 +225,25 @@ std::set<varID> BasicProgmemTransform::getVarsInUnsafeFunctionCalls() {
 	return results;
 }
 
+std::set<varID> BasicProgmemTransform::getVarsInUnsafeConstructors() {
+	std::set<varID> results;
+	Rose_STL_Container<SgNode *> constructors = NodeQuery::querySubTree(project, V_SgConstructorInitializer);
+	for(auto& cons: constructors) {
+		SgConstructorInitializer *consInit = isSgConstructorInitializer(cons);
+		SgClassDeclaration *classDecl = consInit->get_class_decl();
+		if(isArduinoStringType(classDecl->get_type()) == false) {
+			SgExpressionPtrList exprs = consInit->get_args()->get_expressions();
+			for(auto &exp: exprs) {
+				SgVarRefExp* var = isSgVarRefExp(exp);
+				if(var == NULL) { continue ;}
+				std::set<varID> aliases = aliasAnalysis->getAliasesForVariableAtNode(var, SgExpr2Var(var));
+				results.insert(aliases.begin(), aliases.end());
+			}
+		}
+	}
+	return results;
+}
+
 std::set<varID> BasicProgmemTransform::getVarsReturnedByFunctions() {
 	std::set<varID> results;
 	for(SgFunctionDeclaration *func: getDefinedFunctions(project)) {
@@ -244,9 +263,10 @@ std::set<varID> BasicProgmemTransform::getProgmemablePlaceholders() {
 	//	printf("done second..\n");
 	std::set<varID> varsBound = getVarsBoundToNonPlaceholderPointers();
 	//	printf("done third..\n");
+	std::set<varID> inUnsafeCons = getVarsInUnsafeConstructors();
 	for(auto& var: placeholderIDs) {
 		if(varsInFuncRet.find(var) == varsInFuncRet.end() && varsInUnsafe.find(var) == varsInUnsafe.end()) {
-			if(varsBound.find(var) == varsBound.end()) {
+			if(varsBound.find(var) == varsBound.end() && inUnsafeCons.find(var) == inUnsafeCons.end()) {
 				results.insert(var);
 			}
 		}

@@ -49,6 +49,7 @@ private:
 	std::set<varID> getVarsInUnsafeFunctionCalls();
 	std::set<varID> getVarsReturnedByFunctions();
 	std::set<varID> getProgmemablePlaceholders();
+	std::set<varID> getVarsInUnsafeConstructors();
 	void setupProgmemableVarDecls();
 
 	SgExpression *getRHSOfVarDecl(SgInitializedName *initName);
