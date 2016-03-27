@@ -13,7 +13,6 @@
 #include "stringLiteralAnalysis.h"
 #include "ctOverallDataflowAnalyser.h"
 
-
 extern int PointerAliasAnalysisDebugLevel;
 
 class PointerAliasAnalysis;

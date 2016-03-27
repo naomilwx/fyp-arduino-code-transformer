@@ -313,9 +313,9 @@ void PointerAliasAnalysisTransfer::visit(SgAggregateInitializer *sgn) {
 	processLHS(lhs, leftArNode);
 	//printf("start\n");
 	PointerAliasLattice* lhsLat =  getLattice(leftArNode.vID);
-	if(lhsLat){
-		lhsLat->setState(PointerAliasLattice::INITIALIZED);
-	}
+//	if(lhsLat){
+//		lhsLat->setState(PointerAliasLattice::INITIALIZED); //TODO: should arrays of char * always be set as STATICALLY_UNKNOWN?
+//	}
 
 	if(leftArNode.var != NULL){
 		//printf("getting rhs\n");
@@ -839,30 +839,47 @@ bool PointerAliasAnalysis::variableAtNodeHasKnownAlias(SgNode *node, varID var) 
 
 void PointerAliasAnalysis::setGlobalAliasRelationForLat(PointerAliasLattice *lat, aliasDerefCount& lhs, SgNode *rhsExp){
 	aliasDerefCount rhs;
+	if(isSgAssignInitializer(rhsExp)) {
+		rhsExp = isSgAssignInitializer(rhsExp)->get_operand();
+	}
 	PointerAliasAnalysisTransfer::processRHS(rhsExp, rhs, literalMap);
+
 	if((lhs.var !=NULL) && (rhs.var !=NULL)){
 		lat->setAliasRelation(make_pair(lhs,rhs));
 		set<varID> result;
-		computeGlobalAliases(lat, rhs.vID, rhs.derefLevel + 1, result);
+		printf("computing global aliases... %s %d\n", rhsExp->class_name().c_str(),rhs.derefLevel);
+		PointerAliasLattice *rhsLat;
+		if(globalVarsLattice.find(rhs.vID) != globalVarsLattice.end()){
+			rhsLat = dynamic_cast<PointerAliasLattice *>(globalVarsLattice[rhs.vID]);
+		} else {
+			rhsLat = lat;
+		}
+		computeGlobalAliases(rhsLat, rhs.vID, rhs.derefLevel + 1, result);
 		lat->setAliasedVariables(result);
 		if(lat->getAliasedVariables().size() == 1) {
+			lat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
 			lat->setAliasDeterminate(true);
+		} else {
+			lat->setAliasDeterminate(false);
 		}
 	}
 }
 
-void PointerAliasAnalysis::computeGlobalAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result)
-{
+void PointerAliasAnalysis::computeGlobalAliases(PointerAliasLattice *lat, varID var, int derefLevel, set<varID> &result){
 	if(derefLevel==0)
 		result.insert(var);
-	else
-	{
+	else {
+		if(lat == NULL) {
+			return;
+		}
 		set<varID> outS = lat->getAliasedVariables();
-		for(set<varID>::iterator outVar = outS.begin(); outVar != outS.end(); outVar++)
-		{
-			PointerAliasLattice *outLat = dynamic_cast<PointerAliasLattice *>(globalVarsLattice[*outVar]);
-			if(outLat)
+		for(set<varID>::iterator outVar = outS.begin(); outVar != outS.end(); outVar++) {
+			if(globalVarsLattice.find(*outVar) != globalVarsLattice.end()){
+				PointerAliasLattice *outLat = dynamic_cast<PointerAliasLattice *>(globalVarsLattice[*outVar]);
 				computeGlobalAliases(outLat,*outVar,derefLevel-1,result);
+			} else {
+				result.insert(*outVar);
+			}
 		}
 	}
 }
@@ -870,6 +887,7 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 
 	std::vector<SgInitializedName *> vars = getGlobalVars(project);
 	for(auto &initName: vars) {
+		printf("global var analysis: %s\n", initName->unparseToString().c_str());
 		aliasDerefCount lhs;
 		PointerAliasAnalysisTransfer::processLHS(initName, lhs);
 
@@ -887,8 +905,8 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 				}
 			}
 		}
-
 		globalVarsLattice[varID(initName)] = lat;
+		printf("lat %s\n", lat->str(" ").c_str());
 	}
 }
 
@@ -902,9 +920,8 @@ void PointerAliasAnalysis::transferFunctionCall(const Function &func, const Data
 }
 
 void PointerAliasAnalysis::runAnalysis() {
-	runGlobalVarAnalysis();
-
 	ctOverallDataflowAnalyser overallAnalyser(project, this);
+	runGlobalVarAnalysis();
 	overallAnalyser.runAnalysis();
 }
 

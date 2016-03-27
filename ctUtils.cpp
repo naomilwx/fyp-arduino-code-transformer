@@ -202,8 +202,9 @@ bool isGlobalVarRef(SgProject *project, SgVarRefExp *var) {
 
 bool isArduinoStringType(SgType *type) {
 	SgNamedType *named = isSgNamedType(type);
-	if(named != NULL && named->get_name() == "String") {
-		return true;
+	if(named != NULL) {
+		SgName name = named->get_name();
+		return (name == "String") || (name == "StringSumHelper");
 	}
 	return false;
 }

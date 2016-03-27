@@ -37,7 +37,8 @@ private:
 	int getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
 	void setupCharBufferForFunction(SgFunctionDeclaration *func);
 	void transformFunction(SgFunctionDeclaration *func);
-	void castProgmemParams(SgFunctionCallExp* funcCall, SgVarRefExp *var);
+	void transformStringConstructors(SgFunctionDeclaration *func);
+	void castProgmemParams(SgVarRefExp *var);
 	void loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var, int& pos);
 	void loadReplacewithProgmemFunction(SgFunctionCallExp *funcCall, std::string replacement);
 
@@ -48,6 +49,7 @@ private:
 	std::set<varID> getVarsInUnsafeFunctionCalls();
 	std::set<varID> getVarsReturnedByFunctions();
 	std::set<varID> getProgmemablePlaceholders();
+	std::set<varID> getVarsInUnsafeConstructors();
 	void setupProgmemableVarDecls();
 
 	SgExpression *getRHSOfVarDecl(SgInitializedName *initName);
