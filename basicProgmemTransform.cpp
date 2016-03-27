@@ -64,7 +64,8 @@ void BasicProgmemTransform::transformCharArrayInitialization() {
 			std::stringstream instr;
 			instr << "\n strcpy_P(" << initName->get_name().getString();
 			instr <<  ", " << ref->get_symbol()->get_name().getString() << ");\n";
-			SageInterface::addTextForUnparser(varDecl, instr.str(), AstUnparseAttribute::e_after); //TODO: figure out why this is not working
+//			SageInterface::addTextForUnparser(varDecl, instr.str(), AstUnparseAttribute::e_after); //TODO: figure out why this is not working
+			SageInterface::attachComment(varDecl, instr.str(), PreprocessingInfo::after);
 			printf("transformed %s\n", initName->unparseToString().c_str());
 		}
 
@@ -90,7 +91,7 @@ SgVariableDeclaration *BasicProgmemTransform::getVariableDeclPlaceholderForStrin
 	SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
 	SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
 	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
-	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration( "ar_" +placeholder, type, initializer, global);
+	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration( "ar" +placeholder, type, initializer, global);
 	additionalProgmemStrings[str] = varDec;
 	return varDec;
 }
@@ -158,7 +159,7 @@ void BasicProgmemTransform::shiftVarDeclsToProgmem() {
 	}
 	for(auto &item: additionalProgmemStrings) {
 		SgInitializedName *initName = item.second->get_variables()[0];
-		std::string dec = "const char " + initName->get_name().getString() + " PROGMEM[] = \"" + item.first + "\";";
+		std::string dec = "const char " + initName->get_name().getString() + "[] PROGMEM = \"" + item.first + "\";";
 		insertPreprocessingInfo(dec);
 //		convertVarDeclToProgmemDecl(varDecl, false);
 	}
@@ -268,7 +269,7 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 			if(var == NULL) { continue ;}
 			SgInitializedName *initName = var->get_symbol()->get_declaration();
 			if(isVarDeclToRemove(initName)) {
-				if(arduinoP || progmemPositions.find(index) != progmemPositions.end()) {
+				if(arduinoP || (replacement != "" && progmemPositions.find(index) == progmemPositions.end())) {
 					castProgmemParams(var);
 				} else {
 					loadProgmemStringsIntoBuffer(fcall, var, startPos);

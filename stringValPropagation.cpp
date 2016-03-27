@@ -847,7 +847,7 @@ void PointerAliasAnalysis::setGlobalAliasRelationForLat(PointerAliasLattice *lat
 	if((lhs.var !=NULL) && (rhs.var !=NULL)){
 		lat->setAliasRelation(make_pair(lhs,rhs));
 		set<varID> result;
-		printf("computing global aliases... %s %d\n", rhsExp->class_name().c_str(),rhs.derefLevel);
+//		printf("computing global aliases... %s %d\n", rhsExp->class_name().c_str(),rhs.derefLevel);
 		PointerAliasLattice *rhsLat;
 		if(globalVarsLattice.find(rhs.vID) != globalVarsLattice.end()){
 			rhsLat = dynamic_cast<PointerAliasLattice *>(globalVarsLattice[rhs.vID]);
@@ -906,7 +906,6 @@ void PointerAliasAnalysis::runGlobalVarAnalysis() {
 			}
 		}
 		globalVarsLattice[varID(initName)] = lat;
-		printf("lat %s\n", lat->str(" ").c_str());
 	}
 }
 
