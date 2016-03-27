@@ -33,6 +33,7 @@ protected:
 
 private:
 	std::set<SgVariableDeclaration *> varDeclsToShift;
+	std::map<std::string, SgVariableDeclaration *> additionalProgmemStrings;
 
 	int getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
 	void setupCharBufferForFunction(SgFunctionDeclaration *func);
@@ -41,6 +42,10 @@ private:
 	void castProgmemParams(SgVarRefExp *var);
 	void loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var, int& pos);
 	void loadReplacewithProgmemFunction(SgFunctionCallExp *funcCall, std::string replacement);
+
+	void transformCharArrayInitialization();
+	int getDeclaredArraySize(SgArrayType *arrType);
+	SgVariableDeclaration *getVariableDeclPlaceholderForString(const std::string& str);
 
 	void shiftVarDeclsToProgmem();
 	void convertVarDeclToProgmemDecl(SgVariableDeclaration *varDecl);
