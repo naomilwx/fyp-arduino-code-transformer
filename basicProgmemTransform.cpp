@@ -20,7 +20,91 @@ void BasicProgmemTransform::runTransformation() {
 		transformFunction(func);
 		transformStringConstructors(func);
 	}
+	transformCharArrayInitialization();
+	printf("ok\n");
 	shiftVarDeclsToProgmem();
+}
+
+void BasicProgmemTransform::transformCharArrayInitialization() {
+	/* *
+	 * Translates statements of the form:
+	 * char arr[n] = "some string"; to:
+	 * char arr[n];
+	 * strcpy_P(arr, <progmem placeholder>);
+	 * */
+	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(project, V_SgInitializedName);
+	for(auto &item: initNames) {
+		SgInitializedName *initName = isSgInitializedName(item);
+		if(initName->get_initializer() == NULL) {
+			continue;
+		}
+		SgVariableDeclaration * varDecl = isSgVariableDeclaration(initName->get_declaration());
+		if(varDecl == NULL) {
+			continue;
+		}
+		SgAssignInitializer *assignInit = isSgAssignInitializer(initName->get_initializer());
+		if(assignInit == NULL) {
+			continue;
+		}
+		SgType *type = initName->get_type();
+		SgType *eleType = SageInterface::getElementType(type);
+		if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
+			SgStringVal* strVal = isSgStringVal(assignInit->get_operand());
+			std::string str = strVal->get_value();
+			int arrSize = getDeclaredArraySize(isSgArrayType(type));
+			if(arrSize == 0) {
+				//char arr[] = "something";
+				int size = str.length() + 1;
+				SgArrayType *type = SageBuilder::buildArrayType(SageBuilder::buildCharType(), SageBuilder::buildIntVal(size));
+				initName->set_type(type);
+			}
+			varDecl->reset_initializer(NULL);
+			SgVariableDeclaration *placeholder = getVariableDeclPlaceholderForString(str);
+			SgVarRefExp *ref = SageBuilder::buildVarRefExp(placeholder);
+			std::stringstream instr;
+			instr << "\n strcpy_P(" << initName->get_name().getString();
+			instr <<  ", " << ref->get_symbol()->get_name().getString() << ");\n";
+//			SageInterface::addTextForUnparser(varDecl, instr.str(), AstUnparseAttribute::e_after); //TODO: figure out why this is not working
+			SageInterface::attachComment(varDecl, instr.str(), PreprocessingInfo::after);
+			printf("transformed %s\n", initName->unparseToString().c_str());
+		}
+
+	}
+}
+
+SgVariableDeclaration *BasicProgmemTransform::getVariableDeclPlaceholderForString(const std::string& str) {
+	for(auto &varDecl: varDeclsToShift) {
+		SgInitializedName *initName = varDecl->get_variables().at(0);
+		SgAssignInitializer *assign = isSgAssignInitializer(initName->get_initializer());
+		if(assign == NULL) {
+			continue;
+		}
+		SgStringVal* strVal = isSgStringVal(assign->get_operand());
+		if(strVal->get_value() == str) {
+			return varDecl;
+		}
+	}
+	if(additionalProgmemStrings.find(str) != additionalProgmemStrings.end()) {
+		return additionalProgmemStrings[str];
+	}
+	std::string placeholder = sla->getStringLiteralLabel(str);
+	SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
+	SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
+	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration( "ar" +placeholder, type, initializer, global);
+	additionalProgmemStrings[str] = varDec;
+	return varDec;
+}
+
+int BasicProgmemTransform::getDeclaredArraySize(SgArrayType *arrType) {
+	SgExpression *arrIndex = arrType->get_index();
+	if(arrIndex == NULL) {
+		return 0;
+	}
+	if(isSgIntVal(arrIndex)) {
+		return isSgIntVal(arrIndex)->get_value();
+	}
+	return 0;
 }
 
 int BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration *func) {
@@ -73,6 +157,13 @@ void BasicProgmemTransform::shiftVarDeclsToProgmem() {
 	for(auto& varDecl : varDeclsToShift) {
 		convertVarDeclToProgmemDecl(varDecl);
 	}
+	for(auto &item: additionalProgmemStrings) {
+		SgInitializedName *initName = item.second->get_variables()[0];
+		std::string dec = "const char " + initName->get_name().getString() + "[] PROGMEM = \"" + item.first + "\";";
+		insertPreprocessingInfo(dec);
+//		convertVarDeclToProgmemDecl(varDecl, false);
+	}
+	printf("ok here\n");
 }
 void BasicProgmemTransform::insertPreprocessingInfo(const std::string &data) {
 	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
@@ -81,7 +172,6 @@ void BasicProgmemTransform::insertPreprocessingInfo(const std::string &data) {
 	firstDecl->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
 }
 void BasicProgmemTransform::convertVarDeclToProgmemDecl(SgVariableDeclaration *varDecl) {
-	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
 	std::string dec = "const char ";
 	SgInitializedName *initName = varDecl->get_variables()[0];
 	std::string literal = isSgAssignInitializer(initName->get_initializer())->get_operand()->unparseToString();
@@ -179,7 +269,7 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 			if(var == NULL) { continue ;}
 			SgInitializedName *initName = var->get_symbol()->get_declaration();
 			if(isVarDeclToRemove(initName)) {
-				if(arduinoP || progmemPositions.find(index) != progmemPositions.end()) {
+				if(arduinoP || (replacement != "" && progmemPositions.find(index) == progmemPositions.end())) {
 					castProgmemParams(var);
 				} else {
 					loadProgmemStringsIntoBuffer(fcall, var, startPos);
