@@ -269,9 +269,9 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 			if(var == NULL) { continue ;}
 			SgInitializedName *initName = var->get_symbol()->get_declaration();
 			if(isVarDeclToRemove(initName)) {
-				if(arduinoP || (replacement != "" && progmemPositions.find(index) == progmemPositions.end())) {
+				if(arduinoP) {
 					castProgmemParams(var);
-				} else {
+				} else if(progmemPositions.find(index) == progmemPositions.end()) {
 					loadProgmemStringsIntoBuffer(fcall, var, startPos);
 				}
 			}
