@@ -6,3 +6,4 @@ echo "#define UBRR0H
 $(cat $1)" > $filename 
 echo $filename
 make combined file=$filename
+sed -i '1,2d' "rose_rose_$filename"
