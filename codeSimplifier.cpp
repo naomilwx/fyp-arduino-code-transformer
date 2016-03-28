@@ -130,7 +130,12 @@ bool SimplifyFunctionDeclaration::isReplacableVarRef(SgVarRefExp* varRef) {
 	}
 	//TODO: instead of just excluding LValues, which is always safe,
 	// consided allowing cases like arr[i] for arr to be replaced by its alias if it is a pointer to an array.
-	return (varRef->isUsedAsLValue() == false) && (aliasAnalysis->variableAtNodeHasKnownAlias(varRef, varID(varRef)));
+	// It's ok to replace as long as it is not inside an addressof or ref operator
+	if((aliasAnalysis->variableAtNodeHasKnownAlias(varRef, varID(varRef)))== false) {
+		return false;
+	}
+	SgNode *parent = varRef->get_parent();
+	return (varRef->isUsedAsLValue() == false) || (isSgPntrArrRefExp(parent) && isSgPntrArrRefExp(parent)->isUsedAsLValue() == false);
 }
 void SimplifyFunctionDeclaration::transformVarRefs(){
 	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(func, V_SgVarRefExp);
