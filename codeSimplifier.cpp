@@ -128,6 +128,8 @@ bool SimplifyFunctionDeclaration::isReplacableVarRef(SgVarRefExp* varRef) {
 	if(varName.substr(0, placeholderPref.length()) == placeholderPref) {
 		return false;
 	}
+	//TODO: instead of just excluding LValues, which is always safe,
+	// consided allowing cases like arr[i] for arr to be replaced by its alias if it is a pointer to an array.
 	return (varRef->isUsedAsLValue() == false) && (aliasAnalysis->variableAtNodeHasKnownAlias(varRef, varID(varRef)));
 }
 void SimplifyFunctionDeclaration::transformVarRefs(){

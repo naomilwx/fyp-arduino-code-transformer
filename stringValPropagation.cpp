@@ -661,7 +661,14 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 				}
 			}
 			break;
-
+		case V_SgPntrArrRefExp: {
+			//The expr wrapped by SgPntrArrRefExp is either of type array or a pointer type to an array
+			SgPntrArrRefExp *arrRefExp = isSgPntrArrRefExp(node);
+			processRHS(arrRefExp->get_lhs_operand(), arNode, literalMap);
+			arNode.derefLevel +=1;
+			return;
+		}
+		break;
 		case V_SgCastExp:
 			{
 				SgCastExp *cast_exp = isSgCastExp(node);

@@ -12,7 +12,7 @@
 #include "stringValPropagation.h"
 #include "stringLiteralAnalysis.h"
 #include "ctUtils.h"
-
+//TODO: shift unmodified arrays to progmem too...
 //Assumes code has been transformed by codeSimplifier
 class BasicProgmemTransform {
 protected:
