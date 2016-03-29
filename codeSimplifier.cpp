@@ -192,6 +192,9 @@ SgExpression * SimplifyFunctionDeclaration::lookupAlias(varID alias) {
 
 void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	varID alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, varID(var)).begin());
+	if(alias.str().substr(0, PointerAliasAnalysis::newExpPlaceholder.length()) == PointerAliasAnalysis::newExpPlaceholder) {
+		return;
+	}
 	SgExpression *aliasExp = lookupAlias(alias);
 	SgType *aType = aliasExp->get_type();
 	SgType *varType = var->get_type();
@@ -202,9 +205,8 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 		printf("level diff %d\n", diff);
 	}
 
-	while(diff > 0) {
+	if(diff > 0) {
 		aliasExp = SageBuilder::buildAddressOfOp(aliasExp); //TODO: check correctness of this
-		diff -= 1;
 	}
 	removedVarRefs.insert(var);
 	SageInterface::replaceExpression(oldExp, aliasExp, true);

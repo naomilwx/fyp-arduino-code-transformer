@@ -14,7 +14,7 @@ using namespace FunctionAnalysisHelper;
 
 
 int PointerAliasAnalysisDebugLevel = 1;
-
+const std::string PointerAliasAnalysis::newExpPlaceholder = "__tmp_Mem__";
 
 PointerAliasAnalysisTransfer::PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis)
 	: VariableStateTransfer<PointerAliasLattice>(func, n, state, dfInfo, PointerAliasAnalysisDebugLevel){
@@ -700,7 +700,7 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 					scope = stmt->get_scope();
 					SgType *type = new_exp->get_type()->dereference();
 					std::stringstream ss;
-					ss << "__tmp_Mem__" << new_index;
+					ss << PointerAliasAnalysis::newExpPlaceholder << new_index;
 					std::string name;
 					ss >> name;
 					SgName var_name = name;

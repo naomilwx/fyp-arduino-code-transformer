@@ -90,6 +90,7 @@ public:
 		std::map<varID, Lattice*> globalVarsLattice;
 
 	public:
+		static const std::string newExpPlaceholder;
 		PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map);
 
 		PointerAliasLattice *getAliasLattice(NodeState *s, varID var);
