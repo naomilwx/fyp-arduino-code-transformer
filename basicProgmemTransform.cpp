@@ -19,10 +19,25 @@ void BasicProgmemTransform::runTransformation() {
 	for(auto &func: getDefinedFunctions(project)) {
 		transformFunction(func);
 		transformStringConstructors(func);
+		transformArrayRef(func);
 	}
 	transformCharArrayInitialization();
 	printf("ok\n");
 	shiftVarDeclsToProgmem();
+}
+
+void BasicProgmemTransform::transformArrayRef(SgFunctionDeclaration *func) {
+	Rose_STL_Container<SgNode *> refs = NodeQuery::querySubTree(func, V_SgPntrArrRefExp);
+	for(auto& item: refs) {
+		SgPntrArrRefExp *exp = isSgPntrArrRefExp(item);
+		SgVarRefExp *var = isSgVarRefExp(exp->get_lhs_operand());
+		if(var == NULL) {
+			continue;
+		}
+		if(isVarDeclToRemove(var)) {
+			handleProgmemArrayIndexRef(exp);
+		}
+	}
 }
 
 void BasicProgmemTransform::transformCharArrayInitialization() {
@@ -64,7 +79,6 @@ void BasicProgmemTransform::transformCharArrayInitialization() {
 			std::stringstream instr;
 			instr << "\n strcpy_P(" << initName->get_name().getString();
 			instr <<  ", " << ref->get_symbol()->get_name().getString() << ");\n";
-//			SageInterface::addTextForUnparser(varDecl, instr.str(), AstUnparseAttribute::e_after); //TODO: figure out why this is not working
 			SageInterface::attachComment(varDecl, instr.str(), PreprocessingInfo::after);
 			printf("transformed %s\n", initName->unparseToString().c_str());
 		}
@@ -142,6 +156,18 @@ int BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration 
 	return maxSize;
 }
 
+void BasicProgmemTransform::handleProgmemArrayIndexRef(SgPntrArrRefExp *ref) {
+	SgType *type = ref->get_type();
+	if(isSgTypeChar(type)) {
+		//character array
+		SageInterface::addTextForUnparser(ref, "(char)pgm_read_byte(&(", AstUnparseAttribute::e_before);
+		SageInterface::addTextForUnparser(ref, "))", AstUnparseAttribute::e_after);
+	} else if(SageInterface::isPointerType(type) && isSgTypeChar(type->findBaseType())) {
+		SageInterface::addTextForUnparser(ref, "(char *)pgm_read_word(&(", AstUnparseAttribute::e_before);
+		SageInterface::addTextForUnparser(ref, "))", AstUnparseAttribute::e_after);
+	}
+}
+
 int BasicProgmemTransform::getSizeNeededToLoadFromProgmem(SgVarRefExp *var) {
 	SgInitializedName *initName = var->get_symbol()->get_declaration();
 	SgExpression *rhs = getRHSOfVarDecl(initName);
@@ -211,11 +237,6 @@ void BasicProgmemTransform::loadProgmemStringsIntoBuffer(SgFunctionCallExp *func
 
 	std::stringstream arr;
 	arr << "&" << FUNC_BUFFER_NAME <<"[" <<pos << "]/*";
-//	SgVarRefExp *buff = SageBuilder::buildVarRefExp(FUNC_BUFFER_NAME);
-//	SgPntrArrRefExp *buffExp = new SgPntrArrRefExp(buff, SageBuilder::buildIntVal(pos), SageBuilder::buildArrayType(SageBuilder::buildCharType()));
-//	SgAddressOfOp *buffAddr = SageBuilder::buildAddressOfOp(buffExp);
-//
-//	SageInterface::replaceExpression(var, buffAddr);
 	SageInterface::addTextForUnparser(var, arr.str(), AstUnparseAttribute::e_before);
 	SageInterface::addTextForUnparser(var, "*/", AstUnparseAttribute::e_after);
 	pos += length;
@@ -239,8 +260,8 @@ void BasicProgmemTransform::transformStringConstructors(SgFunctionDeclaration *f
 			for(auto &exp: exprs) {
 				SgVarRefExp* var = isSgVarRefExp(exp);
 				if(var == NULL) { continue ;}
-				SgInitializedName *initName = var->get_symbol()->get_declaration();
-				if(isVarDeclToRemove(initName)) {
+//				SgInitializedName *initName = var->get_symbol()->get_declaration();
+				if(isVarDeclToRemove(var)) {
 					castProgmemParams(var);
 				}
 			}
@@ -266,9 +287,8 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 		int index = 0;
 		for(auto &expr: params) {
 			SgVarRefExp* var = isSgVarRefExp(expr);
-			if(var == NULL) { continue ;}
-			SgInitializedName *initName = var->get_symbol()->get_declaration();
-			if(isVarDeclToRemove(initName)) {
+			if(var == NULL) { continue;}
+			if(isVarDeclToRemove(var)) {
 				if(arduinoP) {
 					castProgmemParams(var);
 				} else if(progmemPositions.find(index) == progmemPositions.end()) {
@@ -292,7 +312,8 @@ std::set<varID> BasicProgmemTransform::getVarsBoundToNonPlaceholderPointers() {
 			continue;
 		}
 		varID varRef = SgExpr2Var(var);
-		if(aliasAnalysis->variableAtNodeHasKnownAlias(var, varRef) == false || var->isUsedAsLValue()) {
+//		if(aliasAnalysis->variableAtNodeHasKnownAlias(var, varRef) == false || var->isUsedAsLValue()) {
+		if(varRef.str().find(STRING_LITERAL_PREFIX) == std::string::npos) {
 			std::set<varID> aliases = aliasAnalysis->getAliasesForVariableAtNode(var, varRef);
 			if(aliases.size() == 0) {
 				aliases.insert(varRef);
@@ -395,4 +416,9 @@ bool BasicProgmemTransform::isVarDeclToRemove(SgInitializedName *initName) {
 		return true;
 	}
 	return false;
+}
+
+bool BasicProgmemTransform::isVarDeclToRemove(SgVarRefExp *var) {
+	SgInitializedName *initName = var->get_symbol()->get_declaration();
+	return isVarDeclToRemove(initName);
 }
