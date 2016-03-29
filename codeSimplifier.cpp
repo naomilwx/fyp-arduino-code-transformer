@@ -75,6 +75,10 @@ void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
 		if(isGlobalVarRef(project, isSgVarRefExp(lhs))) { continue; }
 		std::set<SgNode*> refs = defUseInfo[assign];
 		bool redundant = true;
+		if(SageInterface::isReferenceType(lhs->get_type())) {
+			//this is a reference assignment x = ...; where x is a reference type
+			continue;
+		}
 		for(auto& ref: refs) {
 			SgVarRefExp *varRef = isSgVarRefExp(ref);
 			if(varRef == NULL) { continue; }
@@ -134,7 +138,6 @@ bool SimplifyFunctionDeclaration::isReplacableVarRef(SgVarRefExp* varRef) {
 		return false;
 	}
 	SgNode *parent = varRef->get_parent();
-	//TODO: this is buggy in the case where the alias is not an array... see test.cpp
 	return (varRef->isUsedAsLValue() == false) || (isSgPntrArrRefExp(parent) && isSgPntrArrRefExp(parent)->isUsedAsLValue() == false); //Ok to replace with alias in the case of a pointer p pointing to an array in the expression p[]
 }
 void SimplifyFunctionDeclaration::transformVarRefs(){

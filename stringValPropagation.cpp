@@ -249,7 +249,11 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
 		PointerAliasLattice* lhsLat =  getLattice(left.vID);
 
 		if(lhsLat){
-			lhsLat->setState(PointerAliasLattice::INITIALIZED);
+			if(SageInterface::isReferenceType(arg->get_type())) {
+				lhsLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
+			} else {
+				lhsLat->setState(PointerAliasLattice::INITIALIZED);
+			}
 		}
 
 		processParam(index, scope, arg, right);	
