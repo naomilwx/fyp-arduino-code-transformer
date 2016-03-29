@@ -13,7 +13,6 @@
 #include "rose.h"
 #include "stringValPropagation.h"
 
-//TODO: write procedure to flatten out function calls
 class SimplifyFunctionDeclaration {
 protected:
 	PointerAliasAnalysis *aliasAnalysis;

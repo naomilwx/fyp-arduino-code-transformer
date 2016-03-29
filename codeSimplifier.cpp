@@ -75,6 +75,10 @@ void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
 		if(isGlobalVarRef(project, isSgVarRefExp(lhs))) { continue; }
 		std::set<SgNode*> refs = defUseInfo[assign];
 		bool redundant = true;
+		if(SageInterface::isReferenceType(lhs->get_type())) {
+			//this is a reference assignment x = ...; where x is a reference type
+			continue;
+		}
 		for(auto& ref: refs) {
 			SgVarRefExp *varRef = isSgVarRefExp(ref);
 			if(varRef == NULL) { continue; }
@@ -84,7 +88,6 @@ void SimplifyFunctionDeclaration::pruneUnusedVarDefinitions() {
 				break;
 			}
 		}
-
 		if(redundant) {
 			printf("removing... %s\n", assign->unparseToString().c_str());
 			removeVarAssignment(op);
@@ -128,7 +131,14 @@ bool SimplifyFunctionDeclaration::isReplacableVarRef(SgVarRefExp* varRef) {
 	if(varName.substr(0, placeholderPref.length()) == placeholderPref) {
 		return false;
 	}
-	return (varRef->isUsedAsLValue() == false) && (aliasAnalysis->variableAtNodeHasKnownAlias(varRef, varID(varRef)));
+	//TODO: instead of just excluding LValues, which is always safe,
+	// consided allowing cases like arr[i] for arr to be replaced by its alias if it is a pointer to an array.
+	// It's ok to replace as long as it is not inside an addressof or ref operator
+	if((aliasAnalysis->variableAtNodeHasKnownAlias(varRef, varID(varRef)))== false) {
+		return false;
+	}
+	SgNode *parent = varRef->get_parent();
+	return (varRef->isUsedAsLValue() == false) || (isSgPntrArrRefExp(parent) && isSgPntrArrRefExp(parent)->isUsedAsLValue() == false); //Ok to replace with alias in the case of a pointer p pointing to an array in the expression p[]
 }
 void SimplifyFunctionDeclaration::transformVarRefs(){
 	Rose_STL_Container<SgNode *> varRefs = NodeQuery::querySubTree(func, V_SgVarRefExp);
@@ -140,7 +150,7 @@ void SimplifyFunctionDeclaration::transformVarRefs(){
 		}
 		if(isReplacableVarRef(var)) {
 			//TODO: check for isUsedAsLValue = false and known alias instead...
-			printf("replacing vars: %s\n", varRef->unparseToString().c_str());
+			printf("replacing vars: %s %d\n", var->unparseToString().c_str(), var->get_file_info()->get_line());
 			replaceWithAlias(var);
 			printf("done replacing vars \n");
 
@@ -155,7 +165,6 @@ void SimplifyFunctionDeclaration::transformVarRefs(std::set<varID> varsToReplace
 		SgVarRefExp *var = isSgVarRefExp(varRef);
 		printf("checking vars: %s\n", var->unparseToString().c_str());
 		if(varID::isValidVarExp(var) && varsToReplace.find(varID(var)) != varsToReplace.end()) {
-			//TODO: check for isUsedAsLValue = false and known alias instead...
 			printf("replacing vars: %s\n", var->unparseToString().c_str());
 			replaceWithAlias(var);
 			printf("done replacing vars \n");
@@ -185,6 +194,9 @@ SgExpression * SimplifyFunctionDeclaration::lookupAlias(varID alias) {
 
 void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	varID alias = *(aliasAnalysis->getAliasesForVariableAtNode(var, varID(var)).begin());
+	if(alias.str().substr(0, PointerAliasAnalysis::newExpPlaceholder.length()) == PointerAliasAnalysis::newExpPlaceholder) {
+		return;
+	}
 	SgExpression *aliasExp = lookupAlias(alias);
 	SgType *aType = aliasExp->get_type();
 	SgType *varType = var->get_type();
@@ -192,14 +204,20 @@ void SimplifyFunctionDeclaration::replaceWithAlias(SgVarRefExp *var) {
 	int diff = 0;
 	if(aType != NULL  && varType != NULL) {
 		diff = getPointerLevel(varType) - getPointerLevel(aType);
-		printf("level diff %d\n", diff);
+//		printf("level diff %d\n", diff);
 	}
 
 	while(diff > 0) {
-		aliasExp = SageBuilder::buildAddressOfOp(aliasExp); //TODO: check correctness of this
+		SgExpression *par = isSgExpression(oldExp->get_parent());
+		if(par && (isSgPointerDerefExp(par) || isSgPntrArrRefExp(par))) {
+			oldExp = par;
+		} else {
+			aliasExp = SageBuilder::buildAddressOfOp(aliasExp); //TODO: check correctness of this
+		}
 		diff -= 1;
 	}
 	removedVarRefs.insert(var);
+	printf("replace with %s\n", aliasExp->unparseToString().c_str());
 	SageInterface::replaceExpression(oldExp, aliasExp, true);
 }
 

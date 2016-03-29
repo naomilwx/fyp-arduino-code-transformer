@@ -14,7 +14,7 @@ using namespace FunctionAnalysisHelper;
 
 
 int PointerAliasAnalysisDebugLevel = 1;
-
+const std::string PointerAliasAnalysis::newExpPlaceholder = "__tmp_Mem__";
 
 PointerAliasAnalysisTransfer::PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis)
 	: VariableStateTransfer<PointerAliasLattice>(func, n, state, dfInfo, PointerAliasAnalysisDebugLevel){
@@ -35,7 +35,6 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 
 	SageInterface::isAssignmentStatement(sgn,&lhs, &rhs);
 
-	//	Dbg::dbg << "AssignOP Stement"<<lhs->variantT()<<"and"<<rhs->variantT()<<"\n";
 	processLHS(lhs,leftARNode);
 
 	bool changed = false;
@@ -250,7 +249,11 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
 		PointerAliasLattice* lhsLat =  getLattice(left.vID);
 
 		if(lhsLat){
-			lhsLat->setState(PointerAliasLattice::INITIALIZED);
+			if(SageInterface::isReferenceType(arg->get_type())) {
+				lhsLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
+			} else {
+				lhsLat->setState(PointerAliasLattice::INITIALIZED);
+			}
 		}
 
 		processParam(index, scope, arg, right);	
@@ -661,7 +664,14 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 				}
 			}
 			break;
-
+		case V_SgPntrArrRefExp: {
+			//The expr wrapped by SgPntrArrRefExp is either of type array or a pointer type to an array
+			SgPntrArrRefExp *arrRefExp = isSgPntrArrRefExp(node);
+			processRHS(arrRefExp->get_lhs_operand(), arNode, literalMap);
+			arNode.derefLevel +=1;
+			return;
+		}
+		break;
 		case V_SgCastExp:
 			{
 				SgCastExp *cast_exp = isSgCastExp(node);
@@ -693,7 +703,7 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 					scope = stmt->get_scope();
 					SgType *type = new_exp->get_type()->dereference();
 					std::stringstream ss;
-					ss << "__tmp_Mem__" << new_index;
+					ss << PointerAliasAnalysis::newExpPlaceholder << new_index;
 					std::string name;
 					ss >> name;
 					SgName var_name = name;
@@ -857,9 +867,9 @@ void PointerAliasAnalysis::setGlobalAliasRelationForLat(PointerAliasLattice *lat
 		computeGlobalAliases(rhsLat, rhs.vID, rhs.derefLevel + 1, result);
 		lat->setAliasedVariables(result);
 		if(lat->getAliasedVariables().size() == 1) {
-			lat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
 			lat->setAliasDeterminate(true);
 		} else {
+			lat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
 			lat->setAliasDeterminate(false);
 		}
 	}

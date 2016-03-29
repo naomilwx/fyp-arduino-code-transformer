@@ -12,7 +12,14 @@
 #include "stringValPropagation.h"
 #include "stringLiteralAnalysis.h"
 #include "ctUtils.h"
-
+//TODO: shift unmodified global arrays to progmem too...
+/*
+ * Eligable arrays:
+ *   Must always be used in the form arr[i]
+ *   Not an argument to any function
+ *   Not used in any constructor
+ * wrap occurances with pgm_read_byte(&...)
+ * */
 //Assumes code has been transformed by codeSimplifier
 class BasicProgmemTransform {
 protected:
@@ -34,6 +41,10 @@ protected:
 private:
 	std::set<SgVariableDeclaration *> varDeclsToShift;
 	std::map<std::string, SgVariableDeclaration *> additionalProgmemStrings;
+//	std::set<SgVariableDeclaration *> arrDeclsToShift;
+
+
+//	void shiftGlobalArraysToProgmem();
 
 	int getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
 	void setupCharBufferForFunction(SgFunctionDeclaration *func);
@@ -42,6 +53,8 @@ private:
 	void castProgmemParams(SgVarRefExp *var);
 	void loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var, int& pos);
 	void loadReplacewithProgmemFunction(SgFunctionCallExp *funcCall, std::string replacement);
+
+//	void handleCharIndexRefForProgmemString(SgPntrArrRefExp *ref);
 
 	void transformCharArrayInitialization();
 	int getDeclaredArraySize(SgArrayType *arrType);
@@ -53,8 +66,9 @@ private:
 	std::set<varID> getVarsBoundToNonPlaceholderPointers();
 	std::set<varID> getVarsInUnsafeFunctionCalls();
 	std::set<varID> getVarsReturnedByFunctions();
-	std::set<varID> getProgmemablePlaceholders();
 	std::set<varID> getVarsInUnsafeConstructors();
+	std::set<varID> getAllUnsafeVars();
+
 	void setupProgmemableVarDecls();
 
 	SgExpression *getRHSOfVarDecl(SgInitializedName *initName);

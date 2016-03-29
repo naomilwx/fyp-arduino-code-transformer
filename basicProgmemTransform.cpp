@@ -269,9 +269,9 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 			if(var == NULL) { continue ;}
 			SgInitializedName *initName = var->get_symbol()->get_declaration();
 			if(isVarDeclToRemove(initName)) {
-				if(arduinoP || (replacement != "" && progmemPositions.find(index) == progmemPositions.end())) {
+				if(arduinoP) {
 					castProgmemParams(var);
-				} else {
+				} else if(progmemPositions.find(index) == progmemPositions.end()) {
 					loadProgmemStringsIntoBuffer(fcall, var, startPos);
 				}
 			}
@@ -343,30 +343,22 @@ std::set<varID> BasicProgmemTransform::getVarsReturnedByFunctions() {
 	return results;
 }
 
-std::set<varID> BasicProgmemTransform::getProgmemablePlaceholders() {
-	std::set<varID> placeholderIDs = sla->getPlaceholderVarIDs();
+std::set<varID> BasicProgmemTransform::getAllUnsafeVars() {
 	std::set<varID> results;
-	//	printf("before getting info...\n");
 	std::set<varID> varsInFuncRet = getVarsReturnedByFunctions();
-	//	printf("done first..\n");
 	std::set<varID> varsInUnsafe = getVarsInUnsafeFunctionCalls();
-	//	printf("done second..\n");
 	std::set<varID> varsBound = getVarsBoundToNonPlaceholderPointers();
-	//	printf("done third..\n");
 	std::set<varID> inUnsafeCons = getVarsInUnsafeConstructors();
-	for(auto& var: placeholderIDs) {
-		if(varsInFuncRet.find(var) == varsInFuncRet.end() && varsInUnsafe.find(var) == varsInUnsafe.end()) {
-			if(varsBound.find(var) == varsBound.end() && inUnsafeCons.find(var) == inUnsafeCons.end()) {
-				results.insert(var);
-			}
-		}
-	}
+	results.insert(varsInFuncRet.begin(), varsInFuncRet.end());
+	results.insert(varsInUnsafe.begin(), varsInUnsafe.end());
+	results.insert(varsBound.begin(), varsBound.end());
+	results.insert(inUnsafeCons.begin(), inUnsafeCons.end());
 	return results;
 }
 
 void BasicProgmemTransform::setupProgmemableVarDecls() {
 	std::vector<SgInitializedName *> globals = getGlobalVars(project);
-	std::set<varID> safePlaceholders = getProgmemablePlaceholders();
+	std::set<varID> unsafeVars = getAllUnsafeVars();
 //	printf("getting globals...\n");
 	for(auto& global:globals) {
 //		printf("checking.. %s\n", global->unparseToString().c_str());
@@ -374,7 +366,7 @@ void BasicProgmemTransform::setupProgmemableVarDecls() {
 		if(assigned == NULL) { continue; }
 		if(isSgStringVal(assigned)) {
 			varID placeholder = sla->getPlaceholderVarIDForStringLiteral(isSgStringVal(assigned)->get_value());
-			if(safePlaceholders.find(placeholder) != safePlaceholders.end()) {
+			if(unsafeVars.find(placeholder) == unsafeVars.end()) {
 				SgVariableDeclaration *decl = isSgVariableDeclaration(global->get_declaration());
 				if(decl) {
 //					printf("shifting %s\n", decl->unparseToString().c_str());
