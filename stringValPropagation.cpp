@@ -35,7 +35,6 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 
 	SageInterface::isAssignmentStatement(sgn,&lhs, &rhs);
 
-	//	Dbg::dbg << "AssignOP Stement"<<lhs->variantT()<<"and"<<rhs->variantT()<<"\n";
 	processLHS(lhs,leftARNode);
 
 	bool changed = false;
@@ -864,9 +863,9 @@ void PointerAliasAnalysis::setGlobalAliasRelationForLat(PointerAliasLattice *lat
 		computeGlobalAliases(rhsLat, rhs.vID, rhs.derefLevel + 1, result);
 		lat->setAliasedVariables(result);
 		if(lat->getAliasedVariables().size() == 1) {
-			lat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
 			lat->setAliasDeterminate(true);
 		} else {
+			lat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
 			lat->setAliasDeterminate(false);
 		}
 	}
