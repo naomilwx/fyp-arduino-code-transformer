@@ -253,15 +253,12 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
 		PointerAliasLattice* lhsLat =  getLattice(left.vID);
 		//TODO: check
 		if(lhsLat){
-			if(SageInterface::isReferenceType(arg->get_type())) {
-				lhsLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
-				lhsLat->setAliasDeterminate(false);
-			} else {
-				lhsLat->setState(PointerAliasLattice::INITIALIZED);
-			}
+			lhsLat->setState(PointerAliasLattice::INITIALIZED);
 		}
 
 		processParam(index, scope, arg, right);	
+		PointerAliasLattice *placeholderLat = getLattice(right.vID);
+		placeholderLat->setState(PointerAliasLattice::INITIALIZED);
 
 		if(lhsLat && (left.var != NULL) && right.var != NULL) {
 			lhsLat->setAliasRelation(make_pair(left,right));
@@ -322,7 +319,7 @@ void PointerAliasAnalysisTransfer::visit(SgAggregateInitializer *sgn) {
 	aliasDerefCount leftArNode;
 	processLHS(lhs, leftArNode);
 	//printf("start\n");
-	PointerAliasLattice* lhsLat =  getLattice(leftArNode.vID);
+//	PointerAliasLattice* lhsLat =  getLattice(leftArNode.vID);
 //	if(lhsLat){
 //		lhsLat->setState(PointerAliasLattice::INITIALIZED); //TODO: should arrays of char * always be set as STATICALLY_UNKNOWN?
 //	}
@@ -788,7 +785,7 @@ void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode
 		int idx = 0;
 		for(auto&param: func.get_declaration()->get_args()) {
 			Lattice *lat = res->addSlotForVariable(varID(getPlaceholderNameForArgNum(idx)));
-			dynamic_cast<PointerAliasLattice *>(lat)->setState(PointerAliasLattice::INITIALIZED);
+//			dynamic_cast<PointerAliasLattice *>(lat)->setState(PointerAliasLattice::INITIALIZED);
 			idx++;
 		}
 	}
