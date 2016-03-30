@@ -74,13 +74,17 @@ void PointerAliasAnalysisTransfer::visit(SgAssignOp *sgn)
 }
 
 void PointerAliasAnalysisTransfer::updateStateForAssignOp(PointerAliasLattice *lhsLat, SgExpression *lhs) {
+	//TODO: check
 	if(lhsLat) {
 		if(lhsLat->getState() == PointerAliasLattice::BOTTOM) {
+			lhsLat->setAliasDeterminate(true);
 			lhsLat->setState(PointerAliasLattice::INITIALIZED);
 		} else if(isSgPntrArrRefExp(lhs)){
+			lhsLat->setAliasDeterminate(false);
 			lhsLat->setState(PointerAliasLattice::MODIFIED);
 		} else {
 			if(lhsLat->getState() != PointerAliasLattice::STATICALLY_UNKNOWN) {
+				lhsLat->setAliasDeterminate(true);
 				lhsLat->setState(PointerAliasLattice::REASSIGNED);
 			}
 		}
@@ -247,10 +251,11 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
 		processLHS(arg, left);
 
 		PointerAliasLattice* lhsLat =  getLattice(left.vID);
-
+		//TODO: check
 		if(lhsLat){
 			if(SageInterface::isReferenceType(arg->get_type())) {
 				lhsLat->setState(PointerAliasLattice::STATICALLY_UNKNOWN);
+				lhsLat->setAliasDeterminate(false);
 			} else {
 				lhsLat->setState(PointerAliasLattice::INITIALIZED);
 			}
@@ -284,11 +289,13 @@ void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn) {
 
 	} else {
 		processRHS(rhs,rightARNode);
-
+		//TODO: check
+/*
 		if(SageInterface::isReferenceType(leftARNode.vID.varType)) {
 			//handle reference variables
 			rightARNode.derefLevel = -1;
 		}
+*/
 	}
 
 	//Establish the per CFG-node alias relations
@@ -456,11 +463,14 @@ bool PointerAliasAnalysisTransfer::computeAliases(PointerAliasLattice *lat, varI
 		result.insert(var);
 		return false;
 	} else if(lat){
-		bool unknown = (lat->getState() == PointerAliasLattice::STATICALLY_UNKNOWN);
+		//TODO: check
+		bool unknown = (lat->aliasIsDeterminate() == false);
+		//bool unknown = (lat->getState() == PointerAliasLattice::STATICALLY_UNKNOWN);
 		//the aliases of the current variable is statically unknown. Therefore the resulting computed variable is statically unknown.
 		set<varID> outS = lat->getAliasedVariables();
 		for(set<varID>::iterator outVar = outS.begin(); outVar != outS.end(); outVar++) {
-			unknown = (computeAliases(getLattice(*outVar),*outVar,derefLevel-1,result) || unknown);
+			PointerAliasLattice *outLat =  getLattice(*outVar);	
+			unknown = (computeAliases(outLat,*outVar,derefLevel-1,result) || unknown);
 		}
 		return unknown;
 	}
@@ -614,9 +624,12 @@ void PointerAliasAnalysisTransfer::processRHS(SgNode *node, struct aliasDerefCou
 				ROSE_ASSERT(var_exp != NULL);
 				sym = var_exp->get_symbol();
 				var = SgExpr2Var(var_exp);
+				if(SageInterface::isReferenceType(var_exp->get_type())){
+					derefLevel++;
+				}
 				if(isSgArrayType(var_exp->get_type()) && derefLevel == 0){
 					derefLevel = -1;
-				}
+				} 
 			}
 			break;
 
