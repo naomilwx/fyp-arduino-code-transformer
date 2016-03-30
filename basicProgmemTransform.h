@@ -18,7 +18,7 @@
  *   Must always be used in the form arr[i]
  *   Not an argument to any function
  *   Not used in any constructor
- * wrap occurances with pgm_read_byte(&...)
+ * wrap occurances with pgm_read_word(&...)
  * */
 //Assumes code has been transformed by codeSimplifier
 class BasicProgmemTransform {
@@ -54,7 +54,8 @@ private:
 	void loadProgmemStringsIntoBuffer(SgFunctionCallExp *funcCall, SgVarRefExp *var, int& pos);
 	void loadReplacewithProgmemFunction(SgFunctionCallExp *funcCall, std::string replacement);
 
-//	void handleCharIndexRefForProgmemString(SgPntrArrRefExp *ref);
+	void transformArrayRef(SgFunctionDeclaration *func);
+	void handleProgmemArrayIndexRef(SgPntrArrRefExp *ref);
 
 	void transformCharArrayInitialization();
 	int getDeclaredArraySize(SgArrayType *arrType);
@@ -73,6 +74,8 @@ private:
 
 	SgExpression *getRHSOfVarDecl(SgInitializedName *initName);
 	bool isVarDeclToRemove(SgInitializedName *name);
+	bool isVarDeclToRemove(SgVarRefExp *var);
+
 	int getSizeNeededToLoadFromProgmem(SgVarRefExp *name);
 };
 

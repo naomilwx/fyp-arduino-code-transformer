@@ -212,7 +212,7 @@ ctVarsExprsProductLattice::ctVarsExprsProductLattice(
     VarsExprsProductLattice(perVarLattice, constVarLattices, allVarLattice, ldva, n, state),
     FiniteProductLattice()
 {
-		incorporateVarsMap(globalLattices, true);
+		incorporateVarsMap(globalLattices, false);
 		verifyFinite();
 }
 

@@ -74,7 +74,7 @@ private:
 	void markContainedVarRefsAsRemoved(SgNode *node);
 
 	bool isReplacableVarRef(SgVarRefExp *varRef);
-//	void runVarRefsTransformation(SgVarRefExp *var);
+	bool isTemporaryAlias(varID var);
 	void runStringLiteralsTransformation(SgStringVal *strVal);
 
 	void markArrayInitializers();
