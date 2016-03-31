@@ -18,10 +18,10 @@ ARDUINO=/root/Arduino/hardware
 ARDUINO_TOOLS=$(ARDUINO)/tools/avr/avr/include
 ARDUINO_VARIANTS=$(ARDUINO)/arduino/avr/variants/standard
 ARDUINO_CORE=$(ARDUINO)/arduino/avr/cores/arduino
-ARDUINO_LIBRARIES=$(ARDUINO)/arduino/avr/libraries/
-ADDITIONAL_LIBRARIES=/root/Arduino/libraries/
-ESP8266=/root/esp8266/Arduino/libraries/
-ARDUINO_INCLUDES=-I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS) -I$(ARDUINO_CORE) -I$(ARDUINO_LIBRARIES) -I$(ADDITIONAL_LIBRARIES) -I$(ESP8266)
+ARDUINO_LIBRARIES=$(addprefix -I, $(shell find $(ARDUINO)/arduino/avr/libraries/ -type d -print))
+ADDITIONAL_LIBRARIES=$(addprefix -I, $(shell find /root/Arduino/libraries/*/src -type d -print))
+#ESP8266=-I/root/esp8266/Arduino/tools/sdk/include $(addprefix -I, $(shell find /root/esp8266/Arduino/libraries/* -type d -print))
+ARDUINO_INCLUDES=-I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS) -I$(ARDUINO_CORE) -I$(ARDUINO_LIBRARIES) $(ADDITIONAL_LIBRARIES)# $(ESP8266)
 
 GPP=g++ -std=c++11
 
