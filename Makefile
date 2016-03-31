@@ -9,6 +9,10 @@ ARDUINO=/root/Arduino/hardware
 ARDUINO_TOOLS=$(ARDUINO)/tools/avr/avr/include
 ARDUINO_VARIANTS=$(ARDUINO)/arduino/avr/variants/standard
 ARDUINO_CORE=$(ARDUINO)/arduino/avr/cores/arduino
+ARDUINO_LIBRARIES=$(ARDUINO)/arduino/avr/libraries
+ADDITIONAL_LIBRARIES=/root/Arduino/libraries
+ESP8266=/root/esp8266/Arduino/libraries/
+ARDUINO_INCLUDES=-I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS) -I$(ARDUINO_CORE) -I$(ARDUINO_LIBRARIES) -I$(ADDITIONAL_LIBRARIES) -I$(ESP8266)
 
 GPP=g++ -std=c++11
 all: analyser
@@ -65,19 +69,19 @@ check: analyser
 	./analyser -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
 
 checkprop: testprop
-	./testprop -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
+	./testprop -DROSE -c  -I.-I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES) $(file) 
 
 intertransform: itransform
-	./itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
+	./itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES) $(file)
 	
 progmemtransform: ptransform
-	./ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
+	./ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES) $(file)
 
 combined: itransform ptransform
 	set -e; \
 	source ./set.rose ; \
-	./itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE)  $(file); \
-	./ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) rose_$(notdir $(file))
+	./itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES)  $(file); \
+	./ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES) rose_$(notdir $(file))
 
 clean:
 	rm *o analyser testprop itransform ptransform
