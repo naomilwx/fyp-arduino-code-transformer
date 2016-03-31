@@ -1,10 +1,15 @@
 #!/bin/bash
 file=$(basename $1)
-filename=${file%.*}.cpp
+dir=$(dirname $1)
+filename=${file%.*}_ctmod.cpp
+resultdir=$dir/ctResult
+mkdir -p $resultdir
 echo "#define UBRR0H
 #include <Arduino.h>
-$(cat $1)" > $filename 
+$(cat $1)" > $dir/$filename
 echo $filename
-make combined file=$filename
+make combined file=$dir/$filename
 sed -i '1,2d' "rose_rose_$filename"
-mv "rose_rose_$filename" "$filename.ino"
+mv "rose_rose_$filename" "$resultdir/$filename.ino"
+rm $dir/$filename
+rm rose_*.cpp
