@@ -8,11 +8,13 @@ echo "#define UBRR0H
 #define UBRR1H
 #define UBRR2H
 #define UBRR3H
+#define	prog_char	char
+#define	PGM_P	char *
 #include <Arduino.h>
 $(cat $1)" > $dir/$filename
 echo $filename
 make combined file=$dir/$filename userincl=$2
-sed -i '1,5d' "rose_rose_$filename"
+sed -i '1,7d' "rose_rose_$filename"
 mv "rose_rose_$filename" "$resultdir/$filename.ino"
 rm $dir/$filename
 rm rose_*.cpp
