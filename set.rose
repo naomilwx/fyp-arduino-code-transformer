@@ -1,0 +1,9 @@
+ROSE_INS=/home/ROSE/RoseInstallTree
+export ROSE_INS 
+
+PATH=$ROSE_INS/bin:$PATH
+export PATH
+
+LD_LIBRARY_PATH=$ROSE_INS/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH
+

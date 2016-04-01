@@ -14,14 +14,14 @@ SRCEXT=cpp
 INSTALL_INCLUDES=-I$(BOOST_INSTALL)/include -I$(ROSE_INSTALL)/include/rose -L$(ROSE_INSTALL)/lib -lrose -L$(BOOST_INSTALL)/lib -lboost_iostreams -lboost_system
 
 ## Arduino Library
-ARDUINO=/root/Arduino/hardware
-ARDUINO_TOOLS=$(ARDUINO)/tools/avr/avr/include
-ARDUINO_VARIANTS=$(ARDUINO)/arduino/avr/variants/standard
-ARDUINO_CORE=$(ARDUINO)/arduino/avr/cores/arduino
-ARDUINO_LIBRARIES=$(addprefix -I, $(shell find $(ARDUINO)/arduino/avr/libraries/ -type d -print))
-ADDITIONAL_LIBRARIES=$(addprefix -I, $(shell find /root/Arduino/libraries/*/src -type d -print))
-#ESP8266=-I/root/esp8266/Arduino/tools/sdk/include $(addprefix -I, $(shell find /root/esp8266/Arduino/libraries/* -type d -print))
-ARDUINO_INCLUDES=-I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS) -I$(ARDUINO_CORE) -I$(ARDUINO_LIBRARIES) $(ADDITIONAL_LIBRARIES)# $(ESP8266)
+ARDUINO=/root/Arduino
+ARDUINO_TOOLS=$(ARDUINO)/hardware/tools/avr/avr/include
+ARDUINO_VARIANTS=$(ARDUINO)/hardware/arduino/avr/variants/standard
+ARDUINO_CORE=$(ARDUINO)/hardware/arduino/avr/cores/arduino
+ARDUINO_LIBRARIES=$(addprefix -I, $(shell find $(ARDUINO)/hardware/arduino/avr/libraries/* -type d -print))
+ADDITIONAL_LIBRARIES=$(addprefix -I, $(shell find $(ARDUINO)/libraries/*/src -type d -print)) 
+ESP8266=-I/root/esp8266/Arduino/tools/sdk/include $(addprefix -I, $(shell find /root/esp8266/Arduino/libraries/* -type d -print))
+ARDUINO_INCLUDES=-I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS) -I$(ARDUINO_CORE) -I$(ARDUINO_LIBRARIES) $(ADDITIONAL_LIBRARIES) $(ESP8266)
 
 GPP=g++ -std=c++11
 
@@ -30,7 +30,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
 	@mkdir -p $(TARGETDIR)
 	@echo "Compiling $<..."; $(GPP)  $(INSTALL_INCLUDES) -c -o $@ $<
 
-testpropobjs=$(BUILDDIR)/testStringValPropagation.o $(BUILDDIR)/ctUtils.o $(BUILDDIR)/stringValLattice.o $(BUILDDIR)/ctOverallDataflowAnalyser.o $(BUILDDIR)/stringValPropagation.o $(BUILDDIR)/stringLiteralAnalysis.o codeSimplifier.o
+testpropobjs=$(BUILDDIR)/testStringValPropagation.o $(BUILDDIR)/ctUtils.o $(BUILDDIR)/stringValLattice.o $(BUILDDIR)/ctOverallDataflowAnalyser.o $(BUILDDIR)/stringValPropagation.o $(BUILDDIR)/stringLiteralAnalysis.o
 testprop: $(testpropobjs)
 	$(GPP) $(testpropobjs) $(INSTALL_INCLUDES) -o $(TARGETDIR)/testprop
 	
@@ -62,8 +62,8 @@ progmemtransform: ptransform
 combined: itransform ptransform
 	set -e; \
 	source ./set.rose ; \
-	./$(TARGETDIR)/itransform  -c  -I. $(ARDUINO_INCLUDES)  $(file); \
-	./$(TARGETDIR)/ptransform  -c  -I. $(ARDUINO_INCLUDES) rose_$(notdir $(file))
+	./$(TARGETDIR)/itransform  -c   $(ARDUINO_INCLUDES) $(userincl)  $(file); \
+	./$(TARGETDIR)/ptransform  -c   $(ARDUINO_INCLUDES) $(userincl) rose_$(notdir $(file))
 
 clean:
 	rm *o -r $(BUILDDIR) $(TARGETDIR)
