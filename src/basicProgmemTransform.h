@@ -36,15 +36,16 @@ public:
 	void runTransformation();
 
 protected:
-	void insertPreprocessingInfo(const std::string &data);
+	void insertPreprocessingInfo(const std::string &data, SgScopeStatement *scope);
 
 private:
 	std::set<SgVariableDeclaration *> varDeclsToShift;
-	std::map<std::string, SgVariableDeclaration *> additionalProgmemStrings;
+	std::map<SgScopeStatement *, std::map<std::string, SgVariableDeclaration *>> additionalProgmemStrings;
 //	std::set<SgVariableDeclaration *> arrDeclsToShift;
 
 
 //	void shiftGlobalArraysToProgmem();
+	void insertProgmentCastHeader();
 
 	int getBuffersizeNeededForFunction(SgFunctionDeclaration *func);
 	void setupCharBufferForFunction(SgFunctionDeclaration *func);
@@ -59,7 +60,7 @@ private:
 
 	void transformCharArrayInitialization();
 	int getDeclaredArraySize(SgArrayType *arrType);
-	SgVariableDeclaration *getVariableDeclPlaceholderForString(const std::string& str);
+	SgVariableDeclaration *getVariableDeclPlaceholderForString(const std::string& str, SgScopeStatement *scope);
 
 	void shiftVarDeclsToProgmem();
 	void convertVarDeclToProgmemDecl(SgVariableDeclaration *varDecl);

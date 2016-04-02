@@ -98,5 +98,5 @@ public:
 	void postOrderVisit(SgNode *node);
 };
 
-void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap);
+//void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap);
 #endif

@@ -23,6 +23,7 @@ void BasicProgmemTransform::runTransformation() {
 	}
 	transformCharArrayInitialization();
 	printf("ok\n");
+	insertProgmentCastHeader();
 	shiftVarDeclsToProgmem();
 }
 
@@ -63,6 +64,7 @@ void BasicProgmemTransform::transformCharArrayInitialization() {
 		}
 		SgType *type = initName->get_type();
 		SgType *eleType = SageInterface::getElementType(type);
+		SgScopeStatement *scope = SageInterface::getGlobalScope(initName);
 		if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
 			SgStringVal* strVal = isSgStringVal(assignInit->get_operand());
 			std::string str = strVal->get_value();
@@ -74,7 +76,7 @@ void BasicProgmemTransform::transformCharArrayInitialization() {
 				initName->set_type(type);
 			}
 			varDecl->reset_initializer(NULL);
-			SgVariableDeclaration *placeholder = getVariableDeclPlaceholderForString(str);
+			SgVariableDeclaration *placeholder = getVariableDeclPlaceholderForString(str, scope);
 			SgVarRefExp *ref = SageBuilder::buildVarRefExp(placeholder);
 			std::stringstream instr;
 			instr << "\n strcpy_P(" << initName->get_name().getString();
@@ -86,27 +88,30 @@ void BasicProgmemTransform::transformCharArrayInitialization() {
 	}
 }
 
-SgVariableDeclaration *BasicProgmemTransform::getVariableDeclPlaceholderForString(const std::string& str) {
+SgVariableDeclaration *BasicProgmemTransform::getVariableDeclPlaceholderForString(const std::string& str, SgScopeStatement *scope) {
 	for(auto &varDecl: varDeclsToShift) {
 		SgInitializedName *initName = varDecl->get_variables().at(0);
 		SgAssignInitializer *assign = isSgAssignInitializer(initName->get_initializer());
 		if(assign == NULL) {
-			continue;
+			continue; //Should not happen
 		}
 		SgStringVal* strVal = isSgStringVal(assign->get_operand());
 		if(strVal->get_value() == str) {
 			return varDecl;
 		}
 	}
-	if(additionalProgmemStrings.find(str) != additionalProgmemStrings.end()) {
-		return additionalProgmemStrings[str];
+
+	if(additionalProgmemStrings[scope].find(str) != additionalProgmemStrings[scope].end()) {
+		return (additionalProgmemStrings[scope])[str];
 	}
+
 	std::string placeholder = sla->getStringLiteralLabel(str);
 	SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
 	SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
 	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+
 	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration( "ar" +placeholder, type, initializer, global);
-	additionalProgmemStrings[str] = varDec;
+	(additionalProgmemStrings[scope])[str] = varDec;
 	return varDec;
 }
 
@@ -177,25 +182,38 @@ int BasicProgmemTransform::getSizeNeededToLoadFromProgmem(SgVarRefExp *var) {
 	return 0;
 }
 
+void BasicProgmemTransform::insertProgmentCastHeader() {
+	SgFilePtrList files = project->get_files();
+	for(SgFile *file: files){
+		SgSourceFile *sourceFile = isSgSourceFile(file);
+		if(sourceFile && sourceFile->get_globalScope()){
+			std::string flashHelper = "#define FS(x)(__FlashStringHelper*)(x)";
+			insertPreprocessingInfo(flashHelper, sourceFile->get_globalScope());
+		}
+	}
+
+}
+
 void BasicProgmemTransform::shiftVarDeclsToProgmem() {
-	std::string flashHelper = "#define FS(x)(__FlashStringHelper*)(x)";
-	insertPreprocessingInfo(flashHelper);
+
 	printf("shifting var decls...\n");
 	for(auto& varDecl : varDeclsToShift) {
 		convertVarDeclToProgmemDecl(varDecl);
 	}
 	printf("shifting additional progmem strings...\n");
-	for(auto &item: additionalProgmemStrings) {
-		SgInitializedName *initName = item.second->get_variables()[0];
-		std::string dec = "const char " + initName->get_name().getString() + "[] PROGMEM = \"" + item.first + "\";";
-		insertPreprocessingInfo(dec);
-//		convertVarDeclToProgmemDecl(varDecl, false);
+	for(auto &outerMap: additionalProgmemStrings) {
+		for(auto &item: outerMap.second) {
+			SgInitializedName *initName = item.second->get_variables()[0];
+			std::string dec = "const char " + initName->get_name().getString() + "[] PROGMEM = \"" + item.first + "\";";
+			insertPreprocessingInfo(dec, outerMap.first);
+		}
 	}
+
 	printf("ok here\n");
 }
-void BasicProgmemTransform::insertPreprocessingInfo(const std::string &data) {
-	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
-	SgStatement *firstDecl = SageInterface::getFirstStatement(global);
+void BasicProgmemTransform::insertPreprocessingInfo(const std::string &data, SgScopeStatement *scope) {
+//	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	SgStatement *firstDecl = SageInterface::getFirstStatement(scope);
 	PreprocessingInfo* result = new PreprocessingInfo(PreprocessingInfo::CpreprocessorIncludeDeclaration, data, "Transformation generated",0, 0, 0, PreprocessingInfo::before);
 	firstDecl->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
 }
@@ -205,7 +223,8 @@ void BasicProgmemTransform::convertVarDeclToProgmemDecl(SgVariableDeclaration *v
 	SgInitializedName *initName = varDecl->get_variables()[0];
 	std::string literal = isSgAssignInitializer(initName->get_initializer())->get_operand()->unparseToString();
 	dec += initName->get_name().getString() + "[] PROGMEM =" + literal + ";";
-	insertPreprocessingInfo(dec);
+	SgScopeStatement *scope = SageInterface::getGlobalScope(initName);
+	insertPreprocessingInfo(dec, scope);
 	SageInterface::removeStatement(varDecl, true);
 }
 
@@ -248,7 +267,7 @@ void BasicProgmemTransform::loadProgmemStringsIntoBuffer(SgFunctionCallExp *func
 
 void BasicProgmemTransform::loadReplacewithProgmemFunction(SgFunctionCallExp *funcCall, std::string replacement) {
 	SgName newName(replacement);
-	SgFunctionCallExp *newFuncCall = SageBuilder::buildFunctionCallExp(newName, funcCall->get_type(), funcCall->get_args(), SageInterface::getFirstGlobalScope(project));
+	SgFunctionCallExp *newFuncCall = SageBuilder::buildFunctionCallExp(newName, funcCall->get_type(), funcCall->get_args(), SageInterface::getGlobalScope(funcCall));
 	SageInterface::replaceExpression(funcCall, newFuncCall, true);
 }
 

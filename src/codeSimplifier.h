@@ -98,6 +98,8 @@ protected:
 	StringLiteralAnalysis *sla;
 	SgProject *project;
 public:
+	static std::map<SgVariableDeclaration *, SgScopeStatement *> placeholderScopes;
+
 	SimplifyOriginalCode(PointerAliasAnalysis *a, StringLiteralAnalysis* s, SgProject *p);
 
 	static SgVariableDeclaration* buildStringPlaceholder(std::map<std::string, SgVariableDeclaration *>& slPlaceholders, const std::string& str, const std::string& placeholder, SgScopeStatement *scope);
@@ -113,6 +115,7 @@ public:
 
 private:
 	std::map<std::string, SgVariableDeclaration *> sharedPlaceholders;
+
 	void removeStringLiteralsInDecls(std::vector<SgInitializedName *> globalVars);
 	void removeStringLiteral(SgStringVal *strVal);
 	void replaceGlobalVars(std::set<varID> vars);

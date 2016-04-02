@@ -141,7 +141,7 @@ StringLiteralAnalysisVisitor::StringLiteralAnalysisVisitor(StringLiteralAnalysis
 void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 	SgStatement *p = stmtStack.top();
 	//	printf("wrapping stmt: %s\n", p->class_name().c_str());
-	SgGlobal *global = SageInterface::getFirstGlobalScope(analyser->project);
+	SgGlobal *global = SageInterface::getGlobalScope(node);
 	const std::string& item = node->get_value();
 	if(analyser->strLiterals.find(item) == analyser->strLiterals.end()){
 		//First time string literal is found
@@ -182,7 +182,7 @@ void StringLiteralAnalysisVisitor::postOrderVisit(SgNode *node){
 		stmtStack.pop();
 	}
 }
-
+/*
 void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap){	
 	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
 	std::string pre;
@@ -213,3 +213,4 @@ void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap){
 	}
 
 }
+*/

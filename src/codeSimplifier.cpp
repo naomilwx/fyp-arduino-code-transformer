@@ -399,6 +399,7 @@ SgVariableDeclaration* SimplifyFunctionDeclaration::buildStringPlaceholder(const
 /**
  * SimplifyOriginalCode
  * */
+std::map<SgVariableDeclaration *, SgScopeStatement *> SimplifyOriginalCode::placeholderScopes;
 
 SimplifyOriginalCode::SimplifyOriginalCode(PointerAliasAnalysis *a, StringLiteralAnalysis* s, SgProject *p){
 		this->aliasAnalysis = a;
@@ -412,6 +413,7 @@ SgVariableDeclaration* SimplifyOriginalCode::buildStringPlaceholder(std::map<std
 	SgAssignInitializer *initializer = SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(str));
 	SgVariableDeclaration *varDec = SageBuilder::buildVariableDeclaration(STRING_LITERAL_PLACEHOLDER_PREFIX + placeholder, type, initializer, scope);
 	placeholderMap[str] = varDec;
+	SimplifyOriginalCode::placeholderScopes[varDec] = scope;
 	return varDec;
 }
 
@@ -445,9 +447,11 @@ void SimplifyOriginalCode::transformGlobalVars() {
 }
 
 void SimplifyOriginalCode::insertPlaceholderDecls() {
-	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
-	SgStatement *firstDecl = SageInterface::getFirstStatement(global);
+//	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+//	SgStatement *firstDecl = SageInterface::getFirstStatement(global);
 	for(auto &item: sharedPlaceholders) {
+		SgScopeStatement *scope = SimplifyOriginalCode::placeholderScopes[item.second];
+		SgStatement *firstDecl = SageInterface::getFirstStatement(scope);
 		SageInterface::insertStatement(firstDecl, item.second, true);
 	}
 }
@@ -456,9 +460,10 @@ void SimplifyOriginalCode::replaceGlobalVars(std::set<varID> vars) {
 	if(vars.size() == 0){
 		return;
 	}
-	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+
 	for(auto &func: getDefinedFunctions(project)) {
 		printf("running replace global vars\n");
+		SgGlobal *global = SageInterface::getGlobalScope(func);
 		SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project, global);
 		funcHelper.replaceVarRefs(sharedPlaceholders, vars);
 	}
@@ -475,9 +480,10 @@ bool SimplifyOriginalCode::isConstantValueGlobalVar(SgInitializedName* initName)
 }
 
 void SimplifyOriginalCode::runGlobalTransformation(std::map<SgNode*, std::set<SgNode*> > &defUse){
-	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+
 	transformGlobalVars();
 	for(auto &func: getDefinedFunctions(project)) {
+		SgGlobal *global = SageInterface::getGlobalScope(func);
 		simplifyFunction(func, global, defUse);
 	}
 	insertPlaceholderDecls();
@@ -527,7 +533,7 @@ void  SimplifyOriginalCode::removeStringLiteralsInDecls(std::vector<SgInitialize
 }
 
 void  SimplifyOriginalCode::removeStringLiteral(SgStringVal *strVal) {
-	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
+	SgGlobal *global = SageInterface::getGlobalScope(strVal);
 	std::string label = sla->getStringLiteralLabel(strVal->get_value());
 	SgVariableDeclaration *placeholder = buildStringPlaceholder(sharedPlaceholders, strVal->get_value(), label, global);
 	SgVarRefExp *ref = SageBuilder::buildVarRefExp(placeholder);
