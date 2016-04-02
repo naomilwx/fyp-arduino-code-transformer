@@ -218,9 +218,11 @@ void PointerAliasAnalysisTransfer::propagateFunctionCallEffect(SgFunctionCallExp
 					return true;
 					});
 		}
-	}else {
-		approximateFunctionCallEffect(fcall);
 	}
+
+	//Quick fix. Also mark char * arguments as modified, because of compiler enforcement of const correctness.
+	approximateFunctionCallEffect(fcall);
+
 }
 
 std::map<varID,varID> PointerAliasAnalysisTransfer::getPlaceholderToArgMap(SgFunctionCallExp *fcall){
@@ -286,13 +288,6 @@ void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn) {
 
 	} else {
 		processRHS(rhs,rightARNode);
-		//TODO: check
-/*
-		if(SageInterface::isReferenceType(leftARNode.vID.varType)) {
-			//handle reference variables
-			rightARNode.derefLevel = -1;
-		}
-*/
 	}
 
 	//Establish the per CFG-node alias relations

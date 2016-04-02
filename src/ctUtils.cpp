@@ -70,19 +70,6 @@ SgExpression *getFunctionRef(SgFunctionCallExp *call) {
 	return NULL;
 }
 
-//bool isConstantType(SgType *nType) {
-//	bool isConst = false;
-//	Rose_STL_Container<SgType*> typeVector = nType->getInternalTypes();
-//	for(Rose_STL_Container<SgType*>::iterator i = typeVector.begin(); i != typeVector.end(); i++){
-//		//printf("type %s\n", (*i)->class_name().c_str());
-//		SgModifierType* modifierType = isSgModifierType(*i);
-//		if (modifierType != NULL)  {
-//			isConst = modifierType->get_typeModifier().get_constVolatileModifier().isConst() || isConst;
-//		}
-//	}
-//	return isConst;
-//}
-
 FunctionSet getDefinedFunctions(SgProject *project) {
 	static std::map<SgProject *, FunctionSet> definedFunctions;
 	if(definedFunctions.find(project) != definedFunctions.end()) {
@@ -224,6 +211,14 @@ bool isArduinoProgmemSafeFunction(Function func) {
 		}
 	}
 
+	return false;
+}
+
+bool isCharArrayType(SgType *type) {
+	SgType *eleType = SageInterface::getElementType(type);
+	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
+		return true;
+	}
 	return false;
 }
 

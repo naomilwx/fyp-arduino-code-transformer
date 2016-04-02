@@ -64,8 +64,8 @@ progmemtransform: ptransform
 combined: itransform ptransform
 	set -e; \
 	source ./set.rose ; \
-	./$(TARGETDIR)/itransform  -c   $(ARDUINO_INCLUDES) $(ARDUINO_PREPROC) $(userincl)  $(file); \
-	./$(TARGETDIR)/ptransform  -c   $(ARDUINO_INCLUDES) $(ARDUINO_PREPROC) $(userincl) rose_$(notdir $(file))
+	./$(TARGETDIR)/itransform  -c  -I. $(ARDUINO_INCLUDES) $(ARDUINO_PREPROC) $(userincl)  $(file) ; \
+	./$(TARGETDIR)/ptransform  -c  -I. $(ARDUINO_INCLUDES) $(ARDUINO_PREPROC) $(userincl) rose_$(notdir $(file))
 
 clean:
 	rm *o -r $(BUILDDIR) $(TARGETDIR)

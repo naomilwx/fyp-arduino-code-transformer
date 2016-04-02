@@ -269,14 +269,13 @@ void SimplifyFunctionDeclaration::markCharArrayInitializers(SgInitializedName *i
 	if(varDecl == NULL) {
 		return;
 	}
-	printf("checking var decl: %s\n", initName->unparseToString().c_str());
 	SgInitializer* initializer = initName->get_initializer();
-
 	SgType *type = initName->get_type();
 	//Convert char arrays cannot be initialised with char* pointers
-	SgType *eleType = SageInterface::getElementType(type);
-	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
+
+	if(isCharArrayType(type)) {
 		ignoredInitializers.insert(initializer);
+		printf("Marking arr: %s\n", initName->unparseToString().c_str());
 		return;
 	}
 
@@ -517,6 +516,9 @@ void SimplifyOriginalCode::transformUnmodifiedStringVars(SgFunctionDeclaration *
 
 void  SimplifyOriginalCode::removeStringLiteralsInDecls(std::vector<SgInitializedName *> globalVars) {
 	for(auto &initName: globalVars){
+		if(isCharArrayType(initName->get_type())) {
+			continue;
+		}
 		Rose_STL_Container<SgNode *> stringLiterals = NodeQuery::querySubTree(initName, V_SgStringVal);
 		for(auto &strLiteral: stringLiterals) {
 			removeStringLiteral(isSgStringVal(strLiteral));
