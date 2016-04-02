@@ -53,13 +53,13 @@ ptransform: $(ptobjs)
 #	./analyser -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
 
 checkprop: testprop
-	./$(TARGETDIR)/testprop -DROSE -c  -I.-I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES) $(file) 
+	./$(TARGETDIR)/testprop -DROSE -c  -I.-I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file) 
 
 intertransform: itransform
-	./$(TARGETDIR)/itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES) $(file)
+	./$(TARGETDIR)/itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file)
 	
 progmemtransform: ptransform
-	./$(TARGETDIR)/ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES) $(file)
+	./$(TARGETDIR)/ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file)
 
 combined: itransform ptransform
 	set -e; \
