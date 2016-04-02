@@ -28,8 +28,7 @@ int main( int argc, char * argv[] ) {
   lanalysis.runAnalysis();
 
 
-  analysisDebugLevel = 1;
-  PointerAliasAnalysisDebugLevel = 1;
+  PointerAliasAnalysisDebugLevel = 0;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
   printf("done analysis\n");

@@ -13,7 +13,7 @@ using namespace FunctionAnalysisHelper;
 // **********************************************************************
 
 
-int PointerAliasAnalysisDebugLevel = 1;
+int PointerAliasAnalysisDebugLevel = 0;
 const std::string PointerAliasAnalysis::newExpPlaceholder = "__tmp_Mem__";
 
 PointerAliasAnalysisTransfer::PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis)
@@ -792,7 +792,7 @@ void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode
 	initLattices.push_back(res);
 	//	for(auto &item: globalVarsLattice)
 	//		printf("%s: %s", item.first.str().c_str(), item.second->str(" ").c_str());
-	//printf("init node %s\n", n.getNode()->class_name().c_str());
+//	printf("init node %s %s\n", n.getNode()->class_name().c_str(), n.getNode()->unparseToString().c_str());
 }
 
 PointerAliasAnalysis::PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map)   
