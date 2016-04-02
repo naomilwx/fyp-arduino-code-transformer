@@ -18,7 +18,7 @@ typedef std::map<SgNode*, std::set<SgNode*> > DefUseChains;
 
 
 void transformUnmodifiedStringVars(StringLiteralAnalysis *lanalysis, SgProject *project) {
-	analysisDebugLevel = 1;
+	analysisDebugLevel = 0;
 	PointerAliasAnalysisDebugLevel = 0;
 	PointerAliasAnalysis pal(NULL, project, lanalysis->getLiteralMap());
 	pal.runAnalysis();
@@ -59,7 +59,6 @@ int main( int argc, char * argv[] ) {
   //Setup def use analysis for use later. This must be done before any changes to the current ast is made
   ssa_private::UniqueNameTraversal uniqueTrav(SageInterface::querySubTree<SgInitializedName > (project, V_SgInitializedName));
   uniqueTrav.traverse(project);
-
   DefsAndUsesTraversal::CFGNodeToVarsMap defs;
   DefUseChains defUse;
   generateDefUseChainsFromVariableRenaming(project, defUse);
@@ -70,8 +69,8 @@ int main( int argc, char * argv[] ) {
 
   transformUnmodifiedStringVars(&lanalysis, project);
 
-  analysisDebugLevel = 1;
-  PointerAliasAnalysisDebugLevel = 1;
+  analysisDebugLevel = 0;
+  PointerAliasAnalysisDebugLevel = 0;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();
 

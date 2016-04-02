@@ -180,9 +180,11 @@ int BasicProgmemTransform::getSizeNeededToLoadFromProgmem(SgVarRefExp *var) {
 void BasicProgmemTransform::shiftVarDeclsToProgmem() {
 	std::string flashHelper = "#define FS(x)(__FlashStringHelper*)(x)";
 	insertPreprocessingInfo(flashHelper);
+	printf("shifting var decls...\n");
 	for(auto& varDecl : varDeclsToShift) {
 		convertVarDeclToProgmemDecl(varDecl);
 	}
+	printf("shifting additional progmem strings...\n");
 	for(auto &item: additionalProgmemStrings) {
 		SgInitializedName *initName = item.second->get_variables()[0];
 		std::string dec = "const char " + initName->get_name().getString() + "[] PROGMEM = \"" + item.first + "\";";
@@ -198,6 +200,7 @@ void BasicProgmemTransform::insertPreprocessingInfo(const std::string &data) {
 	firstDecl->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
 }
 void BasicProgmemTransform::convertVarDeclToProgmemDecl(SgVariableDeclaration *varDecl) {
+	printf("converting %s\n", varDecl->unparseToString().c_str());
 	std::string dec = "const char ";
 	SgInitializedName *initName = varDecl->get_variables()[0];
 	std::string literal = isSgAssignInitializer(initName->get_initializer())->get_operand()->unparseToString();
@@ -312,7 +315,6 @@ std::set<varID> BasicProgmemTransform::getVarsBoundToNonPlaceholderPointers() {
 			continue;
 		}
 		varID varRef = SgExpr2Var(var);
-//		if(aliasAnalysis->variableAtNodeHasKnownAlias(var, varRef) == false || var->isUsedAsLValue()) {
 		if(varRef.str().find(STRING_LITERAL_PREFIX) == std::string::npos) {
 			std::set<varID> aliases = aliasAnalysis->getAliasesForVariableAtNode(var, varRef);
 			if(aliases.size() == 0) {
@@ -381,8 +383,11 @@ void BasicProgmemTransform::setupProgmemableVarDecls() {
 	std::vector<SgInitializedName *> globals = getGlobalVars(project);
 	std::set<varID> unsafeVars = getAllUnsafeVars();
 //	printf("getting globals...\n");
-	for(auto& global:globals) {
+	for(SgInitializedName * global:globals) {
 //		printf("checking.. %s\n", global->unparseToString().c_str());
+		if(isCharArrayType(global->get_type())) {
+			continue;
+		}
 		SgExpression *assigned = getRHSOfVarDecl(global);
 		if(assigned == NULL) { continue; }
 		if(isSgStringVal(assigned)) {
@@ -390,7 +395,6 @@ void BasicProgmemTransform::setupProgmemableVarDecls() {
 			if(unsafeVars.find(placeholder) == unsafeVars.end()) {
 				SgVariableDeclaration *decl = isSgVariableDeclaration(global->get_declaration());
 				if(decl) {
-//					printf("shifting %s\n", decl->unparseToString().c_str());
 					varDeclsToShift.insert(decl);
 				}
 			}

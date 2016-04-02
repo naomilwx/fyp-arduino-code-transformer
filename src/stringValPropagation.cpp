@@ -13,7 +13,7 @@ using namespace FunctionAnalysisHelper;
 // **********************************************************************
 
 
-int PointerAliasAnalysisDebugLevel = 1;
+int PointerAliasAnalysisDebugLevel = 0;
 const std::string PointerAliasAnalysis::newExpPlaceholder = "__tmp_Mem__";
 
 PointerAliasAnalysisTransfer::PointerAliasAnalysisTransfer(const Function& func, const DataflowNode& n, NodeState& state, const std::vector<Lattice*>& dfInfo, LiteralMap *map, PointerAliasAnalysis* analysis)
@@ -218,9 +218,11 @@ void PointerAliasAnalysisTransfer::propagateFunctionCallEffect(SgFunctionCallExp
 					return true;
 					});
 		}
-	}else {
-		approximateFunctionCallEffect(fcall);
 	}
+
+	//Quick fix. Also mark char * arguments as modified, because of compiler enforcement of const correctness.
+	approximateFunctionCallEffect(fcall);
+
 }
 
 std::map<varID,varID> PointerAliasAnalysisTransfer::getPlaceholderToArgMap(SgFunctionCallExp *fcall){
@@ -286,13 +288,6 @@ void PointerAliasAnalysisTransfer::visit(SgAssignInitializer *sgn) {
 
 	} else {
 		processRHS(rhs,rightARNode);
-		//TODO: check
-/*
-		if(SageInterface::isReferenceType(leftARNode.vID.varType)) {
-			//handle reference variables
-			rightARNode.derefLevel = -1;
-		}
-*/
 	}
 
 	//Establish the per CFG-node alias relations
@@ -792,7 +787,7 @@ void PointerAliasAnalysis::genInitState(const Function& func, const DataflowNode
 	initLattices.push_back(res);
 	//	for(auto &item: globalVarsLattice)
 	//		printf("%s: %s", item.first.str().c_str(), item.second->str(" ").c_str());
-	//printf("init node %s\n", n.getNode()->class_name().c_str());
+//	printf("init node %s %s\n", n.getNode()->class_name().c_str(), n.getNode()->unparseToString().c_str());
 }
 
 PointerAliasAnalysis::PointerAliasAnalysis(LiveDeadVarsAnalysis* ldva, SgProject *project, LiteralMap *map)   
