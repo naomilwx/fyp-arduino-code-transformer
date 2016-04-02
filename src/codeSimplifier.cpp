@@ -496,6 +496,21 @@ void SimplifyOriginalCode::transformUnmodifiedStringVars() {
 			SgInitializedName* iname = isSgInitializedName(initName);
 			transformUnmodifiedStringVars(func, iname);
 		}
+
+		//change unmodified args to const for const correctness req of frontend
+		std::set<int> unmodPos = aliasAnalysis->getUnModifiedPositions(func);
+		SgInitializedNamePtrList args = func->get_args();
+		for(int pos: unmodPos) {
+			SgInitializedName *arg = args[pos];
+			SgType *type = arg->get_type();
+			if(SageInterface::isPointerToNonConstType(type) == false) {
+				continue;
+			}
+			if(isCharPointerType(type) || isCharArrayType(type)) {
+				SgType *newType =  SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
+				arg->set_type(newType);
+			}
+		}
 	}
 }
 
@@ -533,13 +548,6 @@ void  SimplifyOriginalCode::removeStringLiteral(SgStringVal *strVal) {
 	SgVarRefExp *ref = SageBuilder::buildVarRefExp(placeholder);
 	SageInterface::replaceExpression(strVal, ref);
 }
-
-//Deprecated stuff
-//void SimplifyOriginalCode::runTransformation() {
-//	for(auto &func: getDefinedFunctions(project)) {
-//		simplifyFunction(func);
-//	}
-//}
 
 void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func) {
 	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project);

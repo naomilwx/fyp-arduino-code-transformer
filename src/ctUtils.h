@@ -26,10 +26,13 @@ bool isFromLibrary(SgInitializedName* initName);
 std::vector<SgInitializedName *>getGlobalVars(SgProject *project);
 bool isGlobalVarRef(SgProject *project, SgVarRefExp *var);
 
+bool isDeclaredInSource(SgProject *project, SgFunctionDeclaration *dec);
+
 //bool isConstantType(SgType *nType);
 bool isArduinoStringType(SgType *type);
 bool isArduinoProgmemSafeFunction(Function func);
 bool isCharArrayType(SgType *type);
+bool isCharPointerType(SgType *type);
 
 unsigned int getNodeDataflowIndex(SgNode *n);
 NodeState *getNodeStateForNode(SgNode *n, bool (*f) (CFGNode));
