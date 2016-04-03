@@ -35,7 +35,7 @@ FunctionSet DefinedFunctionCollector::getDefinedFuncs() const {
 void DefinedFunctionCollector::visit(SgNode *n){
 	SgFunctionDeclaration *func = isSgFunctionDeclaration(n);
 	if(func != NULL){
-		if(func->get_definition() != NULL) {
+		if(func->isForward() == false && func->get_definition() != NULL) {
 			definedFuncs.insert(func);
 		}
 	}
