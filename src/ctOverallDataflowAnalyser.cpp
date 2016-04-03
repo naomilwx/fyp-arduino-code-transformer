@@ -94,10 +94,9 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 }
 
 void ctOverallDataflowAnalyser::visit(const Function& func) {
-	FunctionSet definedFuncs = getDefinedFunctions(project);
 	//TODO: handle library functions
-	if(func.get_definition() && definedFuncs.find(func.get_declaration()) != definedFuncs.end()){
-	//if(func.get_definition()){
+	if(func.get_definition() && isDeclaredInSource(project, func.get_declaration())){
+//	if(func.get_definition()){
 		printf("analysing function: %s\n", func.get_name().str());
 		analysedFuncs.insert(func);
 		FunctionState* fState = FunctionState::getDefinedFuncState(func);
