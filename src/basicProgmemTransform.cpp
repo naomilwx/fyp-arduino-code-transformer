@@ -234,7 +234,7 @@ void BasicProgmemTransform::loadProgmemStringsIntoBuffer(SgFunctionCallExp *func
 	instr << "\n strcpy_P(&" << FUNC_BUFFER_NAME << "[";
 	instr << pos << "], " << var->get_symbol()->get_name().getString() << ");\n";
 	SgNode *stmt = funcCall;
-	while(isSgExprStatement(stmt) == NULL && stmt->get_parent() != NULL){
+	while(isSgStatement(stmt) == NULL && stmt->get_parent() != NULL){
 		stmt = stmt->get_parent();
 	}
 	SageInterface::addTextForUnparser(stmt, instr.str(), AstUnparseAttribute::e_before);

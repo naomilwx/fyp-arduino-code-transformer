@@ -13,7 +13,7 @@
 #include "basicProgmemTransform.h"
 #include "ctUtils.h"
 
-
+//analysisDebugLevel must be set to 1, else return info is not stored...
 int main( int argc, char * argv[] ) {
   SgProject* project = frontend(argc,argv);
 
@@ -27,7 +27,7 @@ int main( int argc, char * argv[] ) {
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
 
-
+  analysisDebugLevel = 1;
   PointerAliasAnalysisDebugLevel = 0;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();

@@ -15,10 +15,10 @@
 
 using namespace ssa_unfiltered_cfg;
 typedef std::map<SgNode*, std::set<SgNode*> > DefUseChains;
-
+//analysisDebugLevel must be set to 1, else return info is not stored...
 
 void transformUnmodifiedStringVars(StringLiteralAnalysis *lanalysis, SgProject *project) {
-	analysisDebugLevel = 0;
+	analysisDebugLevel = 1;
 	PointerAliasAnalysisDebugLevel = 0;
 	PointerAliasAnalysis pal(NULL, project, lanalysis->getLiteralMap());
 	pal.runAnalysis();
@@ -69,7 +69,7 @@ int main( int argc, char * argv[] ) {
 
   transformUnmodifiedStringVars(&lanalysis, project);
 
-  analysisDebugLevel = 0;
+  analysisDebugLevel = 1;
   PointerAliasAnalysisDebugLevel = 0;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();

@@ -37,9 +37,10 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 	Function callee(call);
 	ROSE_ASSERT(call);
 
-	if(analysisDebugLevel > 0)
+	if(analysisDebugLevel > 1){
 		Dbg::dbg << "ctOverallDataflowAnalyser::transfer "
 			<<func.get_name().getString()<<"()=>"<<callee.get_name().getString()<<"()\n";
+	}
 
 	if(callee.get_definition()){
 		if(analysedFuncs.find(callee) == analysedFuncs.end()) {
@@ -59,7 +60,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 			Lattice* calleeL = *itCalleeBefore;
 			Lattice* callerL = *itCallerBefore;
 
-			if(analysisDebugLevel>=1) {
+			if(analysisDebugLevel>1) {
 				Dbg::dbg << "      callerL=["<<calleeL<<"] "<<callerL->str("        ")<<endl;
 				Dbg::dbg << "      Before calleeL=["<<calleeL<<"] "<<calleeL->str("        ")<<endl;
 			}
@@ -70,7 +71,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 				FunctionState::setArgParamMap(call, argParamMap);
 
 				remappedL->remapVars(argParamMap, callee);
-				if(analysisDebugLevel>=1) {
+				if(analysisDebugLevel>1) {
 					Dbg::dbg << "      remappedL=["<<calleeL<<"] "<<remappedL->str("        ")<<endl;
 				}
 				// update the callee's Lattice with the new information at the call site
@@ -80,7 +81,7 @@ bool ctOverallDataflowAnalyser::transfer(const Function& func, const DataflowNod
 			}
 
 
-			if(analysisDebugLevel>=1)
+			if(analysisDebugLevel>1)
 				Dbg::dbg << "      After modified = "<<modified
 					<< "calleeL=["<<calleeL<<"] "<<calleeL->str("        ")<<endl;
 
