@@ -309,14 +309,8 @@ void PointerAliasAnalysisTransfer::visit(SgAggregateInitializer *sgn) {
 	PointerAliasLattice *resLat = getLattice(sgn);
 
 	SgExpression *lhs = static_cast<SgExpression *>(sgn->get_parent());
-	//printf("lhs %s\n", lhs->class_name().c_str());
 	aliasDerefCount leftArNode;
 	processLHS(lhs, leftArNode);
-	//printf("start\n");
-//	PointerAliasLattice* lhsLat =  getLattice(leftArNode.vID);
-//	if(lhsLat){
-//		lhsLat->setState(PointerAliasLattice::INITIALIZED); //TODO: should arrays of char * always be set as STATICALLY_UNKNOWN?
-//	}
 
 	if(leftArNode.var != NULL){
 		//printf("getting rhs\n");
@@ -396,7 +390,6 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 
 		for(set<varID>::iterator leftVar = leftResult.begin(); leftVar != leftResult.end(); leftVar++ ) {
 			toLat = getLattice(*leftVar);
-			//printf("lhs %s %d\n", (*leftVar).str().c_str(), rightResult.size());
 			for(set<varID>::iterator rightVar = rightResult.begin(); rightVar != rightResult.end(); rightVar++ ) {
 				toLat->setAliasedVariables(*rightVar); 
 				modified = true; 
@@ -410,7 +403,6 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 			}
 		}  
 	}  
-	//	printf("updated alias\n");
 	return modified; 
 }
 
@@ -511,7 +503,7 @@ void PointerAliasAnalysisTransfer::processLHS(SgNode *node,struct aliasDerefCoun
 				} else {
 					var = varID(init_exp);
 				}
-				printf("sym: %s %s %s\n", sym->get_name().str(), var.str().c_str(), init_exp->get_type()->class_name().c_str());
+//				printf("sym: %s %s %s\n", sym->get_name().str(), var.str().c_str(), init_exp->get_type()->class_name().c_str());
 			}
 			break;
 

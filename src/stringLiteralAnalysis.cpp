@@ -54,6 +54,14 @@ void StringLiteralAnalysis::runAnalysis() {
 	visitor.traverseInputFiles(project);
 }
 
+long StringLiteralAnalysis::getTotalStringSize() {
+	long total = 0;
+	for(auto const& item: strLiterals) {
+		total += item.first.size();
+	}
+	return total;
+}
+
 std::string StringLiteralAnalysis::getStringLiteralLabel(const std::string& literal){
 	if(strLiterals.find(literal) != strLiterals.end()) {
 		return strLiterals[literal].getTag();
@@ -125,11 +133,12 @@ StringSet StringLiteralAnalysis::getStringLiteralsInFunction(SgFunctionDeclarati
 
 std::string StringLiteralAnalysis::getAnalysisPrintout(){
 	std::ostringstream out;
-	for(auto const& item: strLiterals) {
+	/*for(auto const& item: strLiterals) {
 		out << item.first << ": \n";
 		out << "  " << "details:";
 		out << item.second.getSummaryPrintout();
-	}
+	}*/
+	out << "Total string length: " << getTotalStringSize();
 	return out.str();
 }
 

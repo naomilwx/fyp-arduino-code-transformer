@@ -5,8 +5,8 @@ int main(int argc, char** argv){
 	// Build the AST used by ROSE
 	SgProject* project = frontend(argc, argv);
 
-	SgFile & fileInfo = project->get_file(0);
-	fileInfo.get_file_info()->display("file info");
+//	SgFile & fileInfo = project->get_file(0);
+//	fileInfo.get_file_info()->display("file info");
 
 
 	printf("begin analysis... \n");

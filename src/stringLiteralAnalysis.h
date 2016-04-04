@@ -82,7 +82,7 @@ public:
 	StringLiteralInfo getStringLiteralInfo(const std::string&  literal);
 	LiteralMap *getLiteralMap();
 	std::string getAnalysisPrintout();
-
+	long getTotalStringSize();
 	friend class StringLiteralAnalysisVisitor;
 };
 

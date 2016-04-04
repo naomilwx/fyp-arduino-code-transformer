@@ -49,17 +49,17 @@ ptobjs=$(BUILDDIR)/simpleProgmemTransformer.o $(BUILDDIR)/ctUtils.o $(BUILDDIR)/
 ptransform: $(ptobjs)
 	$(GPP) $(ptobjs) $(INSTALL_INCLUDES)  -o $(TARGETDIR)/ptransform
 	
-#check: analyser
-#	./analyser -DROSE -c  -I. -I$(ROSE_INSTALL)/lib -I$(ARDUINO_TOOLS) -I$(ARDUINO_VARIANTS)  -I$(ARDUINO_CORE) $(file)
+check: analyser
+	./$(TARGETDIR)/analyser -DROSE -c  -I. -I. $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file) 
 
 checkprop: testprop
-	./$(TARGETDIR)/testprop -DROSE -c  -I.-I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file) 
+	./$(TARGETDIR)/testprop -DROSE -c  -I. $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file) 
 
 intertransform: itransform
-	./$(TARGETDIR)/itransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file)
+	./$(TARGETDIR)/itransform -DROSE -c  -I. $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file)
 	
 progmemtransform: ptransform
-	./$(TARGETDIR)/ptransform -DROSE -c  -I. -I$(ROSE_INSTALL)/lib $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file)
+	./$(TARGETDIR)/ptransform -DROSE -c  -I. $(ARDUINO_INCLUDES)  $(ARDUINO_PREPROC) $(userincl) $(file)
 
 combined: itransform ptransform
 	set -e; \
