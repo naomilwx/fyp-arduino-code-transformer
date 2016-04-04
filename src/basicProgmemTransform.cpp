@@ -129,9 +129,10 @@ int BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration 
 		SgFunctionCallExp *fcall = isSgFunctionCallExp(funcCall);
 		Function callee(fcall);
 //		printf("function called: %s\n", callee.get_name().str());
-		if(isArduinoProgmemSafeFunction(callee)) {
-			continue;
-		}
+//		if(isArduinoProgmemSafeFunction(callee)) {
+//			continue;
+//		}
+		//TODO: check
 		param_pos_list ignoredPositions = getPositionsToIgnore(callee.get_name().getString());
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
 		int size = 0;
@@ -259,7 +260,7 @@ void BasicProgmemTransform::transformStringConstructors(SgFunctionDeclaration *f
 	for(auto &cons: constructors) {
 		SgConstructorInitializer *consInit = isSgConstructorInitializer(cons);
 		SgClassDeclaration *classDecl = consInit->get_class_decl();
-		if(isArduinoStringType(classDecl->get_type())) {
+		if(classDecl != NULL && isArduinoStringType(classDecl->get_type())) {
 			SgExpressionPtrList exprs = consInit->get_args()->get_expressions();
 			for(auto &exp: exprs) {
 				SgVarRefExp* var = isSgVarRefExp(exp);
@@ -288,8 +289,9 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
 		param_pos_list progmemPositions = getPositionsToIgnore(orig);
 		//TODO: figure out how to wrap with macro
-		int index = 0;
-		for(auto &expr: params) {
+//		for(auto &expr: params) {
+		for(int index = 0; index < params.size(); index++){
+			SgExpression *expr = params[index];
 			SgVarRefExp* var = isSgVarRefExp(expr);
 			if(var == NULL) { continue;}
 			if(isVarDeclToRemove(var)) {
@@ -299,7 +301,6 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 					loadProgmemStringsIntoBuffer(fcall, var, startPos);
 				}
 			}
-			index++;
 		}
 		if(replacement != "") {
 			loadReplacewithProgmemFunction(fcall, replacement);
@@ -345,7 +346,7 @@ std::set<varID> BasicProgmemTransform::getVarsInUnsafeConstructors() {
 	for(auto& cons: constructors) {
 		SgConstructorInitializer *consInit = isSgConstructorInitializer(cons);
 		SgClassDeclaration *classDecl = consInit->get_class_decl();
-		if(isArduinoStringType(classDecl->get_type()) == false) {
+		if(classDecl == NULL || isArduinoStringType(classDecl->get_type()) == false) {
 			SgExpressionPtrList exprs = consInit->get_args()->get_expressions();
 			for(auto &exp: exprs) {
 				SgVarRefExp* var = isSgVarRefExp(exp);

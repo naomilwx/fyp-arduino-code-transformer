@@ -525,7 +525,6 @@ void SimplifyOriginalCode::transformFunctionParameters(SgFunctionDeclaration *fu
 		}
 	}
 	if(proto && modified) {
-
 		if(proto->get_file_info()->get_line() == 0) {
 			return;
 		}
