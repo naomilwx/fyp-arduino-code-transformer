@@ -129,10 +129,9 @@ int BasicProgmemTransform::getBuffersizeNeededForFunction(SgFunctionDeclaration 
 		SgFunctionCallExp *fcall = isSgFunctionCallExp(funcCall);
 		Function callee(fcall);
 //		printf("function called: %s\n", callee.get_name().str());
-//		if(isArduinoProgmemSafeFunction(callee)) {
-//			continue;
-//		}
-		//TODO: check
+		if(isArduinoProgmemSafeFunction(callee)) {
+			continue;
+		}
 		param_pos_list ignoredPositions = getPositionsToIgnore(callee.get_name().getString());
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
 		int size = 0;
