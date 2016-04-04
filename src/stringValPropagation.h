@@ -79,14 +79,13 @@ class PointerAliasAnalysisTransfer : public VariableStateTransfer<PointerAliasLa
 
 
 
-class PointerAliasAnalysis : public IntraFWDataflow
-{
+class PointerAliasAnalysis : public IntraFWDataflow {
 public:
-
+	SgProject *project;
 	protected:
 		LiveDeadVarsAnalysis* ldva;
 		LiteralMap *literalMap;
-		SgProject *project;
+
 		std::map<varID, Lattice*> globalVarsLattice;
 
 	public:
@@ -115,6 +114,8 @@ public:
 
 		std::set<varID> getAliasesAtProgmemUnsafePositions(SgFunctionCallExp *func);
 		//Returns true if one of the string literal arguments is among the possible return values
+
+		std::set<int> getUnModifiedPositions(SgFunctionDeclaration *func);
 
 		std::set<varID> getAliasesForVariableAtNode(SgNode *node, varID var);
 		std::set<varID> getPossibleReturnValues(SgFunctionDeclaration *func);

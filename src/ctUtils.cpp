@@ -95,6 +95,10 @@ SgIncidenceDirectedGraph * buildProjectCallGraph(SgProject *project, bool ignore
 	return callGraph;
 }
 
+bool isDeclaredInSource(SgProject *project, SgFunctionDeclaration *dec) {
+	FunctionSet definedFuncs = getDefinedFunctions(project);
+	return definedFuncs.find(dec) != definedFuncs.end();
+}
 unsigned int getNodeDataflowIndex(SgNode *n) {
 	unsigned int index = 1; //0: entry, 1: function body, 3: exit, 2: partial expr? TODO: confirm this
 	if(isSgConstructorInitializer(n)) {
@@ -217,6 +221,14 @@ bool isArduinoProgmemSafeFunction(Function func) {
 bool isCharArrayType(SgType *type) {
 	SgType *eleType = SageInterface::getElementType(type);
 	if(isSgArrayType(type) && eleType != NULL && isSgTypeChar(eleType)) {
+		return true;
+	}
+	return false;
+}
+
+bool isCharPointerType(SgType *type) {
+	SgType *eleType = SageInterface::getElementType(type);
+	if(SageInterface::isPointerType(type) && eleType != NULL && isSgTypeChar(eleType)){
 		return true;
 	}
 	return false;

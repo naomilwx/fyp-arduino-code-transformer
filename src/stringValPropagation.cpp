@@ -192,7 +192,7 @@ void PointerAliasAnalysisTransfer::approximateFunctionCallEffect(SgFunctionCallE
 
 void PointerAliasAnalysisTransfer::propagateFunctionCallEffect(SgFunctionCallExp *fcall){
 	Function callee(fcall);
-	if(callee.get_definition()){
+	if(callee.get_definition() && isDeclaredInSource(analysis->project, callee.get_declaration())){
 		FunctionState* funcS = FunctionState::getDefinedFuncState(callee);
 		const vector<Lattice*>* funcLatticesAfter = &(funcS->state.getLatticeBelow(analysis));
 		vector<Lattice*>::const_iterator itCalleeAfter, itCallerAfter;
@@ -218,11 +218,10 @@ void PointerAliasAnalysisTransfer::propagateFunctionCallEffect(SgFunctionCallExp
 					return true;
 					});
 		}
+
+	} else {
+		approximateFunctionCallEffect(fcall);
 	}
-
-	//Quick fix. Also mark char * arguments as modified, because of compiler enforcement of const correctness.
-	approximateFunctionCallEffect(fcall);
-
 }
 
 std::map<varID,varID> PointerAliasAnalysisTransfer::getPlaceholderToArgMap(SgFunctionCallExp *fcall){
@@ -310,14 +309,8 @@ void PointerAliasAnalysisTransfer::visit(SgAggregateInitializer *sgn) {
 	PointerAliasLattice *resLat = getLattice(sgn);
 
 	SgExpression *lhs = static_cast<SgExpression *>(sgn->get_parent());
-	//printf("lhs %s\n", lhs->class_name().c_str());
 	aliasDerefCount leftArNode;
 	processLHS(lhs, leftArNode);
-	//printf("start\n");
-//	PointerAliasLattice* lhsLat =  getLattice(leftArNode.vID);
-//	if(lhsLat){
-//		lhsLat->setState(PointerAliasLattice::INITIALIZED); //TODO: should arrays of char * always be set as STATICALLY_UNKNOWN?
-//	}
 
 	if(leftArNode.var != NULL){
 		//printf("getting rhs\n");
@@ -397,7 +390,6 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 
 		for(set<varID>::iterator leftVar = leftResult.begin(); leftVar != leftResult.end(); leftVar++ ) {
 			toLat = getLattice(*leftVar);
-			//printf("lhs %s %d\n", (*leftVar).str().c_str(), rightResult.size());
 			for(set<varID>::iterator rightVar = rightResult.begin(); rightVar != rightResult.end(); rightVar++ ) {
 				toLat->setAliasedVariables(*rightVar); 
 				modified = true; 
@@ -411,7 +403,6 @@ bool PointerAliasAnalysisTransfer::updateAliases(set< std::pair<aliasDerefCount,
 			}
 		}  
 	}  
-	//	printf("updated alias\n");
 	return modified; 
 }
 
@@ -512,7 +503,7 @@ void PointerAliasAnalysisTransfer::processLHS(SgNode *node,struct aliasDerefCoun
 				} else {
 					var = varID(init_exp);
 				}
-				printf("sym: %s %s %s\n", sym->get_name().str(), var.str().c_str(), init_exp->get_type()->class_name().c_str());
+//				printf("sym: %s %s %s\n", sym->get_name().str(), var.str().c_str(), init_exp->get_type()->class_name().c_str());
 			}
 			break;
 
@@ -995,6 +986,19 @@ std::set<varID> PointerAliasAnalysis::getAliasesAtProgmemUnsafePositions(SgFunct
 		}
 	}
 	return results;
+}
+
+std::set<int> PointerAliasAnalysis::getUnModifiedPositions(SgFunctionDeclaration *func) {
+	std::set<int> res;
+	ctVarsExprsProductLattice *lattices = getReturnStateLattice(func);
+	for(int idx = 0; idx < func->get_args().size(); idx++) {
+		std::string placeholder = getPlaceholderNameForArgNum(idx);
+		PointerAliasLattice *lat = dynamic_cast<PointerAliasLattice *>(lattices->getVarLattice(varID(placeholder)));
+		if(lat->getState() != PointerAliasLattice::MODIFIED) {
+			res.insert(idx);
+		}
+	}
+	return res;
 }
 
 PointerAliasLattice *PointerAliasAnalysis::getReturnValueAliasLattice(const Function& func){

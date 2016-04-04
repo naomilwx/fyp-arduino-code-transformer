@@ -20,8 +20,9 @@ void BasicProgmemTransform::runTransformation() {
 		transformFunction(func);
 		transformStringConstructors(func);
 		transformArrayRef(func);
+		transformCharArrayInitialization(func);
 	}
-	transformCharArrayInitialization();
+
 	printf("ok\n");
 	shiftVarDeclsToProgmem();
 }
@@ -40,14 +41,14 @@ void BasicProgmemTransform::transformArrayRef(SgFunctionDeclaration *func) {
 	}
 }
 
-void BasicProgmemTransform::transformCharArrayInitialization() {
+void BasicProgmemTransform::transformCharArrayInitialization(SgFunctionDeclaration *func) {
 	/* *
 	 * Translates statements of the form:
 	 * char arr[n] = "some string"; to:
 	 * char arr[n];
 	 * strcpy_P(arr, <progmem placeholder>);
 	 * */
-	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(project, V_SgInitializedName);
+	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
 	for(auto &item: initNames) {
 		SgInitializedName *initName = isSgInitializedName(item);
 		if(initName->get_initializer() == NULL) {
@@ -233,7 +234,7 @@ void BasicProgmemTransform::loadProgmemStringsIntoBuffer(SgFunctionCallExp *func
 	instr << "\n strcpy_P(&" << FUNC_BUFFER_NAME << "[";
 	instr << pos << "], " << var->get_symbol()->get_name().getString() << ");\n";
 	SgNode *stmt = funcCall;
-	while(isSgExprStatement(stmt) == NULL && stmt->get_parent() != NULL){
+	while(isSgStatement(stmt) == NULL && stmt->get_parent() != NULL){
 		stmt = stmt->get_parent();
 	}
 	SageInterface::addTextForUnparser(stmt, instr.str(), AstUnparseAttribute::e_before);
@@ -258,7 +259,7 @@ void BasicProgmemTransform::transformStringConstructors(SgFunctionDeclaration *f
 	for(auto &cons: constructors) {
 		SgConstructorInitializer *consInit = isSgConstructorInitializer(cons);
 		SgClassDeclaration *classDecl = consInit->get_class_decl();
-		if(isArduinoStringType(classDecl->get_type())) {
+		if(classDecl != NULL && isArduinoStringType(classDecl->get_type())) {
 			SgExpressionPtrList exprs = consInit->get_args()->get_expressions();
 			for(auto &exp: exprs) {
 				SgVarRefExp* var = isSgVarRefExp(exp);
@@ -287,8 +288,9 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 		SgExpressionPtrList params = fcall->get_args()->get_expressions();
 		param_pos_list progmemPositions = getPositionsToIgnore(orig);
 		//TODO: figure out how to wrap with macro
-		int index = 0;
-		for(auto &expr: params) {
+//		for(auto &expr: params) {
+		for(int index = 0; index < params.size(); index++){
+			SgExpression *expr = params[index];
 			SgVarRefExp* var = isSgVarRefExp(expr);
 			if(var == NULL) { continue;}
 			if(isVarDeclToRemove(var)) {
@@ -298,7 +300,6 @@ void BasicProgmemTransform::transformFunction(SgFunctionDeclaration *func) {
 					loadProgmemStringsIntoBuffer(fcall, var, startPos);
 				}
 			}
-			index++;
 		}
 		if(replacement != "") {
 			loadReplacewithProgmemFunction(fcall, replacement);
@@ -344,7 +345,7 @@ std::set<varID> BasicProgmemTransform::getVarsInUnsafeConstructors() {
 	for(auto& cons: constructors) {
 		SgConstructorInitializer *consInit = isSgConstructorInitializer(cons);
 		SgClassDeclaration *classDecl = consInit->get_class_decl();
-		if(isArduinoStringType(classDecl->get_type()) == false) {
+		if(classDecl == NULL || isArduinoStringType(classDecl->get_type()) == false) {
 			SgExpressionPtrList exprs = consInit->get_args()->get_expressions();
 			for(auto &exp: exprs) {
 				SgVarRefExp* var = isSgVarRefExp(exp);

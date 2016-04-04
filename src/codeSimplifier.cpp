@@ -481,6 +481,13 @@ void SimplifyOriginalCode::runGlobalTransformation(std::map<SgNode*, std::set<Sg
 		simplifyFunction(func, global, defUse);
 	}
 	insertPlaceholderDecls();
+	transformFunctionParameters();
+}
+
+void SimplifyOriginalCode::transformFunctionParameters() {
+	for(SgFunctionDeclaration *func: getDefinedFunctions(project)){
+		transformFunctionParameters(func);
+	}
 }
 
 void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope, std::map<SgNode*, std::set<SgNode*> > &defUseInfo) {
@@ -496,6 +503,38 @@ void SimplifyOriginalCode::transformUnmodifiedStringVars() {
 			SgInitializedName* iname = isSgInitializedName(initName);
 			transformUnmodifiedStringVars(func, iname);
 		}
+	}
+}
+
+void SimplifyOriginalCode::transformFunctionParameters(SgFunctionDeclaration *func) {
+	//change unmodified args to const for const correctness req of frontend
+	std::set<int> unmodPos = aliasAnalysis->getUnModifiedPositions(func);
+	SgInitializedNamePtrList args = func->get_args();
+	SgFunctionDeclaration *proto = dynamic_cast<SgFunctionDeclaration *>(func->get_firstNondefiningDeclaration());
+	bool modified = false;
+	for(int pos: unmodPos) {
+		SgInitializedName *arg = args[pos];
+		SgType *type = arg->get_type();
+		if(SageInterface::isPointerToNonConstType(type) == false) {
+			continue;
+		}
+		if(isCharPointerType(type) || isCharArrayType(type)) {
+			SgType *newType =  SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
+			arg->set_type(newType);
+			modified = true;
+		}
+	}
+	if(proto && modified) {
+		if(proto->get_file_info()->get_line() == 0) {
+			return;
+		}
+		SgType *retType = func->get_orig_return_type();
+		SgFunctionParameterList *params = func->get_parameterList();
+		SgScopeStatement *scope = proto->get_scope();
+		SgExprListExp *decoratorList=func->get_decoratorList();
+		SgFunctionDeclaration* newProto = SageBuilder::buildNondefiningFunctionDeclaration(func->get_name(), retType, params, scope, decoratorList);
+		SageInterface::replaceStatement(proto, newProto, true);
+		printf("new proto %s\n", newProto->unparseToString().c_str());
 	}
 }
 
@@ -533,13 +572,6 @@ void  SimplifyOriginalCode::removeStringLiteral(SgStringVal *strVal) {
 	SgVarRefExp *ref = SageBuilder::buildVarRefExp(placeholder);
 	SageInterface::replaceExpression(strVal, ref);
 }
-
-//Deprecated stuff
-//void SimplifyOriginalCode::runTransformation() {
-//	for(auto &func: getDefinedFunctions(project)) {
-//		simplifyFunction(func);
-//	}
-//}
 
 void SimplifyOriginalCode::simplifyFunction(SgFunctionDeclaration *func) {
 	SimplifyFunctionDeclaration funcHelper(aliasAnalysis, sla, func, project);
