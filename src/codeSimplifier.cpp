@@ -525,16 +525,18 @@ void SimplifyOriginalCode::transformFunctionParameters(SgFunctionDeclaration *fu
 		}
 	}
 	if(proto && modified) {
-		//const SgName &name, SgType *return_type, SgFunctionParameterList *parameter_list, SgScopeStatement *scope=NULL, SgExprListExp *decoratorList=NULL
+
+		if(proto->get_file_info()->get_line() == 0) {
+			return;
+		}
 		SgType *retType = func->get_orig_return_type();
 		SgFunctionParameterList *params = func->get_parameterList();
 		SgScopeStatement *scope = proto->get_scope();
 		SgExprListExp *decoratorList=func->get_decoratorList();
 		SgFunctionDeclaration* newProto = SageBuilder::buildNondefiningFunctionDeclaration(func->get_name(), retType, params, scope, decoratorList);
 		SageInterface::replaceStatement(proto, newProto, true);
-		printf("proto %s\n", newProto->unparseToString().c_str());
+		printf("new proto %s\n", newProto->unparseToString().c_str());
 	}
-
 }
 
 void SimplifyOriginalCode::transformUnmodifiedStringVars(SgFunctionDeclaration *func, SgInitializedName *initName) {
