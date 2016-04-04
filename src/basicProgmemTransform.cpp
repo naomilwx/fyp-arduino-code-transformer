@@ -20,8 +20,9 @@ void BasicProgmemTransform::runTransformation() {
 		transformFunction(func);
 		transformStringConstructors(func);
 		transformArrayRef(func);
+		transformCharArrayInitialization(func);
 	}
-	transformCharArrayInitialization();
+
 	printf("ok\n");
 	shiftVarDeclsToProgmem();
 }
@@ -40,14 +41,14 @@ void BasicProgmemTransform::transformArrayRef(SgFunctionDeclaration *func) {
 	}
 }
 
-void BasicProgmemTransform::transformCharArrayInitialization() {
+void BasicProgmemTransform::transformCharArrayInitialization(SgFunctionDeclaration *func) {
 	/* *
 	 * Translates statements of the form:
 	 * char arr[n] = "some string"; to:
 	 * char arr[n];
 	 * strcpy_P(arr, <progmem placeholder>);
 	 * */
-	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(project, V_SgInitializedName);
+	Rose_STL_Container<SgNode *> initNames = NodeQuery::querySubTree(func, V_SgInitializedName);
 	for(auto &item: initNames) {
 		SgInitializedName *initName = isSgInitializedName(item);
 		if(initName->get_initializer() == NULL) {
