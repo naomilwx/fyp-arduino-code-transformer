@@ -112,6 +112,7 @@ public:
 	void simplifyFunction(SgFunctionDeclaration *func, SgScopeStatement *varDeclScope, std::map<SgNode*, std::set<SgNode*> > &defUseInfo);
 
 	void transformUnmodifiedStringVars();
+	void transformFunctionParameters();
 
 private:
 	std::map<std::string, SgVariableDeclaration *> sharedPlaceholders;
@@ -121,6 +122,7 @@ private:
 	void replaceGlobalVars(std::set<varID> vars);
 	bool isConstantValueGlobalVar(SgInitializedName *initName);
 	void transformUnmodifiedStringVars(SgFunctionDeclaration *func, SgInitializedName *initName);
+	void transformFunctionParameters(SgFunctionDeclaration *func);
 	void insertPlaceholderDecls();
 };
 

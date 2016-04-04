@@ -58,7 +58,7 @@ private:
 	void transformArrayRef(SgFunctionDeclaration *func);
 	void handleProgmemArrayIndexRef(SgPntrArrRefExp *ref);
 
-	void transformCharArrayInitialization();
+	void transformCharArrayInitialization(SgFunctionDeclaration *func);
 	int getDeclaredArraySize(SgArrayType *arrType);
 	SgVariableDeclaration *getVariableDeclPlaceholderForString(const std::string& str, SgScopeStatement *scope);
 
