@@ -17,3 +17,4 @@ rm $dir/$filename
 rm rose_*.cpp
 rm -r debugprints
 rm ${filename%.*}.o
+rm rose*.o
