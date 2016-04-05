@@ -11,7 +11,7 @@ This is a proof-of-concept implementation of a source-to-source code transformer
 
 ### Setup
 Due to the specific version of GCC required to build ROSE (GCC-4.2.4 to 4.8.4), this project was worked on in a Docker container. The docker container is set up courtesy of https://github.com/AlexMarginean/dockerizedROSE.
-However, Docker is not a prerequisite to running the code. It can be run on any computer setup with ROSE
+However, Docker is not a prerequisite to running the code. It can be run on any computer setup with ROSE, however due to a minor bug in ROSE which affects the function return value propagation for dataflow analysis when analysisDebugLevel is set to 0, the docker image at https://hub.docker.com/r/naomilwx/dockerrosebuild/ should be used
 
 ### Running the tool
 To run the transformer, run
