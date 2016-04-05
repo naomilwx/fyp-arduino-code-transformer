@@ -10,10 +10,6 @@ echo "#define	prog_char	char
 #include <Arduino.h>
 $(cat $1)" > $dir/$filename
 echo $filename
-make combined file=$dir/$filename userincl="${*:2}"
-sed -i '1,3d' "rose_rose_$filename"
-mv "rose_rose_$filename" "$resultdir/$filename.ino"
+make check file=$dir/$filename userincl="${*:2}"
 rm $dir/$filename
-rm rose_*.cpp
-rm -r debugprints
-rm ${filename%.*}.o
+

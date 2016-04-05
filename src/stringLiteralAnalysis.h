@@ -25,23 +25,25 @@ class StringLiteralInfo {
 	std::string tag;
 	FunctionMap funcOccurances; //Map of function decl to the statements containing the string literal
 	SgVariableDeclaration *placeholder;
+	int numOccurances;
 
 	public:
-	StringLiteralInfo(): funcOccurances(), tag() {
+	StringLiteralInfo(): funcOccurances(), tag(), numOccurances(0){
 		placeholder = NULL;
 		}
 
-	StringLiteralInfo(int tagNum, SgGlobal *global) {
+	StringLiteralInfo(int tagNum, SgGlobal *global): numOccurances(0) {
 		tag = STRING_LITERAL_PREFIX + to_string(tagNum);
 		SgType *type = SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildCharType()));
 		placeholder = SageBuilder::buildVariableDeclaration_nfi(tag, type, NULL, global);
 	}
 
 	std::string getTag() const;
-
+	int getNumOccurances() const;
 	int getFuncOccuranceNum() const;
 	std::string getSummaryPrintout() const;
 
+	void incNumOccurance();
 	SgVariableDeclaration *getPlaceholder() {
 		return placeholder;
 	};
@@ -98,5 +100,4 @@ public:
 	void postOrderVisit(SgNode *node);
 };
 
-void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap);
 #endif

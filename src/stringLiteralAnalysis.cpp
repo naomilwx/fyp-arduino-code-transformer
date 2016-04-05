@@ -21,6 +21,10 @@ std::string StringLiteralInfo::getTag() const {
 	return tag;
 }
 
+int StringLiteralInfo::getNumOccurances() const {
+	return numOccurances;
+}
+
 int StringLiteralInfo::getFuncOccuranceNum() const {
 	return funcOccurances.size();
 }
@@ -44,6 +48,9 @@ std::string StringLiteralInfo::getSummaryPrintout() const{
 	return out.str();
 }
 
+void StringLiteralInfo::incNumOccurance() {
+	numOccurances+=1;
+}
 bool StringLiteralInfo::occursInFunc(SgFunctionDeclaration *func) const{
 	return funcOccurances.find(func) != funcOccurances.end();
 }
@@ -57,7 +64,7 @@ void StringLiteralAnalysis::runAnalysis() {
 long StringLiteralAnalysis::getTotalStringSize() {
 	long total = 0;
 	for(auto const& item: strLiterals) {
-		total += item.first.size();
+		total += item.first.size() * item.second.getNumOccurances();
 	}
 	return total;
 }
@@ -159,12 +166,11 @@ void StringLiteralAnalysisVisitor::visitStringVal(SgStringVal *node){
 		analyser->strLiterals[item] = t;
 	}
 	StringLiteralInfo &sInfo = analyser->strLiterals[item];
-	int numFuncOcc = 0;
+	sInfo.incNumOccurance();
 	if(!declStack.empty()){
 		SgFunctionDeclaration *decl = declStack.top();
 		//		printf(" function name %s\n", decl->get_name().getString().c_str());
 		sInfo.addFuncOccurance(decl, p);
-		numFuncOcc = sInfo.getFuncOccuranceNum();
 	}
 
 //	analyser->slMap[p].insert(item);
@@ -192,33 +198,3 @@ void StringLiteralAnalysisVisitor::postOrderVisit(SgNode *node){
 	}
 }
 
-void addProgmemStringLiterals(SgProject *project, LiteralMap *lMap){	
-	SgGlobal *global = SageInterface::getFirstGlobalScope(project);
-	std::string pre;
-	for(auto &item: *lMap) {
-		std::string literal = item.first;
-		std::string tag = item.second.getTag();
-		pre += "\n const char " + tag + "[] PROGMEM = \""+ literal +"\";";
-	}
-	SgDeclarationStatementPtrList & stmtList = global->get_declarations ();
-	if (stmtList.size()>0) // the source file is not empty
-	{
-		for (SgDeclarationStatementPtrList::iterator j = stmtList.begin ();
-				j != stmtList.end (); j++){
-			//must have this judgement, otherwise wrong file will be modified!
-			//It could also be the transformation generated statements with #include attached
-			if ( ((*j)->get_file_info ())->isSameFile(global->get_file_info ())||
-					((*j)->get_file_info ())->isTransformation()) {
-
-				PreprocessingInfo* result = new PreprocessingInfo(PreprocessingInfo::CpreprocessorIncludeDeclaration, pre, "Transformation generated",0, 0, 0, PreprocessingInfo::before);
-				(*j)->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
-				break;
-			}
-
-		}
-	}else{
-		PreprocessingInfo* result = new PreprocessingInfo(PreprocessingInfo::CpreprocessorIncludeDeclaration, pre, "Transformation generated",0, 0, 0, PreprocessingInfo::after);
-		global->addToAttachedPreprocessingInfo(result, PreprocessingInfo::after);
-	}
-
-}
