@@ -20,7 +20,7 @@ int main( int argc, char * argv[] ) {
   initAnalysis(project);
   cfgUtils::initCFGUtils(project);
 
-  Dbg::init("progmem transform", "./progmem", "index.html");
+  Dbg::init("progmem transform", "./debugprints", "index.html");
 
   analysisDebugLevel = 0;
 

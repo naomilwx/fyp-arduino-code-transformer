@@ -15,4 +15,5 @@ sed -i '1,3d' "rose_rose_$filename"
 mv "rose_rose_$filename" "$resultdir/$filename.ino"
 rm $dir/$filename
 rm rose_*.cpp
+rm -r debugprints
 rm ${filename%.*}.o
