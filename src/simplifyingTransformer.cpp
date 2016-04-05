@@ -15,7 +15,7 @@
 
 using namespace ssa_unfiltered_cfg;
 typedef std::map<SgNode*, std::set<SgNode*> > DefUseChains;
-//analysisDebugLevel must be set to 1, else return info is not stored... Rose bug in MergeAllReturnStates::mergeLats
+
 
 void transformUnmodifiedStringVars(StringLiteralAnalysis *lanalysis, SgProject *project) {
 	PointerAliasAnalysisDebugLevel = 0;
@@ -53,7 +53,7 @@ int main( int argc, char * argv[] ) {
   cfgUtils::initCFGUtils(project);
   Dbg::init("debug", "./debugprints", "index.html");
 
-  analysisDebugLevel = 1;
+  analysisDebugLevel = 0;
 
   //Setup def use analysis for use later. This must be done before any changes to the current ast is made
   ssa_private::UniqueNameTraversal uniqueTrav(SageInterface::querySubTree<SgInitializedName > (project, V_SgInitializedName));
