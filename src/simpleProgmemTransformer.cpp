@@ -27,7 +27,7 @@ int main( int argc, char * argv[] ) {
   StringLiteralAnalysis lanalysis(project);
   lanalysis.runAnalysis();
 
-  analysisDebugLevel = 1;
+//  analysisDebugLevel = 1;
   PointerAliasAnalysisDebugLevel = 0;
   PointerAliasAnalysis pal(NULL, project, lanalysis.getLiteralMap());
   pal.runAnalysis();

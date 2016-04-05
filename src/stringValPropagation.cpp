@@ -265,6 +265,7 @@ void PointerAliasAnalysisTransfer::visit(SgFunctionDefinition *fdef) {
 			lhsLat->setAliasRelation(make_pair(left,right));
 			updateAliases(lhsLat->getAliasRelations(), 1);
 		}
+		index++;
 	}
 }
 
@@ -991,10 +992,13 @@ std::set<varID> PointerAliasAnalysis::getAliasesAtProgmemUnsafePositions(SgFunct
 std::set<int> PointerAliasAnalysis::getUnModifiedPositions(SgFunctionDeclaration *func) {
 	std::set<int> res;
 	ctVarsExprsProductLattice *lattices = getReturnStateLattice(func);
+	if(lattices == NULL) {
+		return res;
+	}
 	for(int idx = 0; idx < func->get_args().size(); idx++) {
 		std::string placeholder = getPlaceholderNameForArgNum(idx);
 		PointerAliasLattice *lat = dynamic_cast<PointerAliasLattice *>(lattices->getVarLattice(varID(placeholder)));
-		if(lat->getState() != PointerAliasLattice::MODIFIED) {
+		if(lat && lat->getState() != PointerAliasLattice::MODIFIED) {
 			res.insert(idx);
 		}
 	}
