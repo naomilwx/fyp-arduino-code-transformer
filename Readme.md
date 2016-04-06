@@ -14,6 +14,8 @@ Due to the specific version of GCC required to build ROSE (GCC-4.2.4 to 4.8.4), 
 However, Docker is not a prerequisite to running the code. It can be run on any computer setup with ROSE, however due to a minor bug in ROSE which affects the function return value propagation for dataflow analysis when analysisDebugLevel is set to 0, the docker image at https://hub.docker.com/r/naomilwx/dockerrosebuild/ should be used
 
 The image docker image should be run on a computer with at least 50GB of free disk space.
+
+The build scripts and additional instructions are at https://github.com/naomilwx/fyp-dockerbuild
 ### Running the tool
 To run the transformer, run
 `./run.sh <file-to-transform>`
